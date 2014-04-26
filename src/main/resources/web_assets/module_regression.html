@@ -1,0 +1,2680 @@
+<!DOCTYPE html>
+<html><!-- InstanceBegin template="/Templates/pdtoolgui.dwt" codeOutsideHTMLIsLocked="false" -->
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<!-- InstanceBeginEditable name="doctitle" -->
+        <title>PDTool: Modules - Regression</title>
+<!-- InstanceEndEditable -->
+        <link rel="stylesheet" type="text/css" href="css/styles.css">
+        <link rel="stylesheet" type="text/css" href="css/smoothness/jquery-ui-1.10.2.custom.css" />
+        <link rel="stylesheet" type="text/css" href="css/ui.jqgrid.css" />
+        <script type="text/javascript" src="js/jquery-1.9.1.js"></script>
+        <script type="text/javascript" src="js/jquery-ui-1.10.2.custom.js"></script>
+        <script type="text/javascript" src="js/i18n/grid.locale-en.js"></script>
+        <script type="text/javascript" src="js/jquery.jqGrid.src.js"></script>
+        <script type="text/javascript" src="js/jquery-queryParser.min.js"></script>
+        <script type="text/javascript" src="js/pdtoolgui.js"></script>
+        <script type="text/javascript" src="js/pdtoolgui_docs_en.js"></script>
+<!-- InstanceBeginEditable name="head" -->
+        <script language="javascript">
+        
+            // set an event handler to fire when the page's DOM is complete (not necessarily when all the images or CSS finish loading.)
+            // this is similar to the <body> tag's "onload" attribute. however, "onload" waits until all the other resources (CSS,
+            // images, etc.) are done loading, too. this way the construction of the table can start a bit sooner.
+            //
+            $(document).ready (function() { 
+
+                // check access status and forward to incex.html if access is denied.
+                //
+                $.getJSON (
+                    "/security?rnd=" + myRand(), // base URL
+                    null,                       // argument
+                    function(data) {            // callback function to parse data
+                        if (data.status == "error") {
+                            location = "/pdtoolgui/index.html?denied=true&rnd=" + myRand();
+                        }
+                    }
+                );
+
+                // update the navigation tabs by highlighting the correct tab
+                //
+                setActiveNavTab('nav_tab_modules'); 
+                
+                createAlertDialog();
+                createConfirmDialog();
+
+                // parse this page's URL query parameters
+                //
+                var queryParams = $.parseQuery(location.search);
+
+                // set the module path at the top of the page so the user knows what file he/she is working on.
+                // URL decode the string and HTML-escape any special characters.
+                //
+                var modulePath = decodeURIComponent(queryParams.path.replace(/\+/g, " "));
+                $("#module_path").html (modulePath.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\s/g, "&nbsp;"));
+                
+                // set the active submenu item and set click event handlers on all submenu items
+                //
+                $("#nav_submenu_archive")         .click(function() {location='modules_archive.html'});
+                $("#nav_submenu_data_source")     .click(function() {location='modules_data_source.html'});
+                $("#nav_submenu_group")           .click(function() {location='modules_group.html'});
+                $("#nav_submenu_privilege")       .click(function() {location='modules_privilege.html'});
+                $("#nav_submenu_rebind")          .click(function() {location='modules_rebind.html'});
+                $("#nav_submenu_regression")      .click(function() {location='modules_regression.html'}).addClass("nav_submenu_item_active");
+                $("#nav_submenu_resource")        .click(function() {location='modules_resource.html'});
+                $("#nav_submenu_resource_cache")  .click(function() {location='modules_resource_cache.html'});
+                $("#nav_submenu_server_attribute").click(function() {location='modules_server_attribute.html'});
+                $("#nav_submenu_server_manager")  .click(function() {location='modules_server_manager.html'});
+                $("#nav_submenu_trigger")         .click(function() {location='modules_trigger.html'});
+                $("#nav_submenu_user")            .click(function() {location='modules_user.html'});
+                $("#nav_submenu_vcs")             .click(function() {location='modules_vcs.html'});
+
+                // enable the more/less functions of the page description
+                //
+                //setCollapsable();
+
+                // enable tooltips over editor fields
+                //
+                setTooltips (TOOLTIPS["module_regression"]);
+
+                // load the user's preferences.
+                //
+                var prefs;
+                $.getJSON (
+                    "/prefs?rnd=" + myRand(), // base URL
+                    null,                                         // argument
+                    function(data) {prefs = data;}                // callback function
+                );
+
+                // build the main table and populate with a REST/JSON call
+                //
+                list = $("#list")
+                    .jqGrid({
+                        url:'/regression_module/' + encodeURIComponent (queryParams.path),
+                        datatype: 'json',
+                        mtype: 'GET',
+                        autoencode: true,
+                        colNames:['Regression ID', 'Regression Type', 'Input File Path / User', 'Datasource', 'Query'],
+                        colModel :[ 
+                            {name:'id', index:'id', width:100, classes:"idGridCell"},
+                            {name:'type', index:'type', width:100},
+                            {name:'inputFilePath', index:'inputFilePath', width:500},
+                            {name:'datasource', index:'datasource', width:200},
+                            {name:'query', index:'query', width:500}
+                        ],
+                        pager: '#pager',
+                        height: "auto",
+                        autowidth: true,
+                        rowNum:10,
+                        rowList:[10,20,50],
+                        recordtext: "Regressions {0} - {1} of {2}",
+                        sortname: 'id',
+                        sortorder: 'asc',
+                        viewrecords: true,
+                        gridview: true,
+                        multiselect: true,
+
+                        // add a "before select row" event handler that blocks checking of the row's checkbox when the "id"
+                        // column is clicked, but opens the editor for the id instead. depends on the "idGridCell" class being
+                        // added to the column definition of the "id" column.
+                        //
+                        beforeSelectRow: function (rowid, e) {
+                            if ($(e.target).hasClass("idGridCell")) {
+                                
+                                $.getJSON (
+                                    "/regression/" + encodeURIComponent (queryParams.path) + "?id=" + encodeURIComponent (rowid), // base URL
+                                    null,                                    // argument
+                                    setDialogData                            // callback function to parse data
+                                );
+        
+                                operation.val("edit");
+                                $("#addEditDialog").dialog ({title: "Edit Regression"});
+                                $("#addEditDialog").dialog ("open");
+                                return false;
+                            } else {
+                                return true;
+                            }
+                        }
+                    }) // .jqGrid()
+                    
+                    .navGrid( // normally sets up buttons at bottom of grid, but we get rid of them so we can reorder the buttons below
+                        '#pager', 
+                        {
+                            edit: false,
+                            add: false,
+                            del: false,
+                            search: true,
+                            searchtitle: "Search for Regression Elements"
+                        },  // nav
+                        {}, // edit
+                        {}, // add
+                        {}, // del
+                        {
+                            closeAfterSearch: true,
+                            closeAfterReset: true,
+                            closeOnEscape: true,
+                            resize: false,
+                            searchOnEnter: true
+                        }, // search
+                        {
+                            caption: "my view caption"
+                        }   // view
+                    )  // .navGrid()
+                    
+                    // set up custom buttons in the order we want. load them in reverse order so they can be placed in front of the search and refresh buttons.
+                    //
+                    .navButtonAdd(
+                        '#pager',
+                        {
+                            caption: "",
+                            buttonicon: "ui-icon-trash",
+                            onClickButton: function (jqEvent) { 
+                                var selList = list.getGridParam('selarrrow'); // list of selected rows
+
+                                if (selList.length == 0) {
+                                    myAlert ("Please select at least one regression element to delete.");
+                                    return false;
+                                }
+
+                                var args = "";
+                                var confirmList = "";
+                                for (var i = 0; i < selList.length; i++) {
+                                    if (i > 0) args += ",";
+                                    args += selList[i];
+    
+                                    if (i > 0) confirmList += "<br/>";
+                                    confirmList += decodeURIComponent (selList[i].replace (/\+/, " "));
+                                }
+                                
+                                myConfirm (
+                                    "Do you want to delete the following regression element(s)?<br/><br/>" + confirmList, 
+                                    function() {
+                                        $.ajax({  
+                                            type: "DELETE",
+                                            contentType: 'application/json',
+                                            url: "/regression/" + encodeURIComponent (queryParams.path) + "?ids=" + encodeURIComponent (args) + "&rnd=" + myRand(), // base URL
+                                            dataType: "json",
+                                            success: function (data) {
+                                                processAjaxResult (
+                                                    data, 
+                                                    {
+                                                        useDialog:false, 
+                                                        reloadGrid:true
+                                                    }
+                                                );
+ 
+                                                // update the set of auto complete data for the security plan dialog
+                                                //
+                                                setSecurityUserAutoCompleteData (modulePath);
+                                                setSecurityQueryAutoCompleteData (modulePath);
+
+                                            },
+                                            // this should only happen when things get seriously wrong on the server
+                                            //
+                                            error: function(jqXHR, textStatus, errorThrown) {
+                                                myAlert ("textStatus = " + textStatus + "<br/>errorThrown = " + errorThrown);
+                                            }
+                                        }); 
+                                    }
+                                );
+                            },
+                            title: "Delete Regression Element",
+                            position: "first"
+                        }
+                    )  // .navGrid()
+                    
+                    .navButtonAdd(
+                        '#pager',
+                        {
+                            caption: "",
+                            buttonicon: "ui-icon-copy",
+                            onClickButton: function (jqEvent) { 
+                                var selList = list.getGridParam('selarrrow'); // list of selected rows
+
+                                if (selList.length == 0) {
+                                    myAlert ("Please select at least one regression element to copy.");
+                                    return false;
+                                }
+
+                                var args = "";
+                                var confirmList = "";
+                                for (var i = 0; i < selList.length; i++) {
+                                    if (i > 0) args += ",";
+                                    args += selList[i];
+    
+                                    if (i > 0) confirmList += "<br/>";
+                                    confirmList += decodeURIComponent (selList[i]);
+                                }
+                                
+                                myConfirm (
+                                    "Do you want to copy the following regression element(s)?<br/><br/>" + confirmList, 
+                                    function() {
+                                        $.ajax({  
+                                            type: "POST",
+                                            contentType: 'application/json',
+                                            url: "/regression/" + encodeURIComponent (queryParams.path) + "?ids=" + encodeURIComponent (args) + "&rnd=" + myRand(), // base URL
+                                            dataType: "json",
+                                            data: null,
+                                            success: function (data) {
+                                                processAjaxResult (
+                                                    data, 
+                                                    {
+                                                        useDialog:false, 
+                                                        reloadGrid:true
+                                                    }
+                                                );
+
+                                                // update the set of auto complete data for the security plan dialog
+                                                //
+                                                setSecurityUserAutoCompleteData (modulePath);
+                                                setSecurityQueryAutoCompleteData (modulePath);
+
+                                            },
+                                            // this should only happen when things get seriously wrong on the server
+                                            //
+                                            error: function(jqXHR, textStatus, errorThrown) {
+                                                myAlert ("textStatus = " + textStatus + "<br/>errorThrown = " + errorThrown);
+                                            }
+                                        }); 
+                                    }
+                                );
+                            },
+                            title: "Copy Regression Element",
+                            position: "first"
+                        }
+                    )  // .navGrid()
+                    
+                    .navButtonAdd(
+                        '#pager',
+                        {
+                            caption: "",
+                            buttonicon: "ui-icon-pencil",
+                            onClickButton: function() {
+                                var selList = list.getGridParam('selarrrow');
+
+                                if (selList.length > 1) {
+                                    myAlert ("Cannot edit more than one item at a time.");
+                                    return false;
+                                } else if (selList.length == 0) {
+                                    myAlert ("Please select a regression element to edit.");
+                                    return false;
+                                }
+
+                                $.getJSON (
+                                    "/regression/" + encodeURIComponent (queryParams.path) + "?id=" + encodeURIComponent (selList[0]) + "&rnd=" + myRand(), // base URL
+                                    null,                                         // argument
+                                    setDialogData                                 // callback function to parse data
+                                );
+
+                                operation.val("edit");
+                                $("#addEditDialog").dialog ({title: "Edit Regression Element"});
+                                $("#addEditDialog").dialog ("open");
+                            },
+                            title: "Edit Regression Element",
+                            position: "first"
+                        }
+                    )  // .navGrid()
+                    
+                    .navButtonAdd(
+                        '#pager',
+                        {
+                            caption: "",
+                            buttonicon: "ui-icon-plus",
+                            onClickButton: function() {
+                                operation.val("add");
+
+                                setDialogData({ // reset the form values to the defaults.
+                                    id: "",
+                                    origId: "",
+                                    type: 0,
+                                    inputFilePath: "",
+                                    createNewFile: false,
+                                    newFileParams: null,
+                                    testRunParams: null,
+                                    compareFiles: null,
+                                    compareLogs: null,
+                                    datasource: "",
+                                    query: "",
+                                    durationDelta: "",
+                                    wsPath: "",
+                                    wsAction: "",
+                                    wsEncrypt: false,
+                                    wsContentType: 0
+                                });
+
+                                $("#addEditDialog").dialog ({title: "Add Regression"});
+                                $("#addEditDialog").dialog ("open");
+                                id.focus();
+                            },
+                            title: "Add New Regression Element",
+                            position: "first"
+                        }
+                    );  // .navGrid()
+                    
+
+                $(window).bind('resize', function() {
+                    list.setGridWidth($(window).width() - 60); // 30 pixels of padding on either side of the jqGrid.
+                }).trigger('resize');
+                
+                // set up the initial set of auto complete data for the security plan dialog
+                //
+                setSecurityUserAutoCompleteData (modulePath);
+                setSecurityQueryAutoCompleteData (modulePath);
+
+                // set up the add/edit dialog
+                //
+                var operation = $("#operation"),
+                    origId = $("#origId"),
+                    id = $("#id"),
+                    
+                    // test input fields
+                    //
+                    inputFilePath = $("#inputFilePath"),
+                    
+                    nfp_createSoapType = $("#nfp_createSoapType"),
+                    nfp_publishedViewQry = $("#nfp_publishedViewQry"),
+                    nfp_publishedProcQry = $("#nfp_publishedProcQry"),
+                    nfp_datasources = $("#nfp_datasources"),
+                    nfp_resources = $("#nfp_resources"),
+                    
+                    sgo_pathToTargetRegressionXML = $("#sgo_pathToTargetRegressionXML"),
+                    sgo_encryptedPassword = $("#sgo_encryptedPassword"),
+                    sgo_userFilter = $("#sgo_userFilter"),
+                    sgo_domainFilter = $("#sgo_domainFilter"),
+                    sgo_userMode = $("#sgo_userMode"),
+                    sgo_queryMode = $("#sgo_queryMode"),
+                    sgo_planMode = $("#sgo_planMode"),
+                    sgo_planModeType = $("#sgo_planModeType"),
+                    sgo_planIdPrefix = $("#sgo_planIdPrefix"),
+                    
+                    trp_testType = $("#trp_testType"),
+                    trp_logFilePath = $("#trp_logFilePath"),
+                    trp_logDelimiter = $("#trp_logDelimiter"),
+                    trp_baseDir = $("#trp_baseDir"),
+                    trp_delimiter = $("#trp_delimiter"),
+                    trp_printOutput = $("#trp_printOutput"),
+                    trp_perfTestThreads = $("#trp_perfTestThreads"),
+                    trp_perfTestDuration = $("#trp_perfTestDuration"),
+                    trp_perfTestSleepPrint = $("#trp_perfTestSleepPrint"),
+                    trp_perfTestSleepExec = $("#trp_perfTestSleepExec"),
+                    trp_datasources = $("#trp_datasources"),
+                    trp_resources = $("#trp_resources"),
+                    
+                    cf_logFilePath = $("#cf_logFilePath"),
+                    cf_logDelimiter = $("#cf_logDelimiter"),
+                    cf_baseDir1 = $("#cf_baseDir1"),
+                    cf_baseDir2 = $("#cf_baseDir2"),
+                    cf_datasources = $("#cf_datasources"),
+                    cf_resources = $("#cf_resources"),
+                    
+                    cl_logFilePath = $("#cl_logFilePath"),
+                    cl_logDelimiter = $("#cl_logDelimiter"),
+                    cl_logFilePath1 = $("#cl_logFilePath1"),
+                    cl_logFilePath2 = $("#cl_logFilePath2"),
+                    cl_logDelimiter1 = $("#cl_logDelimiter1"),
+                    cl_logDelimiter2 = $("#cl_logDelimiter2"),
+                    cl_durationDelta_days = $("#cl_durationDelta_days"),
+                    cl_durationDelta_hour = $("#cl_durationDelta_hour"),
+                    cl_durationDelta_min = $("#cl_durationDelta_min"),
+                    cl_durationDelta_sec = $("#cl_durationDelta_sec"),
+                    
+                    bitVal = $("#bitVal"),
+                    varcharVal = $("#varcharVal"),
+                    charVal = $("#charVal"),
+                    clobVal = $("#clobVal"),
+                    integerVal = $("#integerVal"),
+                    intVal = $("#intVal"),
+                    bigintVal = $("#bigintVal"),
+                    smallintVal = $("#smallintVal"),
+                    tinyintVal = $("#tinyintVal"),
+                    decimalVal = $("#decimalVal"),
+                    numericVal = $("#numericVal"),
+                    realVal = $("#realVal"),
+                    floatVal = $("#floatVal"),
+                    doubleVal = $("#doubleVal"),
+                    dateVal = $("#dateVal"),
+                    timeVal = $("#timeVal"),
+                    timestampVal = $("#timestampVal"),
+                    binaryVal = $("#binaryVal"),
+                    varbinaryVal = $("#varbinaryVal"),
+                    blobVal = $("#blobVal"),
+                    xmlVal = $("#xmlVal"),
+                    
+                    
+                    // query and security query input fields
+                    //
+                    datasource = $("#datasource"),
+                    queryType = $("#queryType"),
+                    query = $("#query"),
+                    procOutTypes = $("#procOutTypes"),
+                    durationDelta_days = $("#durationDelta_days"),
+                    durationDelta_hour = $("#durationDelta_hour"),
+                    durationDelta_min = $("#durationDelta_min"),
+                    durationDelta_sec = $("#durationDelta_sec"),
+                    wsPath = $("#wsPath"),
+                    wsAction = $("#wsAction"),
+                    wsContentType = $("#wsContentType"),
+                    resourcePath = $("#resourcePath"),
+                    resourceType = $("#resourceType"),
+                    
+                    // security user input fields
+                    //
+                    userName = $("#userName"),
+                    encryptedPassword = $("#encryptedPassword"),
+                    domain = $("#domain"),
+
+                    allFields = $([]).add (operation).add (origId).add (id).add (inputFilePath)
+
+                                     .add (nfp_createSoapType).add (nfp_publishedViewQry).add (nfp_publishedProcQry)
+                                     .add (nfp_datasources).add (nfp_resources)
+
+                                     .add (sgo_pathToTargetRegressionXML).add (sgo_encryptedPassword).add (sgo_userFilter).add (sgo_domainFilter)
+                                     .add (sgo_userMode).add (sgo_queryMode).add (sgo_planMode).add (sgo_planModeType).add (sgo_planIdPrefix)
+
+                                     .add (trp_testType).add (trp_logFilePath).add (trp_logDelimiter).add (trp_baseDir)
+                                     .add (trp_delimiter).add (trp_printOutput).add (trp_perfTestThreads).add (trp_perfTestDuration)
+                                     .add (trp_perfTestSleepPrint).add (trp_perfTestSleepExec).add (trp_datasources).add (trp_resources)
+                                     
+                                     .add (cf_logFilePath).add (cf_logDelimiter).add (cf_baseDir1).add (cf_baseDir2)
+                                     .add (cf_datasources).add (cf_resources)
+                                     
+                                     .add (cl_logFilePath).add (cl_logDelimiter).add (cl_logFilePath1).add (cl_logFilePath2)
+                                     .add (cl_logDelimiter1).add (cl_logDelimiter1).add (cl_durationDelta_days)
+                                     .add (cl_durationDelta_hour).add (cl_durationDelta_min).add (cl_durationDelta_sec)
+                                     
+                                     .add (bitVal).add (varcharVal).add (charVal).add (clobVal).add (integerVal)
+                                     .add (intVal).add (bigintVal).add (smallintVal).add (tinyintVal).add (decimalVal)
+                                     .add (numericVal).add (realVal).add (floatVal).add (doubleVal).add (dateVal)
+                                     .add (timeVal).add (timestampVal).add (binaryVal).add (varbinaryVal).add (blobVal)
+                                     .add (xmlVal)
+                                     
+                                     .add (datasource).add (queryType).add (query).add (procOutTypes).add (durationDelta_days)
+                                     .add (durationDelta_hour).add (durationDelta_min).add (durationDelta_sec).add (wsPath)
+                                     .add (wsAction).add (wsContentType).add (resourcePath).add (resourceType)
+                                     
+                                     .add (userName).add (encryptedPassword).add (domain);
+
+                setResourceTypeSelectData ("#resourceType", false);
+
+                $("#tabs").tabs();
+                
+                //$("#reg_type").buttonset();
+                $("#createNewFile").buttonset();
+
+                $("#nfp_createQueries").buttonset();
+                $("#nfp_createProcedures").buttonset();
+                $("#nfp_createWS").buttonset();
+                $("#nfp_useDefaultViewQuery").buttonset();
+                $("#nfp_useDefaultProcQuery").buttonset();
+                $("#nfp_useDefaultWSQuery").buttonset();
+                $("#nfp_useAllDatasources").buttonset();
+                
+                $("#sgo_planGenerateExpectedOutcome").buttonset();
+                $("#sgo_flattenSecurityUsersXML").buttonset();
+                $("#sgo_flattenSecurityQueryQueriesXML").buttonset();
+                $("#sgo_flattenSecurityQueryProceduresXML").buttonset();
+                $("#sgo_flattenSecurityQueryWebServicesXML").buttonset();
+                $("#sgo_flattenSecurityPlansXML").buttonset();
+                
+                $("#trp_logAppend").buttonset();
+                $("#trp_runQueries").buttonset();
+                $("#trp_runProcedures").buttonset();
+                $("#trp_runWS").buttonset();
+                $("#trp_useAllDatasources").buttonset();
+                
+                $("#cf_logAppend").buttonset();
+                $("#cf_compareQueries").buttonset();
+                $("#cf_compareProcedures").buttonset();
+                $("#cf_compareWS").buttonset();
+                $("#cf_useAllDatasources").buttonset();
+                
+                $("#cl_logAppend").buttonset();
+                
+                $("#wsEncrypt").buttonset();
+/*
+                $("#nfp_datasources_set")
+                    .button({
+                        icons: {
+                            primary: "ui-icon-pencil"
+                        },
+                        text: false
+                    })
+                    .click (function (event, ui) {
+                        event.preventDefault();
+                        $("#csvFieldId").val ("#nfp_datasources");
+                        setCSVDialogData ($("#nfp_datasources").val());
+                        $("#csvDialog").dialog ("open");
+                    });
+
+                $("#nfp_resources_set")
+                    .button({
+                        icons: {
+                            primary: "ui-icon-pencil"
+                        },
+                        text: false
+                    })
+                    .click (function (event, ui) {
+                        event.preventDefault();
+                        $("#csvFieldId").val ("#nfp_resources");
+                        setCSVDialogData ($("#nfp_resources").val());
+                        $("#csvDialog").dialog ("open");
+                    });
+*/
+                $("#nfp_securityGenerationOptions_set")
+                    .button({
+                        icons: {
+                            primary: "ui-icon-pencil"
+                        },
+                        text: false
+                    })
+                    .click (function (event, ui) {
+                        event.preventDefault();
+                        secGenOptsValsDialog.dialog ("open");
+                        return false;
+                    });
+                
+                $("#nfp_defaultProcParamValues_set")
+                    .button({
+                        icons: {
+                            primary: "ui-icon-pencil"
+                        },
+                        text: false
+                    })
+                    .click (function (event, ui) {
+                        defProcValsDialog.dialog ("open");
+                        return false;
+                    });
+                
+                $("#trp_perfTestThreads").spinner ({min: 0});
+                $("#trp_perfTestDuration").spinner ({min: 0});
+                $("#trp_perfTestSleepPrint").spinner ({min: 0});
+                $("#trp_perfTestSleepExec").spinner ({min: 0});
+/*
+                $("#trp_datasources_set")
+                    .button({
+                        icons: {
+                            primary: "ui-icon-pencil"
+                        },
+                        text: false
+                    })
+                    .click (function (event, ui) {
+                        event.preventDefault();
+                        $("#csvFieldId").val ("#trp_datasources");
+                        setCSVDialogData ($("#trp_datasources").val());
+                        $("#csvDialog").dialog ("open");
+                    });
+
+                $("#trp_resources_set")
+                    .button({
+                        icons: {
+                            primary: "ui-icon-pencil"
+                        },
+                        text: false
+                    })
+                    .click (function (event, ui) {
+                        event.preventDefault();
+                        $("#csvFieldId").val ("#trp_resources");
+                        setCSVDialogData ($("#trp_resources").val());
+                        $("#csvDialog").dialog ("open");
+                    });
+
+                $("#cf_datasources_set")
+                    .button({
+                        icons: {
+                            primary: "ui-icon-pencil"
+                        },
+                        text: false
+                    })
+                    .click (function (event, ui) {
+                        event.preventDefault();
+                        $("#csvFieldId").val ("#cf_datasources");
+                        setCSVDialogData ($("#cf_datasources").val());
+                        $("#csvDialog").dialog ("open");
+                    });
+
+                $("#cf_resources_set")
+                    .button({
+                        icons: {
+                            primary: "ui-icon-pencil"
+                        },
+                        text: false
+                    })
+                    .click (function (event, ui) {
+                        event.preventDefault();
+                        $("#csvFieldId").val ("#cf_resources");
+                        setCSVDialogData ($("#cf_resources").val());
+                        $("#csvDialog").dialog ("open");
+                    });
+
+                $("#sgo_userFilter_set")
+                    .button({
+                        icons: {
+                            primary: "ui-icon-pencil"
+                        },
+                        text: false
+                    })
+                    .click (function (event, ui) {
+                        event.preventDefault();
+                        $("#csvFieldId").val ("#sgo_userFilter");
+                        setCSVDialogData ($("#sgo_userFilter").val());
+                        $("#csvDialog").dialog ("open");
+                    });
+
+                $("#sgo_domainFilter_set")
+                    .button({
+                        icons: {
+                            primary: "ui-icon-pencil"
+                        },
+                        text: false
+                    })
+                    .click (function (event, ui) {
+                        event.preventDefault();
+                        $("#csvFieldId").val ("#sgo_domainFilter");
+                        setCSVDialogData ($("#sgo_domainFilter").val());
+                        $("#csvDialog").dialog ("open");
+                    });
+*/
+                $("#procOutTypes_set")
+                    .button({
+                        icons: {
+                            primary: "ui-icon-pencil"
+                        },
+                        text: false
+                    })
+                    .click (function (event, ui) {
+                        $("#csvFieldId").val ("#procOutTypes");
+                        setCSVDialogData ($("#procOutTypes").val());
+                        $("#csvDialog").dialog ("open");
+                        return false;
+                    });
+
+                // regression test cl_durationDelta spinners
+                //
+                $("#cl_durationDelta_days").spinner ({
+                    spin: function (event, ui) {
+                        if (ui.value < 0) {
+                            $(this).spinner ("value", 0);
+                            return false;
+                        }
+                    }
+                });
+                $("#cl_durationDelta_hour").zpadspinner ({
+                    spin: function (event, ui) {
+                        if (ui.value > 23) {
+                            $(this).zpadspinner ("value", 0);
+                            return false;
+                        } else if (ui.value < 0) {
+                            $(this).zpadspinner ("value", 23);
+                            return false;
+                        }
+                    }
+                });
+                $("#cl_durationDelta_min").zpadspinner ({
+                    spin: function (event, ui) {
+                        if (ui.value > 59) {
+                            $(this).zpadspinner ("value", 0);
+                            return false;
+                        } else if (ui.value < 0) {
+                            $(this).zpadspinner ("value", 59);
+                            return false;
+                        }
+                    }
+                });
+                $("#cl_durationDelta_sec").zpadspinner ({
+                    spin: function (event, ui) {
+                        if (ui.value > 59) {
+                            $(this).zpadspinner ("value", 0);
+                            return false;
+                        } else if (ui.value < 0) {
+                            $(this).zpadspinner ("value", 59);
+                            return false;
+                        }
+                    }
+                });
+
+                // regression query durationDelta spinners
+                //
+                $("#durationDelta_days").spinner ({
+                    spin: function (event, ui) {
+                        if (ui.value < 0) {
+                            $(this).spinner ("value", 0);
+                            return false;
+                        }
+                    }
+                });
+                $("#durationDelta_hour").zpadspinner ({
+                    spin: function (event, ui) {
+                        if (ui.value > 23) {
+                            $(this).zpadspinner ("value", 0);
+                            return false;
+                        } else if (ui.value < 0) {
+                            $(this).zpadspinner ("value", 23);
+                            return false;
+                        }
+                    }
+                });
+                $("#durationDelta_min").zpadspinner ({
+                    spin: function (event, ui) {
+                        if (ui.value > 59) {
+                            $(this).zpadspinner ("value", 0);
+                            return false;
+                        } else if (ui.value < 0) {
+                            $(this).zpadspinner ("value", 59);
+                            return false;
+                        }
+                    }
+                });
+                $("#durationDelta_sec").zpadspinner ({
+                    spin: function (event, ui) {
+                        if (ui.value > 59) {
+                            $(this).zpadspinner ("value", 0);
+                            return false;
+                        } else if (ui.value < 0) {
+                            $(this).zpadspinner ("value", 59);
+                            return false;
+                        }
+                    }
+                });
+
+                // set up the add security plan entry button in the array attribute dialog. 
+                //
+                $("#sp_add")
+                    .button()
+                    .click(addSPRow);
+
+                var spRowCount = 0;
+                function addSPRow() {
+                    // add the html code before the "add new attribute" button container row.
+                    //
+                    $('#sp_add_row').before (function() {
+                         return '<tr id="sp_row_' + spRowCount + '" class="sp_row">\n' +
+                                '    <td><input type="text" name="sp_id_' + spRowCount + '" id="sp_id_' + spRowCount + '" class="text ui-widget-content ui-corner-all dynamic_row_value" /></td>\n' +
+                                '    <td class="button_column">\n' +
+                                '        <div id="sp_enabled_' + spRowCount + '">\n' +
+                                '            <input type="radio" name="sp_enabled_' + spRowCount + '" id="sp_enabled_' + spRowCount + '_true" value="true" checked /><label for="sp_enabled_' + spRowCount + '_true">True</label>\n' +
+                                '            <input type="radio" name="sp_enabled_' + spRowCount + '" id="sp_enabled_' + spRowCount + '_false" value="false" /><label for="sp_enabled_' + spRowCount + '_false">False</label>\n' +
+                                '        </div>\n' +
+                                '    </td>\n' +
+                                '    <td><input type="text" name="sp_userId_' + spRowCount + '" id="sp_userId_' + spRowCount + '" class="text ui-widget-content ui-corner-all dynamic_row_value" /></td>\n' +
+                                '    <td><input type="text" name="sp_queryId_' + spRowCount + '" id="sp_queryId_' + spRowCount + '" class="text ui-widget-content ui-corner-all dynamic_row_value" /></td>\n' +
+                                '    <td class="button_column">\n' +
+                                '        <div id="sp_expectedOutcome_' + spRowCount + '">\n' +
+                                '            <input type="radio" name="sp_expectedOutcome_' + spRowCount + '" id="sp_expectedOutcome_' + spRowCount + '_true" value="true" /><label for="sp_expectedOutcome_' + spRowCount + '_true">Pass</label>\n' +
+                                '            <input type="radio" name="sp_expectedOutcome_' + spRowCount + '" id="sp_expectedOutcome_' + spRowCount + '_false" value="false" checked /><label for="sp_expectedOutcome_' + spRowCount + '_false">Fail</label>\n' +
+                                '        </div>\n' +
+                                '    </td>\n' +
+                                '    <td><input type="text" name="sp_description_' + spRowCount + '" id="sp_description_' + spRowCount + '" class="text ui-widget-content ui-corner-all dynamic_row_value" /></td>\n' +
+                                '    <td><div id="csv_row_' + spRowCount + '_del" title="Delete Value" >Delete Value</div></td>\n' +
+                                '</tr>\n';
+                    });
+                    
+                    $('#sp_enabled_' + spRowCount).buttonset();
+                    $('#sp_userId_' + spRowCount).autocomplete ({source: securityUserACSource});
+                    $('#sp_queryId_' + spRowCount).autocomplete ({source: securityQueryACSource});
+                    $('#sp_expectedOutcome_' + spRowCount).buttonset();
+                    
+                    // add a click event handler to the delete button to delete the attribute when clicked.
+                    //
+                    $("#csv_row_" + spRowCount + "_del")
+                        .button({
+                            icons: {
+                                primary: "ui-icon-trash"
+                            },
+                            text: false
+                        })
+                        .data ('rownum', spRowCount) // attach the row number as a bit of data that the click handler can reference.
+                        .click(function() {
+                            $('#sp_row_' + $(this).data ('rownum')).remove();
+                            if ($('.sp_row').length == 0) {
+                                addSPRow();
+                            }
+                            return false;
+                        });
+
+                    spRowCount++;
+                    
+                    return false;
+                }
+
+                // create an array containing the table rows for each vcs type. this is used for showing and hiding
+                // the appropriate rows when the vcs type radio is changed.
+                //
+                var reg_divs = [$(".test_inputs"), $(".query_inputs"), $(".security_user_inputs"), $(".security_query_inputs"), $(".security_plan_inputs")];
+                
+                // put a click event handler on the regression type radio that hides/shows the appropriate table rows. use the
+                // same function to update the regression rows as the AJAX callback does.
+                //
+                //$('#reg_type input:radio').change (setRegFields);
+                $('#reg_type').change (setRegFields);
+
+                // hides or shows the appropriate vcs specific settings based on the vcs type radio button setting.
+                //
+                function setRegFields() {
+                    //var selectedVal = $("#reg_type input:radio:checked").val();
+                    var selectedVal = $("#reg_type").val();
+
+                    $(".test_inputs, .query_inputs, .security_user_inputs, .security_query_inputs, .security_plan_inputs").hide();
+                    
+                    reg_divs[selectedVal].show();
+
+                    switch (selectedVal * 1) { // avoid number/string inference stupidity
+                        case 0: // test
+                            addEditDialog.dialog({width: 1100});
+                            break;
+
+                        case 1: // query
+                            addEditDialog.dialog({width: 850});
+                            break;
+
+                        case 2: // security user
+                            addEditDialog.dialog({width: 480});
+                            break;
+
+                        case 3: // security query
+                            addEditDialog.dialog({width: 950});
+                            break;
+
+                        case 4: // security plan
+                            addEditDialog.dialog({width: 1300});
+                            break;
+                    }
+                }
+                
+                dialogMsg = $(".dialogMsg");
+
+                addEditDialog = $("#addEditDialog").dialog ({
+                    autoOpen: false,
+                    //height: 300,
+                    width: 1100,
+                    modal: true,
+                    buttons: [ // declaring buttons this way lets us assign ID's to the buttons so they can be interacted with later.
+                        {
+                            id: "aeOkButton",
+                            text: "OK",
+                            click: function() {
+                                var actionType = (operation.val() == "add") ? "POST" : "PUT";
+                                var errMsg = "";
+                                
+                                allFields.removeClass ("ui-state-error");
+                                clearAEDialogMessage();
+                                $("#aeOkButton").button ("disable");
+                                
+                                var ajaxOpts = {  
+                                    type: actionType,
+                                    contentType: 'application/json',
+                                    url: "/regression/" + encodeURIComponent (queryParams.path) + "?rnd=" + myRand(),
+                                    dataType: "json",
+                                    data: createJSON(),  
+                                    success: function (data) {
+                                        processAjaxResult (
+                                            data, 
+                                            {
+                                                useDialog:true, 
+                                                reloadGrid:true
+                                            }
+                                        );
+
+                                        // update the set of auto complete data for the security plan dialog
+                                        //
+                                        setSecurityUserAutoCompleteData (modulePath);
+                                        setSecurityQueryAutoCompleteData (modulePath);
+
+                                        $("#aeOkButton").button ("enable");
+                                    },
+                                    // this should only happen when things go seriously wrong on the server
+                                    //
+                                    error: function (jqXHR, textStatus, errorThrown) {
+                                        myAlert ("textStatus = " + textStatus + "<br>errorThrown = " + errorThrown);
+                                        $("#aeOkButton").button ("enable");
+                                    }
+                                }
+
+                                $.ajax(ajaxOpts);
+                            }
+                        }, {
+                            id: "aeCancelButton",
+                            text: "Cancel",
+                            click: function() {
+                                $(this).dialog ("close");
+                                $("#aeOkButton").button ("enable");
+                            }
+                        }
+                    ],
+                    // this is an event handler for when the dialog box closes (it can be closed in a number of ways.)
+                    // basically any error classes get cleared from the form elements and the message <div> is cleared.
+                    //
+                    close: function() {
+                        allFields.val ("").removeClass ("ui-state-error");
+                        clearAEDialogMessage();
+                        $("#aeOkButton").button ("enable");
+                    },
+                    // add a custom class to the OK button so that it can be addressed for disabling/enabling later
+                    //
+                    create: function () {
+                        $(this).closest(".ui-dialog")
+                            .find(".ui-button:first") // the first button
+                            .addClass("aeOkButton");
+                    }
+                }); // #addEditDialog
+/*
+                $("#csvDialog").dialog ({
+                    autoOpen: false,
+                    //height: 300,
+                    width: 450,
+                    modal: true,
+                    buttons: [ // declaring buttons this way lets us assign ID's to the buttons so they can be interacted with later.
+                        {
+                            id: "csvOkButton",
+                            text: "OK",
+                            click: function() {
+                                var value = "";
+                                var valCount = 0;
+                                
+                                for (var i = 0; i < csvRowCount; i++) {
+                                    
+                                    // make sure the row hasn't been deleted by the user and that the value is filled in
+                                    //
+                                    if ($("#csv_value_" + i).length > 0 && $("#csv_value_" + i).val().length > 0) {
+                                        if (valCount > 0)
+                                            value += ", ";
+                                            
+                                        value += $("#csv_value_" + i).val();
+                                        
+                                        valCount++;
+                                    }
+                                }
+                    
+                                $($("#csvFieldId").val()).val (value);
+                                $(this).dialog ("close");              
+                            }
+                        }, {
+                            id: "csvCancelButton",
+                            text: "Cancel",
+                            click: function() {
+                                $(this).dialog ("close");              
+                            }
+                        }
+                    ]
+                }); // #csvDialog
+
+                // set up the add CSV entry button in the CSV list dialog. 
+                //
+                $("#csv_add")
+                    .button()
+                    .click(addCSVRow);
+
+                var csvRowCount = 0;
+                function addCSVRow() {
+                    // add the html code before the "add new attribute" button container row.
+                    //
+                    $('#csv_add_row').before (function() {
+                         return '<tr id="csv_row_' + csvRowCount + '" class="csv_row dynamic_row">\n' +
+                                '    <td><input type="text" name="csv_value_' + csvRowCount + '" id="csv_value_' + csvRowCount + '" size="40" class="text ui-widget-content ui-corner-all dynamic_row_value" /></td>\n' +
+                                '    <td><div id="csv_row_' + csvRowCount + '_del" title="Delete Value" >Delete Value</div></td>\n' +
+                                '</tr>\n';
+                    });
+                    
+                    // add a click event handler to the delete button to delete the attribute when clicked.
+                    //
+                    $("#csv_row_" + csvRowCount + "_del")
+                        .button({
+                            icons: {
+                                primary: "ui-icon-trash"
+                            },
+                            text: false
+                        })
+                        .data ('rownum', csvRowCount) // attach the row number as a bit of data that the click handler can reference.
+                        .click(function(e) {
+                            e.preventDefault();
+                            $('#csv_row_' + $(this).data ('rownum')).remove();
+                            if ($('.csv_row').length == 0) {
+                                addCSVRow();
+                            }
+                            return false;
+                        });
+
+                    csvRowCount++;
+                    
+                    return false;
+                }
+*/
+                // set up default procedure values dialog
+                //
+                secGenOptsValsDialog = $("#secGenOptsValsDialog").dialog ({
+                    autoOpen: false,
+                    //height: 300,
+                    width: 1000,
+                    modal: true,
+                    buttons: [ // declaring buttons this way lets us assign ID's to the buttons so they can be interacted with later.
+                        {
+                            id: "sgovOkButton",
+                            text: "OK",
+                            click: function() {
+                                $(this).dialog ("close");                          
+                            }
+                        }
+                    ]
+                }); // #defProcValsDialog
+                
+                // set up default procedure values dialog
+                //
+                defProcValsDialog = $("#defProcValsDialog").dialog ({
+                    autoOpen: false,
+                    //height: 300,
+                    width: 400,
+                    modal: true,
+                    buttons: [ // declaring buttons this way lets us assign ID's to the buttons so they can be interacted with later.
+                        {
+                            id: "dpvOkButton",
+                            text: "OK",
+                            click: function() {
+                                $(this).dialog ("close");                          
+                            }
+                        }
+                    ]
+                }); // #defProcValsDialog
+/*
+                function setCSVDialogData (csvString) {
+                    $(".csv_row").remove();
+                    csvRowCount = 0;
+                    
+                    if (csvString != null) {
+                        var vals = csvString.split (/\s*,\s* /);
+                        
+                        if (vals.length > 0) {
+                            for (var i = 0; i < vals.length; i++) {
+                                addCSVRow();
+                                $("#csv_value_" + i).val (vals[i]);
+                            }
+                        } else {
+                            addCSVRow();
+                        }
+                    } else {
+                        addCSVRow();
+                    }
+                } // setCSVDialogData()
+*/
+                // sets the form values of the dialog box from a data object (typically returned from an AJAX call.)
+                //
+                function setDialogData (data) {
+                    id.val (data.id);
+                    origId.val (data.id);
+
+                    //$('#reg_type_' + data.type).prop ("checked", "checked");
+                    //$("#reg_type").buttonset ("refresh");
+                    $("#reg_type").val (data.type);
+                    setRegFields();
+                    
+                    $("#tabs").tabs({ active: 0 });
+                    
+                    // set test inputs
+                    //
+                    inputFilePath.val (data.inputFilePath);
+                    $('#createNewFile_' + data.createNewFile).prop ("checked", "checked");
+                    $("#createNewFile").buttonset ("refresh");
+                    
+                    // populate the new file params settings
+                    //
+                    var nfp = data.newFileParams;
+                    if (nfp == null) { // set default values if nfp is not set
+                        nfp = {
+                            createQueries: false,
+                            createProcedures: false,
+                            createWS: false,
+                            createSoapType: 0,
+                            useDefaultViewQuery: false,
+                            useDefaultProcQuery: false,
+                            useDefaultWSQuery: false,
+                            publishedViewQry: "",
+                            publishedProcQry: "",
+                            useAllDatasources: false,
+                            datasources: "",
+                            resources: "",
+                            defaultProcParamValues: null,
+                            pathToTargetRegressionXML: "",
+                            encryptedPassword: "",
+                            userFilter: "",
+                            domainFilter: "",
+                            userMode: 0,
+                            queryMode: 0,
+                            planMode: 0,
+                            planModeType: 0,
+                            planIdPrefix: "",
+                            planGenerateExpectedOutcome: false,
+                            flattenSecurityUsersXML: true,
+                            flattenSecurityQueryQueriesXML: true,
+                            flattenSecurityQueryProceduresXML: true,
+                            flattenSecurityQueryWebServicesXML: true,
+                            flattenSecurityPlansXML: true
+                        };
+                    }
+                    $('#nfp_createQueries_' + nfp.createQueries).prop ("checked", "checked");
+                    $("#nfp_createQueries").buttonset ("refresh");
+                    $('#nfp_createProcedures_' + nfp.createProcedures).prop ("checked", "checked");
+                    $("#nfp_createProcedures").buttonset ("refresh");
+                    $('#nfp_createWS_' + nfp.createWS).prop ("checked", "checked");
+                    $("#nfp_createWS").buttonset ("refresh");
+                    nfp_createSoapType.val (nfp.createSoapType)
+                    $('#nfp_useDefaultViewQuery_' + nfp.useDefaultViewQuery).prop ("checked", "checked");
+                    $("#nfp_useDefaultViewQuery").buttonset ("refresh");
+                    $('#nfp_useDefaultProcQuery_' + nfp.useDefaultProcQuery).prop ("checked", "checked");
+                    $("#nfp_useDefaultProcQuery").buttonset ("refresh");
+                    $('#nfp_useDefaultWSQuery_' + nfp.useDefaultWSQuery).prop ("checked", "checked");
+                    $("#nfp_useDefaultWSQuery").buttonset ("refresh");
+                    nfp_publishedViewQry.val (nfp.publishedViewQry);
+                    nfp_publishedProcQry.val (nfp.publishedProcQry);
+                    $('#nfp_useAllDatasources_' + nfp.useAllDatasources).prop ("checked", "checked");
+                    $("#nfp_useAllDatasources").buttonset ("refresh");
+
+                    if (nfp.datasources != null && nfp.datasources.length > 0) {
+                        var csv = "";
+                        for (var i = 0; i < nfp.datasources.length; i++) {
+                            if (i > 0)
+                                csv += ", ";
+                            
+                            csv += nfp.datasources[i];
+                        }
+                        
+                        nfp_datasources.val (csv);
+                    }
+                    
+                    if (nfp.resources != null && nfp.resources.length > 0) {
+                        var csv = "";
+                        for (var i = 0; i < nfp.resources.length; i++) {
+                            if (i > 0)
+                                csv += ", ";
+                            
+                            csv += nfp.resources[i];
+                        }
+                        
+                        nfp_resources.val (csv);
+                    }
+                    
+                    sgo_pathToTargetRegressionXML.val (nfp.pathToTargetRegressionXML);
+                    sgo_encryptedPassword.val (nfp.encryptedPassword);
+                    sgo_userFilter.val (nfp.userFilter);
+                    sgo_domainFilter.val (nfp.domainFilter);
+                    sgo_userMode.val (nfp.userMode);
+                    sgo_queryMode.val (nfp.queryMode);
+                    sgo_planMode.val (nfp.planMode);
+                    sgo_planModeType.val (nfp.planModeType);
+                    sgo_planIdPrefix.val (nfp.planIdPrefix);
+                    $('#sgo_planGenerateExpectedOutcome_' + nfp.planGenerateExpectedOutcome).prop ("checked", "checked");
+                    $("#sgo_planGenerateExpectedOutcome").buttonset ("refresh");
+                    $('#sgo_flattenSecurityUsersXML_' + nfp.flattenSecurityUsersXML).prop ("checked", "checked");
+                    $("#sgo_flattenSecurityUsersXML").buttonset ("refresh");
+                    $('#sgo_flattenSecurityQueryQueriesXML_' + nfp.flattenSecurityQueryQueriesXML).prop ("checked", "checked");
+                    $("#sgo_flattenSecurityQueryQueriesXML").buttonset ("refresh");
+                    $('#sgo_flattenSecurityQueryProceduresXML_' + nfp.flattenSecurityQueryProceduresXML).prop ("checked", "checked");
+                    $("#sgo_flattenSecurityQueryProceduresXML").buttonset ("refresh");
+                    $('#sgo_flattenSecurityQueryWebServicesXML_' + nfp.flattenSecurityQueryWebServicesXML).prop ("checked", "checked");
+                    $("#sgo_flattenSecurityQueryWebServicesXML").buttonset ("refresh");
+                    $('#sgo_flattenSecurityPlansXML_' + nfp.flattenSecurityPlansXML).prop ("checked", "checked");
+                    $("#sgo_flattenSecurityPlansXML").buttonset ("refresh");
+
+                    dppv = nfp.defaultProcParamValues;
+                    if (dppv == null) { // set default values if dppv is not set
+                        dppv = {
+                            bitVal: "",
+                            varcharVal: "",
+                            charVal: "",
+                            clobVal: "",
+                            integerVal: "",
+                            intVal: "",
+                            bigintVal: "",
+                            smallintVal: "",
+                            tinyintVal: "",
+                            decimalVal: "",
+                            numericVal: "",
+                            realVal: "",
+                            floatVal: "",
+                            doubleVal: "",
+                            dateVal: "",
+                            timeVal: "",
+                            timestampVal: "",
+                            binaryVal: "",
+                            varbinaryVal: "",
+                            blobVal: "",
+                            xmlVal: ""                            
+                        };
+                    }
+                    bitVal.val (dppv.bitVal);
+                    varcharVal.val (dppv.varcharVal);
+                    charVal.val (dppv.charVal);
+                    clobVal.val (dppv.clobVal);
+                    integerVal.val (dppv.integerVal);
+                    intVal.val (dppv.intVal);
+                    bigintVal.val (dppv.bigintVal);
+                    smallintVal.val (dppv.smallintVal);
+                    tinyintVal.val (dppv.tinyintVal);
+                    decimalVal.val (dppv.decimalVal);
+                    numericVal.val (dppv.numericVal);
+                    realVal.val (dppv.realVal);
+                    floatVal.val (dppv.floatVal);
+                    doubleVal.val (dppv.doubleVal);
+                    dateVal.val (dppv.dateVal);
+                    timeVal.val (dppv.timeVal);
+                    timestampVal.val (dppv.timestampVal);
+                    binaryVal.val (dppv.binaryVal);
+                    varbinaryVal.val (dppv.varbinaryVal);
+                    blobVal.val (dppv.blobVal);
+                    xmlVal.val (dppv.xmlVal);
+                    
+                    // populate the test run params settings
+                    //
+                    var trp = data.testRunParams;
+                    if (trp == null) { // set default values if trp is not set
+                        trp = {
+                            testType: 0,
+                            logFilePath: "",
+                            logDelimiter: 0,
+                            logAppend: true,
+                            baseDir: "",
+                            delimiter: 1, // delimiter is required.
+                            printOutput: 0,
+                            perfTestThreads: 0,
+                            perfTestDuration: 0,
+                            perfTestSleepPrint: 0,
+                            perfTestSleepExec: 0,
+                            runQueries: true,
+                            runProcedures: true,
+                            runWS: true,
+                            useAllDatasources: true,
+                            datasources: "",
+                            resources: ""
+                        };
+                    }
+                    trp_testType.val (trp.testType);
+                    trp_logFilePath.val (trp.logFilePath);
+                    trp_logDelimiter.val (trp.logDelimiter);
+                    $('#trp_logAppend_' + trp.logAppend).prop ("checked", "checked");
+                    $("#trp_logAppend").buttonset ("refresh");
+                    trp_baseDir.val (trp.baseDir);
+                    trp_delimiter.val (trp.delimiter);
+                    trp_printOutput.val (trp.printOutput);
+                    trp_perfTestThreads.val (trp.perfTestThreads);
+                    trp_perfTestDuration.val (trp.perfTestDuration);
+                    trp_perfTestSleepPrint.val (trp.perfTestSleepPrint);
+                    trp_perfTestSleepExec.val (trp.perfTestSleepExec);
+                    $('#trp_runQueries_' + trp.runQueries).prop ("checked", "checked");
+                    $("#trp_runQueries").buttonset ("refresh");
+                    $('#trp_runProcedures_' + trp.runProcedures).prop ("checked", "checked");
+                    $("#trp_runProcedures").buttonset ("refresh");
+                    $('#trp_runWS_' + trp.runWS).prop ("checked", "checked");
+                    $("#trp_runWS").buttonset ("refresh");
+                    $('#trp_useAllDatasources_' + trp.useAllDatasources).prop ("checked", "checked");
+                    $("#trp_useAllDatasources").buttonset ("refresh");
+                    if (trp.datasources != null && trp.datasources.length > 0) {
+                        var csv = "";
+                        for (var i = 0; i < trp.datasources.length; i++) {
+                            if (i > 0)
+                                csv += ", ";
+                            
+                            csv += trp.datasources[i];
+                        }
+                        
+                        trp_datasources.val (csv);
+                    }
+                    if (trp.resources != null && trp.resources.length > 0) {
+                        var csv = "";
+                        for (var i = 0; i < trp.resources.length; i++) {
+                            if (i > 0)
+                                csv += ", ";
+                            
+                            csv += trp.resources[i];
+                        }
+                        
+                        trp_resources.val (csv);
+                    }
+
+                    // populate the compare files settings
+                    //
+                    var cf = data.compareFiles;
+                    if (cf == null) {
+                        cf = {
+                            logFilePath: "",
+                            logDelimiter: 0,
+                            logAppend: true,
+                            baseDir1: "",
+                            baseDir2: "",
+                            compareQueries: false,
+                            compareProcedures: false,
+                            compareWS: false,
+                            useAllDatasources: false,
+                            datasources: "",
+                            resources: ""
+                        };
+                    }
+                    cf_logFilePath.val (cf.logFilePath);
+                    cf_logDelimiter.val (cf.logDelimiter);
+                    $('#cf_logAppend_' + cf.logAppend).prop ("checked", "checked");
+                    $("#cf_logAppend").buttonset ("refresh");
+                    cf_baseDir1.val (cf.baseDir1);
+                    cf_baseDir2.val (cf.baseDir2);
+                    $('#cf_compareQueries_' + cf.compareQueries).prop ("checked", "checked");
+                    $("#cf_compareQueries").buttonset ("refresh");
+                    $('#cf_compareProcedures_' + cf.compareProcedures).prop ("checked", "checked");
+                    $("#cf_compareProcedures").buttonset ("refresh");
+                    $('#cf_compareWS_' + cf.compareWS).prop ("checked", "checked");
+                    $("#cf_compareWS").buttonset ("refresh");
+                    $('#cf_useAllDatasources_' + cf.useAllDatasources).prop ("checked", "checked");
+                    $("#cf_useAllDatasources").buttonset ("refresh");
+                    if (cf.datasources != null && cf.datasources.length > 0) {
+                        var csv = "";
+                        for (var i = 0; i < cf.datasources.length; i++) {
+                            if (i > 0)
+                                csv += ", ";
+                            
+                            csv += cf.datasources[i];
+                        }
+                        
+                        cf_datasources.val (csv);
+                    }
+                    if (cf.resources != null && cf.resources.length > 0) {
+                        var csv = "";
+                        for (var i = 0; i < cf.resources.length; i++) {
+                            if (i > 0)
+                                csv += ", ";
+                            
+                            csv += cf.resources[i];
+                        }
+                        
+                        cf_resources.val (csv);
+                    }
+
+                    // populate the compare logs settings
+                    //
+                    var cl = data.compareLogs;
+                    if (cl == null) {
+                        cl = {
+                            logFilePath: "",
+                            logDelimiter: 0,
+                            logAppend: true,
+                            logFilePath1: "",
+                            logFilePath2: "",
+                            logDelimiter1: 1,
+                            logDelimiter2: 1,
+                            durationDelta: ""
+                        };
+                    }
+                    cl_logFilePath.val (cl.logFilePath);
+                    cl_logDelimiter.val (cl.logDelimiter);
+                    $('#cl_logAppend_' + cl.logAppend).prop ("checked", "checked");
+                    $("#cl_logAppend").buttonset ("refresh");
+                    cl_logFilePath1.val (cl.logFilePath1);
+                    cl_logFilePath2.val (cl.logFilePath2);
+                    cl_logDelimiter1.val (cl.logDelimiter1);
+                    cl_logDelimiter2.val (cl.logDelimiter2);
+                    var cl_durationDelta_groups = /(\d{1,3})\s+(\d{2}):(\d{2}):(\d{2})/.exec( // parse the interval string (or the default value "0 00:00:00") into its component parts.
+                                                                                            (cl.durationDelta != null && cl.durationDelta.length > 0) 
+                                                                                                ? cl.durationDelta 
+                                                                                                : "0 00:00:00"
+                                                                                        );
+                    if (cl_durationDelta_groups != null && cl_durationDelta_groups.length > 0) {
+                        cl_durationDelta_days.spinner ("value", cl_durationDelta_groups[1]);
+                        cl_durationDelta_hour.zpadspinner ("value", cl_durationDelta_groups[2]);
+                        cl_durationDelta_min.zpadspinner ("value", cl_durationDelta_groups[3]);
+                        cl_durationDelta_sec.zpadspinner ("value", cl_durationDelta_groups[4]);
+                    }
+
+
+                    // set query and security query inputs
+                    //
+                    datasource.val (data.datasource);
+                    queryType.val (data.queryType);
+                    query.val (data.query);
+                    procOutTypes.val (data.procOutTypes);
+                    var durationDelta_groups = /(\d{1,3})\s+(\d{2}):(\d{2}):(\d{2})/.exec( // parse the interval string (or the default value "0 00:00:00") into its component parts.
+                                                                                        (data.durationDelta != null && data.durationDelta.length > 0) 
+                                                                                            ? data.durationDelta 
+                                                                                            : "0 00:00:00"
+                                                                                    );
+                    if (durationDelta_groups != null && durationDelta_groups.length > 0) {
+                        durationDelta_days.spinner ("value", durationDelta_groups[1]);
+                        durationDelta_hour.zpadspinner ("value", durationDelta_groups[2]);
+                        durationDelta_min.zpadspinner ("value", durationDelta_groups[3]);
+                        durationDelta_sec.zpadspinner ("value", durationDelta_groups[4]);
+                    }
+                    wsPath.val (data.wsPath);
+                    wsAction.val (data.wsAction);
+                    $('#wsEncrypt_' + data.wsEncrypt).prop ("checked", "checked");
+                    $("#wsEncrypt").buttonset ("refresh");
+                    wsContentType.val (data.wsContentType);
+                    resourcePath.val (data.resourcePath);
+                    resourceType.val (data.resourceType);
+                    
+                    // set the security user inputs
+                    //
+                    userName.val (data.userName);
+                    encryptedPassword.val (data.encryptedPassword);
+                    domain.val (data.domain);
+                    
+                    // set the security plan inputs
+                    //
+                    $('.sp_row').remove();
+                    if (data.planTests !== undefined && data.planTests != null) {
+                        for (var i = 0; i < data.planTests.length; i++) {
+                            var pt = data.planTests[i];
+                            
+                            if (pt.id == null || pt.id.length == 0)
+                                continue;
+                            
+                            addSPRow();
+                            
+                            rowid = spRowCount - 1;
+                            
+                            $('#sp_id_' + rowid).val (pt.id);
+                            $('#sp_enabled_' + rowid + '_' + pt.enabled).prop ("checked", "checked");
+                            $('#sp_enabled_' + rowid).buttonset ("refresh");
+                            $('#sp_userId_' + rowid).val (pt.userId);
+                            $('#sp_queryId_' + rowid).val (pt.queryId);
+                            $('#sp_expectedOutcome_' + rowid + '_' + pt.expectedOutcome).prop ("checked", "checked");
+                            $('#sp_expectedOutcome_' + rowid).buttonset ("refresh");
+                            $('#sp_description_' + rowid).val (pt.description);                            
+                        }
+                    } else {
+                        addSPRow();
+                    }
+                    
+                } // setDialogData()
+                
+                // creates a JSON artifact for sending with AJAX queries. Jackson on the server side is very particular
+                // about the format of JSON objects: double quoted attributes AND values.
+                //
+                function createJSON() {
+                    var data = {
+                        "operation":  operation.val(),
+                        "origId":  origId.val(),
+                        "id":  id.val(),
+                        //"type": $('#reg_type input:radio:checked').val()
+                        "type": $('#reg_type').val() * 1
+                    };
+                    
+                    switch (data.type) {
+                        case 0: // test
+                            var nfp = null, dppv = null, trp = null, cf = null, cl = null;
+                            
+                            data["inputFilePath"] = inputFilePath.val();
+                            data["createNewFile"] = $('#createNewFile input:radio:checked').val();
+                            
+                            // both the the published view query and published procedure query fields are required OR
+                            // the path to the generated target XML is required for the new file parameter element
+                            //
+                            if (nfp_publishedViewQry.val() != null && nfp_publishedViewQry.val().length > 0 &&
+                                nfp_publishedProcQry.val() != null && nfp_publishedProcQry.val().length > 0 ||
+                                sgo_pathToTargetRegressionXML.val() != null && sgo_pathToTargetRegressionXML.val().length > 0
+                            ) {
+                                // if any of the default procedure param values are set then create the dppv element.
+                                //
+                                if (bitVal.val() != null && bitVal.val().length > 0 ||
+                                    varcharVal.val() != null && varcharVal.val().length > 0 ||
+                                    charVal.val() != null && charVal.val().length > 0 ||
+                                    clobVal.val() != null && clobVal.val().length > 0 ||
+                                    integerVal.val() != null && integerVal.val().length > 0 ||
+                                    intVal.val() != null && intVal.val().length > 0 ||
+                                    bigintVal.val() != null && bigintVal.val().length > 0 ||
+                                    smallintVal.val() != null && smallintVal.val().length > 0 ||
+                                    tinyintVal.val() != null && tinyintVal.val().length > 0 ||
+                                    decimalVal.val() != null && decimalVal.val().length > 0 ||
+                                    numericVal.val() != null && numericVal.val().length > 0 ||
+                                    realVal.val() != null && realVal.val().length > 0 ||
+                                    floatVal.val() != null && floatVal.val().length > 0 ||
+                                    doubleVal.val() != null && doubleVal.val().length > 0 ||
+                                    dateVal.val() != null && dateVal.val().length > 0 ||
+                                    timeVal.val() != null && timeVal.val().length > 0 ||
+                                    timestampVal.val() != null && timestampVal.val().length > 0 ||
+                                    binaryVal.val() != null && binaryVal.val().length > 0 ||
+                                    varbinaryVal.val() != null && varbinaryVal.val().length > 0 ||
+                                    blobVal.val() != null && blobVal.val().length > 0 ||
+                                    xmlVal.val() != null && xmlVal.val().length > 0
+                                ) {
+                                    dppv = {
+                                        bitVal: bitVal.val(),
+                                        varcharVal: varcharVal.val(),
+                                        charVal: charVal.val(),
+                                        clobVal: clobVal.val(),
+                                        integerVal: integerVal.val(),
+                                        intVal: intVal.val(),
+                                        bigintVal: bigintVal.val(),
+                                        smallintVal: smallintVal.val(),
+                                        tinyintVal: tinyintVal.val(),
+                                        decimalVal: decimalVal.val(),
+                                        numericVal: numericVal.val(),
+                                        realVal: realVal.val(),
+                                        floatVal: floatVal.val(),
+                                        doubleVal: doubleVal.val(),
+                                        dateVal: dateVal.val(),
+                                        timeVal: timeVal.val(),
+                                        timestampVal: timestampVal.val(),
+                                        binaryVal: binaryVal.val(),
+                                        bitVal: varbinaryVal.val(),
+                                        blobVal: blobVal.val(),
+                                        xmlVal: xmlVal.val()
+                                    };
+                                }
+                                
+                                nfp = {
+                                    createQueries: $('#nfp_createQueries input:radio:checked').val(),
+                                    createProcedures: $('#nfp_createProcedures input:radio:checked').val(),
+                                    createWS: $('#nfp_createWS input:radio:checked').val(),
+                                    createSoapType: nfp_createSoapType.val(),
+                                    useDefaultViewQuery: $('#nfp_useDefaultViewQuery input:radio:checked').val(),
+                                    useDefaultProcQuery: $('#nfp_useDefaultProcQuery input:radio:checked').val(),
+                                    useDefaultWSQuery: $('#nfp_useDefaultWSQuery input:radio:checked').val(),
+                                    publishedViewQry: nfp_publishedViewQry.val(),
+                                    publishedProcQry: nfp_publishedProcQry.val(),
+                                    useAllDatasources: $('#nfp_useAllDatasources input:radio:checked').val(),
+                                    datasources: (nfp_datasources.val() != null && nfp_datasources.val().length > 0) ? nfp_datasources.val().split(/\s*,\s*/) : null,
+                                    resources: (nfp_resources.val() != null && nfp_resources.val().length > 0) ? nfp_resources.val().split(/\s*,\s*/) : null,
+
+                                    // security generation options
+                                    pathToTargetRegressionXML: sgo_pathToTargetRegressionXML.val(),
+                                    encryptedPassword: sgo_encryptedPassword.val(),
+                                    userFilter: sgo_userFilter.val(),
+                                    domainFilter: sgo_domainFilter.val(),
+                                    userMode: sgo_userMode.val(),
+                                    queryMode: sgo_queryMode.val(),
+                                    planMode: sgo_planMode.val(),
+                                    planModeType: sgo_planModeType.val(),
+                                    planIdPrefix: sgo_planIdPrefix.val(),
+                                    planGenerateExpectedOutcome: $('#sgo_planGenerateExpectedOutcome input:radio:checked').val(),
+                                    flattenSecurityUsersXML: $('#sgo_flattenSecurityUsersXML input:radio:checked').val(),
+                                    flattenSecurityQueryQueriesXML: $('#sgo_flattenSecurityQueryQueriesXML input:radio:checked').val(),
+                                    flattenSecurityQueryProceduresXML: $('#sgo_flattenSecurityQueryProceduresXML input:radio:checked').val(),
+                                    flattenSecurityQueryWebServicesXML: $('#sgo_flattenSecurityQueryWebServicesXML input:radio:checked').val(),
+                                    flattenSecurityPlansXML: $('#sgo_flattenSecurityPlansXML input:radio:checked').val(),
+
+                                    defaultProcParamValues: dppv
+                                };
+                            }
+                            data["newFileParams"] = nfp;
+                            
+                            // log file path is required for test run params element
+                            //
+                            if (trp_logFilePath.val() != null && trp_logFilePath.val().length > 0) {
+                                trp = {
+                                    testType: trp_testType.val(),
+                                    logFilePath: trp_logFilePath.val(),
+                                    logDelimiter: trp_logDelimiter.val(),
+                                    logAppend: $('#trp_logAppend input:radio:checked').val(),
+                                    baseDir: trp_baseDir.val(),
+                                    delimiter: trp_delimiter.val(),
+                                    printOutput: trp_printOutput.val(),
+                                    perfTestThreads: trp_perfTestThreads.val(),
+                                    perfTestDuration: trp_perfTestDuration.val(),
+                                    perfTestSleepPrint: trp_perfTestSleepPrint.val(),
+                                    perfTestSleepExec: trp_perfTestSleepExec.val(),
+                                    runQueries: $('#trp_runQueries input:radio:checked').val(),
+                                    runProcedures: $('#trp_runProcedures input:radio:checked').val(),
+                                    runWS: $('#trp_runWS input:radio:checked').val(),
+                                    useAllDatasources: $('#trp_useAllDatasources input:radio:checked').val(),
+                                    datasources: (trp_datasources.val() != null && trp_datasources.val().length > 0) ? trp_datasources.val().split(/\s*,\s*/) : null,
+                                    resources: (trp_resources.val() != null && trp_resources.val().length > 0) ? trp_resources.val().split(/\s*,\s*/) : null
+                                };
+                            }
+                            data["testRunParams"] = trp;
+                            
+                            // log file path and both base directories are required for the compare files element
+                            //
+                            if (cf_logFilePath.val() != null && cf_logFilePath.val().length > 0 &&
+                                cf_baseDir1.val() != null && cf_baseDir1.val().length > 0 &&
+                                cf_baseDir2.val() != null && cf_baseDir2.val().length > 0
+                            ) {
+                                cf = {
+                                    logFilePath: cf_logFilePath.val(),
+                                    logDelimiter: cf_logDelimiter.val(),
+                                    logAppend: $('#cf_logAppend input:radio:checked').val(),
+                                    baseDir1: cf_baseDir1.val(),
+                                    baseDir2: cf_baseDir2.val(),
+                                    compareQueries: $('#cf_compareQueries input:radio:checked').val(),
+                                    compareProcedures: $('#cf_compareProcedures input:radio:checked').val(),
+                                    compareWS: $('#cf_compareWS input:radio:checked').val(),
+                                    useAllDatasources: $('#cf_useAllDatasources input:radio:checked').val(),
+                                    datasources: (cf_datasources.val() != null && cf_datasources.val().length > 0) ? cf_datasources.val().split(/\s*,\s*/) : null,
+                                    resources: (cf_resources.val() != null && cf_resources.val().length > 0) ? cf_resources.val().split(/\s*,\s*/) : null
+                                };
+                            }
+                            data["compareFiles"] = cf;
+                            
+                            // log file path and both instances test log paths are required for the compare files element
+                            //
+                            if (cl_logFilePath.val() != null && cl_logFilePath.val().length > 0 &&
+                                cl_logFilePath1.val() != null && cl_logFilePath1.val().length > 0 &&
+                                cl_logFilePath2.val() != null && cl_logFilePath2.val().length > 0
+                            ) {
+                                cl = {
+                                    logFilePath: cl_logFilePath.val(),
+                                    logDelimiter: cl_logDelimiter.val(),
+                                    logAppend: $('#cl_logAppend input:radio:checked').val(),
+                                    logFilePath1: cl_logFilePath1.val(),
+                                    logFilePath2: cl_logFilePath2.val(),
+                                    logDelimiter1: cl_logDelimiter1.val(),
+                                    logDelimiter2: cl_logDelimiter2.val()
+                                };
+
+                                if (cl_durationDelta_days.val() != null && cl_durationDelta_days.val().length > 0 &&
+                                    cl_durationDelta_hour.val() != null && cl_durationDelta_hour.val().length > 0 &&
+                                    cl_durationDelta_min.val() != null && cl_durationDelta_min.val().length > 0 &&
+                                    cl_durationDelta_sec.val() != null && cl_durationDelta_sec.val().length > 0 &&
+                                    (cl_durationDelta_days.val() * 1 > 0 || cl_durationDelta_hour.val() * 1 > 0 || cl_durationDelta_min.val() * 1 > 0 || cl_durationDelta_sec.val() * 1 > 0) // at least one value must be greater than 0
+                                ) {
+                                    cl["durationDelta"] = cl_durationDelta_days.val() + " " + cl_durationDelta_hour.val() + ":" + cl_durationDelta_min.val() + ":" + cl_durationDelta_sec.val();
+                                }
+                            }
+                            data["compareLogs"] = cl;
+                            
+                            break;
+
+                        case 1: // query
+                            data["datasource"] = datasource.val();
+                            data["query"] = query.val();
+                            
+                            if (durationDelta_days.val() != null && durationDelta_days.val().length > 0 &&
+                                durationDelta_hour.val() != null && durationDelta_hour.val().length > 0 &&
+                                durationDelta_min.val() != null && durationDelta_min.val().length > 0 &&
+                                durationDelta_sec.val() != null && durationDelta_sec.val().length > 0 &&
+                                (durationDelta_days.val() * 1 > 0 || durationDelta_hour.val() * 1 > 0 || durationDelta_min.val() * 1 > 0 || durationDelta_sec.val() * 1 > 0) // at least one value must be greater than 0
+                            ) {
+                                data["durationDelta"] = durationDelta_days.val() + " " + durationDelta_hour.val() + ":" + durationDelta_min.val() + ":" + durationDelta_sec.val();
+                            }
+                            
+                            data["wsPath"] = wsPath.val();
+                            data["wsAction"] = wsAction.val();
+                            data["wsEncrypt"] = $('#wsEncrypt input:radio:checked').val();
+                            data["wsContentType"] = wsContentType.val();
+                            
+                            break;
+                            
+                        case 2: // security user
+                            data["userName"] = userName.val();
+                            data["encryptedPassword"] = encryptedPassword.val();
+                            data["domain"] = domain.val();
+                            
+                            break;
+                        
+                        case 3: // security query
+                            data["datasource"] = datasource.val();
+                            data["queryType"] = queryType.val();
+                            data["query"] = query.val();
+                            data["procOutTypes"] = query.val();
+                            data["wsPath"] = wsPath.val();
+                            data["wsAction"] = wsAction.val();
+                            data["wsEncrypt"] = $('#wsEncrypt input:radio:checked').val();
+                            data["wsContentType"] = wsContentType.val();
+                            data["resourcePath"] = resourcePath.val();
+                            data["resourceType"] = resourceType.val();
+                            
+                            break;
+                            
+                        case 4: // security plan
+                            var planTests = new Array();
+                            for (var i = 0; i < spRowCount; i++) {
+                                
+                                // make sure the row hasn't been deleted by the user and that the ID is filled in
+                                //
+                                if ($("#sp_row_" + i).length > 0 && $('#sp_id_' + i).val().length > 0) {
+                                    planTests.push({
+                                        "id": $('#sp_id_' + i).val(),
+                                        "enabled": $('#sp_enabled_' + i + ' input:radio:checked').val(),
+                                        "userId": $('#sp_userId_' + i).val(),
+                                        "queryId": $('#sp_queryId_' + i).val(),
+                                        "expectedOutcome": $('#sp_expectedOutcome_' + i + ' input:radio:checked').val(),
+                                        "description": $('#sp_description_' + i).val()
+                                    });
+                                }
+                            }
+                            
+                            if (planTests.length > 0)
+                                data["planTests"] = planTests;
+                            
+                            break;
+                    }
+
+                    return JSON.stringify (data);
+                }
+
+            }); // $(document).ready()
+            
+        </script>
+<!-- InstanceEndEditable -->
+    </head>
+<!-- InstanceBeginEditable name="bodytag" -->
+    <body class="page">
+<!-- InstanceEndEditable -->
+        <div class="header">
+            <div class="logo" onClick="javascript:location='index.html'"><img src="images/cisco_logo.png"/></div>
+            <div class="app_title" onClick="javascript:location='index.html'">Promotion &amp; Deployment Tool</div>
+        </div>
+        <div class="nav_container">
+            <div class="nav_tab_container"><!-- divs are floated right so listed in reverse order -->
+                <div class="nav_tab_spacer"></div>
+                <div id="nav_tab_execute" class="nav_tab" onClick="javascript:location='execute.html'">
+                    <div class="nav_tab_left"></div>
+                    <div class="nav_tab_center">EXECUTE</div>
+                    <div class="nav_tab_right"></div>
+                </div>
+                <div id="nav_tab_modules" class="nav_tab" onClick="javascript:location='modules.html'">
+                    <div class="nav_tab_left"></div>
+                    <div class="nav_tab_center">MODULES</div>
+                    <div class="nav_tab_right"></div>
+                </div>
+                <div id="nav_tab_plans" class="nav_tab" onClick="javascript:location='dep_plans.html'">
+                    <div class="nav_tab_left"></div>
+                    <div class="nav_tab_center">PLANS</div>
+                    <div class="nav_tab_right"></div>
+                </div>
+                <div id="nav_tab_configuration" class="nav_tab" onClick="javascript:location='config_preferences.html'">
+                    <div class="nav_tab_left"></div>
+                    <div class="nav_tab_center">CONFIGURATION</div>
+                    <div class="nav_tab_right"></div>
+                </div>
+            </div>
+            <div class="nav_base"></div>
+            <div class="nav_submenu_container">
+                <div class="nav_submenu_items">
+<!-- InstanceBeginEditable name="nav_submenu" -->
+                    <div id="nav_submenu_archive"          class="nav_submenu_item">Archive</div>
+                    <div id="nav_submenu_data_source"      class="nav_submenu_item">Data&nbsp;Source</div>
+                    <div id="nav_submenu_group"            class="nav_submenu_item">Group</div>
+                    <div id="nav_submenu_privilege"        class="nav_submenu_item">Privilege</div>
+                    <div id="nav_submenu_rebind"           class="nav_submenu_item">Rebind</div>
+                    <div id="nav_submenu_regression"       class="nav_submenu_item">Regression</div>
+                    <div id="nav_submenu_resource"         class="nav_submenu_item">Resource</div>
+                    <div id="nav_submenu_resource_cache"   class="nav_submenu_item" style="clear: left;">Resource Cache</div>
+                    <div id="nav_submenu_server_attribute" class="nav_submenu_item">Server&nbsp;Attribute</div>
+                    <div id="nav_submenu_server_manager"   class="nav_submenu_item">Server&nbsp;Manager</div>
+                    <div id="nav_submenu_trigger"          class="nav_submenu_item">Trigger</div>
+                    <div id="nav_submenu_user"             class="nav_submenu_item">User</div>
+                    <div id="nav_submenu_vcs"              class="nav_submenu_item">VCS</div>
+<!-- InstanceEndEditable -->
+                </div>
+                <div class="nav_submenu_right"><img src="images/nav_submenu_right.png"/></div>
+            </div>
+        </div>
+        <div class="page_content">
+            <div class="page_title_container">
+                <div class="page_title">
+<!-- InstanceBeginEditable name="page_title" -->
+                    REGRESSION MODULE: <span id="module_path"></span>
+<!-- InstanceEndEditable -->
+                </div>
+                <div class="page_description">
+<!-- InstanceBeginEditable name="page_description" -->
+                    <div class="collapsable"><!-- used with the setCollapsable() function above -->
+                        <div class="collapsable-content">
+                            Each regression module entry describes either a test query to be executed or a test of
+                            some kind (functional, migration, regression, performance, or security.)
+                        </div>
+                    </div>
+<!-- InstanceEndEditable -->
+                </div>
+            </div>
+<!-- InstanceBeginEditable name="content" -->
+            <div class="table_container">
+                <table id="list"></table> <!-- table generated and populated by jqGrid in header -->
+                <div id="pager"></div> 
+            </div>
+            <div id="addEditDialog" title="Add Regression" class="dialog">
+                <p class="dialogMsg"></p>
+                <form id="addEditForm">
+                    <fieldset>
+                    <input type="hidden" name="operation" id="operation" />
+                    <input type="hidden" name="origId" id="origId" />
+                    <table cellpadding="0" cellspacing="0">
+                        <tbody>
+                            <tr>
+                                <td width="1"><label for="reg_type" class="dialog_label">Regression Element Type</label></td>
+                                <td>
+                                    <!--div id="reg_type">
+                                        <input type="radio" name="reg_type" id="reg_type_0" value="0" /><label for="reg_type_0">Test</label>
+                                        <input type="radio" name="reg_type" id="reg_type_1" value="1" /><label for="reg_type_1">Query</label>
+                                    </div-->
+                                    <select id="reg_type" name="reg_type">
+                                        <option value="0">Test</option>
+                                        <option value="1">Query</option>
+                                        <option value="2">Security User</option>
+                                        <option value="3">Security Query</option>
+                                        <option value="4">Security Plan</option>
+                                    </select>
+                                </td>
+                            </tr>
+                            <!-- test inputs -->
+                            <tr class="test_inputs security_user_inputs security_query_inputs security_plan_inputs">
+                                <td><label for="id" class="dialog_label">Regression ID</label></td>
+                                <td><input type="text" name="id" id="id" class="text ui-widget-content ui-corner-all" /></td>
+                            </tr>
+                            <tr class="test_inputs">
+                                <td><label for="inputFilePath" class="dialog_label">Input Regression Test File Path</label></td>
+                                <td><input type="text" name="inputFilePath" id="inputFilePath" size="60" class="text ui-widget-content ui-corner-all" /></td>
+                            </tr>
+                            <tr class="test_inputs">
+                                <td><label for="createNewFile" class="dialog_label">Create New Regression Test File?</label></td>
+                                <td>
+                                    <div id="createNewFile">
+                                        <input type="radio" name="createNewFile" id="createNewFile_true" value="true" /><label for="createNewFile_true">True</label>
+                                        <input type="radio" name="createNewFile" id="createNewFile_false" value="false" /><label for="createNewFile_false">False</label>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr class="test_inputs">
+                                <td colspan="2">
+                                    <div id="tabs">
+                                        <ul>
+                                            <li><a href="#tabs-1">New File Parameters</a></li>
+                                            <li><a href="#tabs-2">Test Run Parameters</a></li>
+                                            <li><a href="#tabs-3">Compare Files</a></li>
+                                            <li><a href="#tabs-4">Compare Logs</a></li>
+                                        </ul>
+                                        <div id="tabs-1">
+                                            <form id="addEditForm1">
+                                                <fieldset>
+                                                <table cellpadding="0" cellspacing="0">
+                                                    <tbody>
+                                                        <tr>
+                                                            <td><label for="nfp_createQueries" class="dialog_label">Create Queries?</label></td>
+                                                            <td>
+                                                                <div id="nfp_createQueries">
+                                                                    <input type="radio" name="nfp_createQueries" id="nfp_createQueries_true" value="true" /><label for="nfp_createQueries_true">True</label>
+                                                                    <input type="radio" name="nfp_createQueries" id="nfp_createQueries_false" value="false" /><label for="nfp_createQueries_false">False</label>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td><label for="nfp_createProcedures" class="dialog_label">Create Procedures?</label></td>
+                                                            <td>
+                                                                <div id="nfp_createProcedures">
+                                                                    <input type="radio" name="nfp_createProcedures" id="nfp_createProcedures_true" value="true" /><label for="nfp_createProcedures_true">True</label>
+                                                                    <input type="radio" name="nfp_createProcedures" id="nfp_createProcedures_false" value="false" /><label for="nfp_createProcedures_false">False</label>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td><label for="nfp_createWS" class="dialog_label">Create Web Services?</label></td>
+                                                            <td>
+                                                                <div id="nfp_createWS">
+                                                                    <input type="radio" name="nfp_createWS" id="nfp_createWS_true" value="true" /><label for="nfp_createWS_true">True</label>
+                                                                    <input type="radio" name="nfp_createWS" id="nfp_createWS_false" value="false" /><label for="nfp_createWS_false">False</label>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td><label for="nfp_createSoapType" class="dialog_label">Create SOAP Type</label></td>
+                                                            <td>
+                                                                <select name="nfp_createSoapType" id="nfp_createSoapType">
+                                                                    <option value="0">All</option>
+                                                                    <option value="1">SOAP 1.1</option>
+                                                                    <option value="2">SOAP 1.2</option>
+                                                                </select>
+                                                            </td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td><label for="nfp_useDefaultViewQuery" class="dialog_label">Use Default View Query?</label></td>
+                                                            <td>
+                                                                <div id="nfp_useDefaultViewQuery">
+                                                                    <input type="radio" name="nfp_useDefaultViewQuery" id="nfp_useDefaultViewQuery_true" value="true" /><label for="nfp_useDefaultViewQuery_true">True</label>
+                                                                    <input type="radio" name="nfp_useDefaultViewQuery" id="nfp_useDefaultViewQuery_false" value="false" /><label for="nfp_useDefaultViewQuery_false">False</label>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td><label for="nfp_useDefaultProcQuery" class="dialog_label">Use Default Procedure Query?</label></td>
+                                                            <td>
+                                                                <div id="nfp_useDefaultProcQuery">
+                                                                    <input type="radio" name="nfp_useDefaultProcQuery" id="nfp_useDefaultProcQuery_true" value="true" /><label for="nfp_useDefaultProcQuery_true">True</label>
+                                                                    <input type="radio" name="nfp_useDefaultProcQuery" id="nfp_useDefaultProcQuery_false" value="false" /><label for="nfp_useDefaultProcQuery_false">False</label>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td><label for="nfp_useDefaultWSQuery" class="dialog_label">Use Default Web Service Query?</label></td>
+                                                            <td>
+                                                                <div id="nfp_useDefaultWSQuery">
+                                                                    <input type="radio" name="nfp_useDefaultWSQuery" id="nfp_useDefaultWSQuery_true" value="true" /><label for="nfp_useDefaultWSQuery_true">True</label>
+                                                                    <input type="radio" name="nfp_useDefaultWSQuery" id="nfp_useDefaultWSQuery_false" value="false" /><label for="nfp_useDefaultWSQuery_false">False</label>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td><label for="nfp_publishedViewQry" class="dialog_label">Published View Query Fragment</label></td>
+                                                            <td><textarea name="nfp_publishedViewQry" id="nfp_publishedViewQry" rows="4" cols="50" class="text ui-widget-content ui-corner-all" ></textarea></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td><label for="nfp_publishedProcQry" class="dialog_label">Published Procedure Query Fragment</label></td>
+                                                            <td><textarea name="nfp_publishedProcQry" id="nfp_publishedProcQry" rows="4" cols="50" class="text ui-widget-content ui-corner-all" ></textarea></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td><label for="nfp_useAllDatasources" class="dialog_label">Use All Data Sources?</label></td>
+                                                            <td>
+                                                                <div id="nfp_useAllDatasources">
+                                                                    <input type="radio" name="nfp_useAllDatasources" id="nfp_useAllDatasources_true" value="true" /><label for="nfp_useAllDatasources_true">True</label>
+                                                                    <input type="radio" name="nfp_useAllDatasources" id="nfp_useAllDatasources_false" value="false" /><label for="nfp_useAllDatasources_false">False</label>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td><label for="nfp_datasources" class="dialog_label">Data Sources</label></td>
+                                                            <td>
+                                                                <input type="text" name="nfp_datasources" id="nfp_datasources" size="60" class="text ui-widget-content ui-corner-all" />
+                                                                <!-- input type="text" name="nfp_datasources" id="nfp_datasources" size="60" disabled="true" class="text ui-widget-content ui-corner-all" />
+                                                                <div id="nfp_datasources_set" title="Set Data Sources" >Set Data Sources</div-->
+                                                            </td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td><label for="nfp_resources" class="dialog_label">Resources To Test</label></td>
+                                                            <td>
+                                                                <input type="text" name="nfp_resources" id="nfp_resources" size="60" class="text ui-widget-content ui-corner-all" />
+                                                                <!--input type="text" name="nfp_resources" id="nfp_resources" size="60" disabled="true" class="text ui-widget-content ui-corner-all" />
+                                                                <div id="nfp_resources_set" title="Set Resources" >Set Resources</div-->
+                                                            </td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td><label for="nfp_securityGenerationOptions" class="dialog_label">Regression Module Generation Security Options</label></td>
+                                                            <td><div id="nfp_securityGenerationOptions_set" title="Set Option Values" >Set Option Values</div></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td><label for="nfp_defaultProcParamValues" class="dialog_label">Default Procedure Parameter Values</label></td>
+                                                            <td><div id="nfp_defaultProcParamValues_set" title="Set Parameter Values" >Set Parameter Values</div></td>
+                                                        </tr>
+                                                    </tbody>
+                                                </table>
+                                                </fieldset>
+                                            </form>
+                                        </div>
+                                        <div id="tabs-2">
+                                            <form id="addEditForm2">
+                                                <fieldset>
+                                                <table cellpadding="0" cellspacing="0">
+                                                    <tbody>
+                                                        <tr>
+                                                            <td><label for="trp_testType" class="dialog_label">Test Type</label></td>
+                                                            <td>
+                                                                <select name="trp_testType" id="trp_testType">
+                                                                    <option value="0">Functional</option>
+                                                                    <option value="1">Migration</option>
+                                                                    <option value="2">Regression</option>
+                                                                    <option value="3">Performance</option>
+                                                                    <option value="4">Security</option>
+                                                                </select>
+                                                            </td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td><label for="trp_logFilePath" class="dialog_label">Log File Path</label></td>
+                                                            <td><input type="text" name="trp_logFilePath" id="trp_logFilePath" size="60" class="text ui-widget-content ui-corner-all" /></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td><label for="trp_logDelimiter" class="dialog_label">Log Delimiter</label></td>
+                                                            <td>
+                                                                <select name="trp_logDelimiter" id="trp_logDelimiter">
+                                                                    <option value="0">(Choose Delimiter ...)</option>
+                                                                    <option value="1">COMMA</option>
+                                                                    <option value="2">,</option>
+                                                                    <option value="3">PIPE</option>
+                                                                    <option value="4">|</option>
+                                                                    <option value="5">TAB</option>
+                                                                    <option value="6">TILDE</option>
+                                                                    <option value="7">~</option>
+                                                                </select>
+                                                            </td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td><label for="trp_logAppend" class="dialog_label">Append To Existing Log File?</label></td>
+                                                            <td>
+                                                                <div id="trp_logAppend">
+                                                                    <input type="radio" name="trp_logAppend" id="trp_logAppend_true" value="true" /><label for="trp_logAppend_true">True</label>
+                                                                    <input type="radio" name="trp_logAppend" id="trp_logAppend_false" value="false" /><label for="trp_logAppend_false">False</label>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td><label for="trp_baseDir" class="dialog_label">Base Directory For Output Files</label></td>
+                                                            <td><input type="text" name="trp_baseDir" id="trp_baseDir" size="60" class="text ui-widget-content ui-corner-all" /></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td><label for="trp_delimiter" class="dialog_label">Data Delimiter</label></td>
+                                                            <td>
+                                                                <select name="trp_delimiter" id="trp_delimiter">
+                                                                    <option value="1">COMMA</option>
+                                                                    <option value="2">,</option>
+                                                                    <option value="3">PIPE</option>
+                                                                    <option value="4">|</option>
+                                                                    <option value="5">TAB</option>
+                                                                    <option value="6">TILDE</option>
+                                                                    <option value="7">~</option>
+                                                                </select>
+                                                            </td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td><label for="trp_printOutput" class="dialog_label">Print Output</label></td>
+                                                            <td>
+                                                                <select name="trp_printOutput" id="trp_printOutput">
+                                                                    <option value="0">Verbose</option>
+                                                                    <option value="1">Summary</option>
+                                                                    <option value="2">Silent</option>
+                                                                </select>
+                                                            </td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td><label for="trp_perfTestThreads" class="dialog_label">Number of Threads</label></td>
+                                                            <td><input type="text" name="trp_perfTestThreads" id="trp_perfTestThreads" size="6" class="text ui-widget-content ui-corner-all" /></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td><label for="trp_perfTestDuration" class="dialog_label">Test Duration (Seconds)</label></td>
+                                                            <td><input type="text" name="trp_perfTestDuration" id="trp_perfTestDuration" size="6" class="text ui-widget-content ui-corner-all" /></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td><label for="trp_perfTestSleepPrint" class="dialog_label">Seconds Between Status Messages</label></td>
+                                                            <td><input type="text" name="trp_perfTestSleepPrint" id="trp_perfTestSleepPrint" size="6" class="text ui-widget-content ui-corner-all" /></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td><label for="trp_perfTestSleepExec" class="dialog_label">Seconds Between Test Executions</label></td>
+                                                            <td><input type="text" name="trp_perfTestSleepExec" id="trp_perfTestSleepExec" size="6" class="text ui-widget-content ui-corner-all" /></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td><label for="trp_runQueries" class="dialog_label">Run Query Tests?</label></td>
+                                                            <td>
+                                                                <div id="trp_runQueries">
+                                                                    <input type="radio" name="trp_runQueries" id="trp_runQueries_true" value="true" /><label for="trp_runQueries_true">True</label>
+                                                                    <input type="radio" name="trp_runQueries" id="trp_runQueries_false" value="false" /><label for="trp_runQueries_false">False</label>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td><label for="trp_runProcedures" class="dialog_label">Run Procedure Tests?</label></td>
+                                                            <td>
+                                                                <div id="trp_runProcedures">
+                                                                    <input type="radio" name="trp_runProcedures" id="trp_runProcedures_true" value="true" /><label for="trp_runProcedures_true">True</label>
+                                                                    <input type="radio" name="trp_runProcedures" id="trp_runProcedures_false" value="false" /><label for="trp_runProcedures_false">False</label>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td><label for="trp_runWS" class="dialog_label">Run Web Service Tests?</label></td>
+                                                            <td>
+                                                                <div id="trp_runWS">
+                                                                    <input type="radio" name="trp_runWS" id="trp_runWS_true" value="true" /><label for="trp_runWS_true">True</label>
+                                                                    <input type="radio" name="trp_runWS" id="trp_runWS_false" value="false" /><label for="trp_runWS_false">False</label>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td><label for="trp_useAllDatasources" class="dialog_label">Use All Data Sources?</label></td>
+                                                            <td>
+                                                                <div id="trp_useAllDatasources">
+                                                                    <input type="radio" name="trp_useAllDatasources" id="trp_useAllDatasources_true" value="true" /><label for="trp_useAllDatasources_true">True</label>
+                                                                    <input type="radio" name="trp_useAllDatasources" id="trp_useAllDatasources_false" value="false" /><label for="trp_useAllDatasources_false">False</label>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td><label for="trp_datasources" class="dialog_label">Data Sources To Test</label></td>
+                                                            <td>
+                                                                <input type="text" name="trp_datasources" id="trp_datasources" size="60" class="text ui-widget-content ui-corner-all" />
+                                                                <!--input type="text" name="trp_datasources" id="trp_datasources" size="60" disabled="true" class="text ui-widget-content ui-corner-all" />
+                                                                <div id="trp_datasources_set" title="Set Data Sources" >Set Data Sources</div-->
+                                                            </td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td><label for="trp_resources" class="dialog_label">Resources To Test</label></td>
+                                                            <td>
+                                                                <input type="text" name="trp_resources" id="trp_resources" size="60" class="text ui-widget-content ui-corner-all" />
+                                                                <!--input type="text" name="trp_resources" id="trp_resources" size="60" disabled="true" class="text ui-widget-content ui-corner-all" />
+                                                                <div id="trp_resources_set" title="Set Resources" >Set Resources</div-->
+                                                            </td>
+                                                        </tr>
+                                                    </tbody>
+                                                </table>
+                                                </fieldset>
+                                            </form>
+                                        </div>
+                                        <div id="tabs-3">
+                                            <form id="addEditForm3">
+                                                <fieldset>
+                                                <table cellpadding="0" cellspacing="0">
+                                                    <tbody>
+                                                        <tr>
+                                                            <td><label for="cf_logFilePath" class="dialog_label">Comparison Results File Path</label></td>
+                                                            <td><input type="text" name="cf_logFilePath" id="cf_logFilePath" size="60" class="text ui-widget-content ui-corner-all" /></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td><label for="cf_logDelimiter" class="dialog_label">Log Delimiter</label></td>
+                                                            <td>
+                                                                <select name="cf_logDelimiter" id="cf_logDelimiter">
+                                                                    <option value="0">(Choose Delimiter ...)</option>
+                                                                    <option value="1">COMMA</option>
+                                                                    <option value="2">,</option>
+                                                                    <option value="3">PIPE</option>
+                                                                    <option value="4">|</option>
+                                                                    <option value="5">TAB</option>
+                                                                    <option value="6">TILDE</option>
+                                                                    <option value="7">~</option>
+                                                                </select>
+                                                            </td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td><label for="cf_logAppend" class="dialog_label">Append To Existing Log File?</label></td>
+                                                            <td>
+                                                                <div id="cf_logAppend">
+                                                                    <input type="radio" name="cf_logAppend" id="cf_logAppend_true" value="true" /><label for="cf_logAppend_true">True</label>
+                                                                    <input type="radio" name="cf_logAppend" id="cf_logAppend_false" value="false" /><label for="cf_logAppend_false">False</label>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td><label for="cf_baseDir1" class="dialog_label">Base Directory For Output Files Of Instance 1</label></td>
+                                                            <td><input type="text" name="cf_baseDir1" id="cf_baseDir1" size="60" class="text ui-widget-content ui-corner-all" /></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td><label for="cf_baseDir2" class="dialog_label">Base Directory For Output Files Of Instance 2</label></td>
+                                                            <td><input type="text" name="cf_baseDir2" id="cf_baseDir2" size="60" class="text ui-widget-content ui-corner-all" /></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td><label for="cf_compareQueries" class="dialog_label">Compare Queries?</label></td>
+                                                            <td>
+                                                                <div id="cf_compareQueries">
+                                                                    <input type="radio" name="cf_compareQueries" id="cf_compareQueries_true" value="true" /><label for="cf_compareQueries_true">True</label>
+                                                                    <input type="radio" name="cf_compareQueries" id="cf_compareQueries_false" value="false" /><label for="cf_compareQueries_false">False</label>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td><label for="cf_compareProcedures" class="dialog_label">Compare Procedures?</label></td>
+                                                            <td>
+                                                                <div id="cf_compareProcedures">
+                                                                    <input type="radio" name="cf_compareProcedures" id="cf_compareProcedures_true" value="true" /><label for="cf_compareProcedures_true">True</label>
+                                                                    <input type="radio" name="cf_compareProcedures" id="cf_compareProcedures_false" value="false" /><label for="cf_compareProcedures_false">False</label>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td><label for="cf_compareWS" class="dialog_label">Compare Web Services?</label></td>
+                                                            <td>
+                                                                <div id="cf_compareWS">
+                                                                    <input type="radio" name="cf_compareWS" id="cf_compareWS_true" value="true" /><label for="cf_compareWS_true">True</label>
+                                                                    <input type="radio" name="cf_compareWS" id="cf_compareWS_false" value="false" /><label for="cf_compareWS_false">False</label>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td><label for="cf_useAllDatasources" class="dialog_label">Use All Data Sources?</label></td>
+                                                            <td>
+                                                                <div id="cf_useAllDatasources">
+                                                                    <input type="radio" name="cf_useAllDatasources" id="cf_useAllDatasources_true" value="true" /><label for="cf_useAllDatasources_true">True</label>
+                                                                    <input type="radio" name="cf_useAllDatasources" id="cf_useAllDatasources_false" value="false" /><label for="cf_useAllDatasources_false">False</label>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td><label for="cf_datasources" class="dialog_label">Data Sources To Compare</label></td>
+                                                            <td>
+                                                                <input type="text" name="cf_datasources" id="cf_datasources" size="60" disabled="true" class="text ui-widget-content ui-corner-all" />
+                                                                <!--input type="text" name="cf_datasources" id="cf_datasources" size="60" disabled="true" class="text ui-widget-content ui-corner-all" />
+                                                                <div id="cf_datasources_set" title="Set Data Sources" >Set Data Sources</div-->
+                                                            </td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td><label for="cf_resources" class="dialog_label">Resources To Compare</label></td>
+                                                            <td>
+                                                                <input type="text" name="cf_resources" id="cf_resources" size="60" disabled="true" class="text ui-widget-content ui-corner-all" />
+                                                                <!--input type="text" name="cf_resources" id="cf_resources" size="60" disabled="true" class="text ui-widget-content ui-corner-all" />
+                                                                <div id="cf_resources_set" title="Set Resources" >Set Resources</div-->
+                                                            </td>
+                                                        </tr>
+                                                    </tbody>
+                                                </table>
+                                            </form>
+                                        </div>
+                                        <div id="tabs-4">
+                                            <form id="addEditForm4">
+                                                <fieldset>
+                                                <table cellpadding="0" cellspacing="0">
+                                                    <tbody>
+                                                        <tr>
+                                                            <td><label for="cl_logFilePath" class="dialog_label">Comparison Results File Path</label></td>
+                                                            <td><input type="text" name="cl_logFilePath" id="cl_logFilePath" size="60" class="text ui-widget-content ui-corner-all" /></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td><label for="cl_logDelimiter" class="dialog_label">Log Delimiter</label></td>
+                                                            <td>
+                                                                <select name="cl_logDelimiter" id="cl_logDelimiter">
+                                                                    <option value="0">(Choose Delimiter ...)</option>
+                                                                    <option value="1">COMMA</option>
+                                                                    <option value="2">,</option>
+                                                                    <option value="3">PIPE</option>
+                                                                    <option value="4">|</option>
+                                                                    <option value="5">TAB</option>
+                                                                    <option value="6">TILDE</option>
+                                                                    <option value="7">~</option>
+                                                                </select>
+                                                            </td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td><label for="cl_logAppend" class="dialog_label">Append To Existing Log File?</label></td>
+                                                            <td>
+                                                                <div id="cl_logAppend">
+                                                                    <input type="radio" name="cl_logAppend" id="cl_logAppend_true" value="true" /><label for="cl_logAppend_true">True</label>
+                                                                    <input type="radio" name="cl_logAppend" id="cl_logAppend_false" value="false" /><label for="cl_logAppend_false">False</label>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td><label for="cl_logFilePath1" class="dialog_label">Log File Of Instance 1</label></td>
+                                                            <td><input type="text" name="cl_logFilePath1" id="cl_logFilePath1" size="60" class="text ui-widget-content ui-corner-all" /></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td><label for="cl_logFilePath2" class="dialog_label">Log File Of Instance 2</label></td>
+                                                            <td><input type="text" name="cl_logFilePath2" id="cl_logFilePath2" size="60" class="text ui-widget-content ui-corner-all" /></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td><label for="cl_logDelimiter1" class="dialog_label">Log 1 Delimiter</label></td>
+                                                            <td>
+                                                                <select name="cl_logDelimiter1" id="cl_logDelimiter1">
+                                                                    <option value="0">(Choose Delimiter ...)</option>
+                                                                    <option value="1">COMMA</option>
+                                                                    <option value="2">,</option>
+                                                                    <option value="3">PIPE</option>
+                                                                    <option value="4">|</option>
+                                                                    <option value="5">TAB</option>
+                                                                    <option value="6">TILDE</option>
+                                                                    <option value="7">~</option>
+                                                                </select>
+                                                            </td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td><label for="cl_logDelimiter2" class="dialog_label">Log 2 Delimiter</label></td>
+                                                            <td>
+                                                                <select name="cl_logDelimiter2" id="cl_logDelimiter2">
+                                                                    <option value="0">(Choose Delimiter ...)</option>
+                                                                    <option value="1">COMMA</option>
+                                                                    <option value="2">,</option>
+                                                                    <option value="3">PIPE</option>
+                                                                    <option value="4">|</option>
+                                                                    <option value="5">TAB</option>
+                                                                    <option value="6">TILDE</option>
+                                                                    <option value="7">~</option>
+                                                                </select>
+                                                            </td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td><label for="cl_durationDelta" class="dialog_label">Duration Delta</label></td>
+                                                            <td>
+                                                                <input type="text" name="cl_durationDelta_days" id="cl_durationDelta_days" size="3" class="text ui-widget-content ui-corner-all" />&nbsp;
+                                                                <input type="text" name="cl_durationDelta_hour" id="cl_durationDelta_hour" size="2" class="text ui-widget-content ui-corner-all" />:
+                                                                <input type="text" name="cl_durationDelta_min" id="cl_durationDelta_min" size="2" class="text ui-widget-content ui-corner-all" />:
+                                                                <input type="text" name="cl_durationDelta_sec" id="cl_durationDelta_sec" size="2" class="text ui-widget-content ui-corner-all" />
+                                                            </td>
+                                                        </tr>
+                                                    </tbody>
+                                                </table>
+                                                </fieldset>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+
+                            <!-- query and security query inputs -->
+                            <tr class="query_inputs security_query_inputs">
+                                <td><label for="datasource" class="dialog_label">Data Source</label></td>
+                                <td><input type="text" name="datasource" id="datasource" size="50" class="text ui-widget-content ui-corner-all" /></td>
+                            </tr>
+                            <tr class="security_query_inputs">
+                                <td><label for="queryType" class="dialog_label">Query Type</label></td>
+                                <td>
+                                    <select name="queryType" id="queryType">
+                                        <option value="0">(Select Query Type ...)</option>
+                                        <option value="1">Query</option>
+                                        <option value="2">Procedure</option>
+                                        <option value="3">Web Service</option>
+                                    </select>
+                                </td>
+                            </tr>
+                            <tr class="query_inputs security_query_inputs">
+                                <td><label for="query" class="dialog_label">Query / WS Request Envelope</label></td>
+                                <td><textarea name="query" id="query" rows="4" cols="50" class="text ui-widget-content ui-corner-all" ></textarea></td>
+                            </tr>
+                            <tr class="query_inputs">
+                                <td><label for="durationDelta" class="dialog_label">Duration Delta</label></td>
+                                <td>
+                                    <input type="text" name="durationDelta_days" id="durationDelta_days" size="3" class="text ui-widget-content ui-corner-all" />&nbsp;
+                                    <input type="text" name="durationDelta_hour" id="durationDelta_hour" size="2" class="text ui-widget-content ui-corner-all" />:
+                                    <input type="text" name="durationDelta_min" id="durationDelta_min" size="2" class="text ui-widget-content ui-corner-all" />:
+                                    <input type="text" name="durationDelta_sec" id="durationDelta_sec" size="2" class="text ui-widget-content ui-corner-all" />
+                                </td>
+                            </tr>
+                            <tr class="security_query_inputs">
+                                <td><label for="procOutTypes" class="dialog_label">Procedure Output Types</label></td>
+                                <td>
+                                    <input type="text" name="procOutTypes" id="procOutTypes" size="60" disabled="true" class="text ui-widget-content ui-corner-all" />
+                                    <div id="procOutTypes_set" title="Set Procedure Output Types" >Set Procedure Output Types</div>
+                                </td>
+                            </tr>
+                            <tr class="query_inputs security_query_inputs">
+                                <td><label for="wsPath" class="dialog_label">Web Service Path</label></td>
+                                <td><input type="text" name="wsPath" id="wsPath" size="50" class="text ui-widget-content ui-corner-all" /></td>
+                            </tr>
+                            <tr class="query_inputs security_query_inputs">
+                                <td><label for="wsAction" class="dialog_label">Web Service Action</label></td>
+                                <td><input type="text" name="wsAction" id="wsAction" class="text ui-widget-content ui-corner-all" /></td>
+                            </tr>
+                            <tr class="query_inputs security_query_inputs">
+                                <td><label for="wsEncrypt" class="tabs_form_label">Encrypt Web Service Communications?</label></td>
+                                <td>
+                                    <div id="wsEncrypt">
+                                        <input type="radio" name="wsEncrypt" id="wsEncrypt_true" value="true" /><label for="wsEncrypt_true">True</label>
+                                        <input type="radio" name="wsEncrypt" id="wsEncrypt_false" value="false" /><label for="wsEncrypt_false">False</label>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr class="query_inputs security_query_inputs">
+                                <td><label for="wsContentType" class="dialog_label">Web Service Content Type</label></td>
+                                <td>
+                                    <select name="wsContentType" id="wsContentType">
+                                        <option value="0">(Select Content Type ...)</option>
+                                        <option value="1">text/xml;charset=UTF-8 (SOAP 1.1)</option>
+                                        <option value="2">application/soap+xml;charset=UTF-8 (SOAP 1.2)</option>
+                                    </select>
+                                </td>
+                            </tr>
+                            <tr class="security_query_inputs">
+                                <td><label for="resourcePath" class="dialog_label">Resource Path</label></td>
+                                <td><input type="text" name="resourcePath" id="resourcePath" size="60" class="text ui-widget-content ui-corner-all" /></td>
+                            </tr>
+                            <tr class="security_query_inputs">
+                                <td><label for="resourceType" class="dialog_label">Resource Type</label></td>
+                                <td><select name="resourceType" id="resourceType"></select></td><!-- populated programmatically -->
+                            </tr>
+
+                            <!-- security user inputs -->
+                            <tr class="security_user_inputs">
+                                <td><label for="userName" class="dialog_label">User Name</label></td>
+                                <td><input type="text" name="userName" id="userName" class="text ui-widget-content ui-corner-all" /></td>
+                            </tr>
+                            <tr class="security_user_inputs">
+                                <td><label for="encryptedPassword" class="dialog_label">Password</label></td>
+                                <td><input type="password" name="encryptedPassword" id="encryptedPassword" class="text ui-widget-content ui-corner-all" /></td>
+                            </tr>
+                            <tr class="security_user_inputs">
+                                <td><label for="domain" class="dialog_label">Domain</label></td>
+                                <td><input type="text" name="domain" id="domain" class="text ui-widget-content ui-corner-all" /></td>
+                            </tr>
+
+                            <!-- security plan inputs -->
+                            <tr class="security_plan_inputs">
+                                <td colspan="2">
+                                    <hr/>
+                                    <table cellpadding="0" cellspacing="0" border="0" class="conn_row">
+                                        <tbody>
+                                            <tr>
+                                                <td><label for="sp_id" class="tabs_form_label">ID</label></td>
+                                                <td><label for="sp_enabled" class="tabs_form_label">Enabled</label></td>
+                                                <td><label for="sp_userId" class="tabs_form_label">User ID</label></td>
+                                                <td><label for="sp_queryId" class="tabs_form_label">Query ID</label></td>
+                                                <td><label for="sp_expectedOutcome" class="tabs_form_label">Outcome</label></td>
+                                                <td><label for="sp_description" class="tabs_form_label">Description</label></td>
+                                                <td></td><!-- delete button column -->
+                                            </tr>
+                                            <tr id="sp_add_row">
+                                                <td colspan="7"><div id="sp_add" title="Add Plan Item" >Add Plan Item</div></td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    </fieldset>
+                </form>
+            </div>
+            <div id="secGenOptsValsDialog" title="Regression Module Generation Security Options" class="dialog">
+                <form id="secGenOptsValsForm">
+                    <fieldset>
+                    <table cellpadding="0" cellspacing="0">
+                        <tbody>
+                            <tr>
+                                <td><label for="sgo_pathToTargetRegressionXML" class="dialog_label">Path to Target Regression XML</label></td>
+                                <td><input type="text" name="sgo_pathToTargetRegressionXML" id="sgo_pathToTargetRegressionXML" size="60" class="text ui-widget-content ui-corner-all" /></td>
+                            </tr>
+                            <tr>
+                                <td><label for="sgo_encryptedPassword" class="dialog_label">User Default Password</label></td>
+                                <td><input type="password" name="sgo_encryptedPassword" id="sgo_encryptedPassword" class="text ui-widget-content ui-corner-all" /></td>
+                            </tr>
+                            <tr>
+                                <td><label for="sgo_userFilter" class="dialog_label">User Filter</label></td>
+                                <td>
+                                    <input type="text" name="sgo_userFilter" id="sgo_userFilter" size="60" class="text ui-widget-content ui-corner-all" />
+                                    <!--input type="text" name="sgo_userFilter" id="sgo_userFilter" size="60" disabled="true" class="text ui-widget-content ui-corner-all" />
+                                    <div id="sgo_userFilter_set" title="Set User Filters" >Set User Filters</div-->
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><label for="sgo_domainFilter" class="dialog_label">Domain Filter</label></td>
+                                <td>
+                                    <input type="text" name="sgo_domainFilter" id="sgo_domainFilter" size="60" class="text ui-widget-content ui-corner-all" />
+                                    <!--input type="text" name="sgo_domainFilter" id="sgo_domainFilter" size="60" disabled="true" class="text ui-widget-content ui-corner-all" />
+                                    <div id="sgo_domainFilter_set" title="Set Domain Filters" >Set Domain Filters</div-->
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><label for="sgo_userMode" class="dialog_label">User Mode</label></td>
+                                <td>
+                                    <select name="sgo_userMode" id="sgo_userMode">
+                                        <option value="0">No Execute</option>
+                                        <option value="1">Overwrite</option>
+                                        <option value="2">Append</option>
+                                    </select>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><label for="sgo_queryMode" class="dialog_label">Query Mode</label></td>
+                                <td>
+                                    <select name="sgo_queryMode" id="sgo_queryMode">
+                                        <option value="0">No Execute</option>
+                                        <option value="1">Overwrite</option>
+                                        <option value="2">Append</option>
+                                    </select>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><label for="sgo_planMode" class="dialog_label">Plan Mode</label></td>
+                                <td>
+                                    <select name="sgo_planMode" id="sgo_planMode">
+                                        <option value="0">No Execute</option>
+                                        <option value="1">Overwrite</option>
+                                        <option value="2">Append</option>
+                                    </select>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><label for="sgo_planModeType" class="dialog_label">Plan Mode Type</label></td>
+                                <td>
+                                    <select name="sgo_planModeType" id="sgo_planModeType">
+                                        <option value="0">Single Plan</option>
+                                        <option value="1">Multi-Plan</option>
+                                    </select>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><label for="sgo_planIdPrefix" class="dialog_label">Plan ID Prefix</label></td>
+                                <td><input type="text" name="sgo_planIdPrefix" id="sgo_planIdPrefix" class="text ui-widget-content ui-corner-all" /></td>
+                            </tr>
+                            <tr>
+                                <td><label for="sgo_planGenerateExpectedOutcome" class="tabs_form_label">Plan Expected Outcome</label></td>
+                                <td>
+                                    <div id="sgo_planGenerateExpectedOutcome">
+                                        <input type="radio" name="sgo_planGenerateExpectedOutcome" id="sgo_planGenerateExpectedOutcome_true" value="true" /><label for="sgo_planGenerateExpectedOutcome_true">True</label>
+                                        <input type="radio" name="sgo_planGenerateExpectedOutcome" id="sgo_planGenerateExpectedOutcome_false" value="false" /><label for="sgo_planGenerateExpectedOutcome_false">False</label>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><label for="sgo_flattenSecurityUsersXML" class="tabs_form_label">Flatten Security Users XML?</label></td>
+                                <td>
+                                    <div id="sgo_flattenSecurityUsersXML">
+                                        <input type="radio" name="sgo_flattenSecurityUsersXML" id="sgo_flattenSecurityUsersXML_true" value="true" /><label for="sgo_flattenSecurityUsersXML_true">True</label>
+                                        <input type="radio" name="sgo_flattenSecurityUsersXML" id="sgo_flattenSecurityUsersXML_false" value="false" /><label for="sgo_flattenSecurityUsersXML_false">False</label>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><label for="sgo_flattenSecurityQueryQueriesXML" class="tabs_form_label">Flatten Security Query Queries XML?</label></td>
+                                <td>
+                                    <div id="sgo_flattenSecurityQueryQueriesXML">
+                                        <input type="radio" name="sgo_flattenSecurityQueryQueriesXML" id="sgo_flattenSecurityQueryQueriesXML_true" value="true" /><label for="sgo_flattenSecurityQueryQueriesXML_true">True</label>
+                                        <input type="radio" name="sgo_flattenSecurityQueryQueriesXML" id="sgo_flattenSecurityQueryQueriesXML_false" value="false" /><label for="sgo_flattenSecurityQueryQueriesXML_false">False</label>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><label for="sgo_flattenSecurityQueryProceduresXML" class="tabs_form_label">Flatten Security Query Procedures XML?</label></td>
+                                <td>
+                                    <div id="sgo_flattenSecurityQueryProceduresXML">
+                                        <input type="radio" name="sgo_flattenSecurityQueryProceduresXML" id="sgo_flattenSecurityQueryProceduresXML_true" value="true" /><label for="sgo_flattenSecurityQueryProceduresXML_true">True</label>
+                                        <input type="radio" name="sgo_flattenSecurityQueryProceduresXML" id="sgo_flattenSecurityQueryProceduresXML_false" value="false" /><label for="sgo_flattenSecurityQueryProceduresXML_false">False</label>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><label for="sgo_flattenSecurityQueryWebServicesXML" class="tabs_form_label">Flatten Security Query Web Services XML?</label></td>
+                                <td>
+                                    <div id="sgo_flattenSecurityQueryWebServicesXML">
+                                        <input type="radio" name="sgo_flattenSecurityQueryWebServicesXML" id="sgo_flattenSecurityQueryWebServicesXML_true" value="true" /><label for="sgo_flattenSecurityQueryWebServicesXML_true">True</label>
+                                        <input type="radio" name="sgo_flattenSecurityQueryWebServicesXML" id="sgo_flattenSecurityQueryWebServicesXML_false" value="false" /><label for="sgo_flattenSecurityQueryWebServicesXML_false">False</label>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><label for="sgo_flattenSecurityPlansXML" class="tabs_form_label">Flatten Security Plans XML?</label></td>
+                                <td>
+                                    <div id="sgo_flattenSecurityPlansXML">
+                                        <input type="radio" name="sgo_flattenSecurityPlansXML" id="sgo_flattenSecurityPlansXML_true" value="true" /><label for="sgo_flattenSecurityPlansXML_true">True</label>
+                                        <input type="radio" name="sgo_flattenSecurityPlansXML" id="sgo_flattenSecurityPlansXML_false" value="false" /><label for="sgo_flattenSecurityPlansXML_false">False</label>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    </fieldset>
+                </form>
+            </div>
+            <div id="defProcValsDialog" title="Default Procedure Parameter Values" class="dialog">
+                <form id="defProcValsForm">
+                    <fieldset>
+                    <table cellpadding="0" cellspacing="0">
+                        <tbody>
+                            <tr>
+                                <td><label for="bitVal" class="dialog_label">Bit</label></td>
+                                <td><input type="text" name="bitVal" id="bitVal" class="text ui-widget-content ui-corner-all" /></td>
+                            </tr>
+                            <tr>
+                                <td><label for="varcharVal" class="dialog_label">Varchar</label></td>
+                                <td><input type="text" name="varcharVal" id="varcharVal" class="text ui-widget-content ui-corner-all" /></td>
+                            </tr>
+                            <tr>
+                                <td><label for="charVal" class="dialog_label">Char</label></td>
+                                <td><input type="text" name="charVal" id="charVal" class="text ui-widget-content ui-corner-all" /></td>
+                            </tr>
+                            <tr>
+                                <td><label for="clobVal" class="dialog_label">Clob</label></td>
+                                <td><input type="text" name="clobVal" id="clobVal" class="text ui-widget-content ui-corner-all" /></td>
+                            </tr>
+                            <tr>
+                                <td><label for="integerVal" class="dialog_label">Integer</label></td>
+                                <td><input type="text" name="integerVal" id="integerVal" class="text ui-widget-content ui-corner-all" /></td>
+                            </tr>
+                            <tr>
+                                <td><label for="intVal" class="dialog_label">Int</label></td>
+                                <td><input type="text" name="intVal" id="intVal" class="text ui-widget-content ui-corner-all" /></td>
+                            </tr>
+                            <tr>
+                                <td><label for="bigintVal" class="dialog_label">Big Int</label></td>
+                                <td><input type="text" name="bigintVal" id="bigintVal" class="text ui-widget-content ui-corner-all" /></td>
+                            </tr>
+                            <tr>
+                                <td><label for="smallintVal" class="dialog_label">Small Int</label></td>
+                                <td><input type="text" name="smallintVal" id="smallintVal" class="text ui-widget-content ui-corner-all" /></td>
+                            </tr>
+                            <tr>
+                                <td><label for="tinyintVal" class="dialog_label">Tiny Int</label></td>
+                                <td><input type="text" name="tinyintVal" id="tinyintVal" class="text ui-widget-content ui-corner-all" /></td>
+                            </tr>
+                            <tr>
+                                <td><label for="decimalVal" class="dialog_label">Decimal</label></td>
+                                <td><input type="text" name="decimalVal" id="decimalVal" class="text ui-widget-content ui-corner-all" /></td>
+                            </tr>
+                            <tr>
+                                <td><label for="numericVal" class="dialog_label">Numeric</label></td>
+                                <td><input type="text" name="numericVal" id="numericVal" class="text ui-widget-content ui-corner-all" /></td>
+                            </tr>
+                            <tr>
+                                <td><label for="realVal" class="dialog_label">Real</label></td>
+                                <td><input type="text" name="realVal" id="realVal" class="text ui-widget-content ui-corner-all" /></td>
+                            </tr>
+                            <tr>
+                                <td><label for="floatVal" class="dialog_label">Float</label></td>
+                                <td><input type="text" name="floatVal" id="floatVal" class="text ui-widget-content ui-corner-all" /></td>
+                            </tr>
+                            <tr>
+                                <td><label for="doubleVal" class="dialog_label">Double</label></td>
+                                <td><input type="text" name="doubleVal" id="doubleVal" class="text ui-widget-content ui-corner-all" /></td>
+                            </tr>
+                            <tr>
+                                <td><label for="dateVal" class="dialog_label">Date</label></td>
+                                <td><input type="text" name="dateVal" id="dateVal" class="text ui-widget-content ui-corner-all" /></td>
+                            </tr>
+                            <tr>
+                                <td><label for="timeVal" class="dialog_label">Time</label></td>
+                                <td><input type="text" name="timeVal" id="timeVal" class="text ui-widget-content ui-corner-all" /></td>
+                            </tr>
+                            <tr>
+                                <td><label for="timestampVal" class="dialog_label">Timestamp</label></td>
+                                <td><input type="text" name="timestampVal" id="timestampVal" class="text ui-widget-content ui-corner-all" /></td>
+                            </tr>
+                            <tr>
+                                <td><label for="binaryVal" class="dialog_label">Binary</label></td>
+                                <td><input type="text" name="binaryVal" id="binaryVal" class="text ui-widget-content ui-corner-all" /></td>
+                            </tr>
+                            <tr>
+                                <td><label for="varbinaryVal" class="dialog_label">Varbinary</label></td>
+                                <td><input type="text" name="varbinaryVal" id="varbinaryVal" class="text ui-widget-content ui-corner-all" /></td>
+                            </tr>
+                            <tr>
+                                <td><label for="blobVal" class="dialog_label">Blob</label></td>
+                                <td><input type="text" name="blobVal" id="blobVal" class="text ui-widget-content ui-corner-all" /></td>
+                            </tr>
+                            <tr>
+                                <td><label for="xmlVal" class="dialog_label">XML</label></td>
+                                <td><input type="text" name="xmlVal" id="xmlVal" class="text ui-widget-content ui-corner-all" /></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    </fieldset>
+                </form>
+            </div>
+            <!--div id="csvDialog" title="CSV Values" class="dialog">
+                <form id="csvForm">
+                    <fieldset>
+                    <input type="hidden" name="csvFieldId" id="csvFieldId" />
+                    <table cellpadding="0" cellspacing="0">
+                        <tbody>
+                            <tr>
+                                <td><label class="tabs_form_label">Value</label></td>
+                                <td></td>
+                            </tr>
+                            <tr id="csv_add_row">
+                                <td colspan="2"><div id="csv_add" title="Add Value" >Add Value</div></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    </fieldset>
+                </form>
+            </div-->
+            <div id="alertDialog" title="Alert" class="dialog">
+                <p id="alertDialogMessage"></p>
+            </div>
+            <div id="confirmDialog" title="Confirm" class="dialog">
+                <p id="confirmDialogMessage"></p>
+            </div>
+<!-- InstanceEndEditable -->
+        </div>
+    </body>
+<!-- InstanceEnd --></html>

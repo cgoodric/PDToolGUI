@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html><!-- InstanceBegin template="/Templates/pdtoolgui.dwt" codeOutsideHTMLIsLocked="false" -->
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<!-- InstanceBeginEditable name="doctitle" -->
+        <title>PDTool: Deployment Plan</title>
+<!-- InstanceEndEditable -->
+        <link rel="stylesheet" type="text/css" href="css/styles.css">
+        <link rel="stylesheet" type="text/css" href="css/smoothness/jquery-ui-1.10.2.custom.css" />
+        <link rel="stylesheet" type="text/css" href="css/ui.jqgrid.css" />
+        <script type="text/javascript" src="js/jquery-1.9.1.js"></script>
+        <script type="text/javascript" src="js/jquery-ui-1.10.2.custom.js"></script>
+        <script type="text/javascript" src="js/i18n/grid.locale-en.js"></script>
+        <script type="text/javascript" src="js/jquery.jqGrid.src.js"></script>
+        <script type="text/javascript" src="js/jquery-queryParser.min.js"></script>
+        <script type="text/javascript" src="js/pdtoolgui.js"></script>
+        <script type="text/javascript" src="js/pdtoolgui_docs_en.js"></script>
+<!-- InstanceBeginEditable name="head" -->
+        <script type="text/javascript" src="js/pdtoolgui_dp_methods.js"></script>
+        <script language="javascript">
+        
+            // set an event handler to fire when the page's DOM is complete (not necessarily when all the images or CSS finish loading.)
+            // this is similar to the <body> tag's "onload" attribute. however, "onload" waits until all the other resources (CSS,
+            // images, etc.) are done loading, too. this way the construction of the table can start a bit sooner.
+            //
+            $(document).ready (function() { 
+
+                // check access status and forward to incex.html if access is denied.
+                //
+                $.getJSON (
+                    "/security?rnd=" + myRand(), // base URL
+                    null,                       // argument
+                    function(data) {            // callback function to parse data
+                        if (data.status == "error") {
+                            location = "/pdtoolgui/index.html?denied=true&rnd=" + myRand();
+                        }
+                    }
+                );
+
+                // update the navigation tabs by highlighting the correct tab
+                //
+                setActiveNavTab('nav_tab_plans'); 
+
+                // set the active submenu item and set click event handlers on all submenu items
+                //
+                $("#nav_submenu_dep_plans") .click(function() {location='dep_plans.html'}).addClass("nav_submenu_item_active");
+
+                // enable the more/less functions of the page description
+                //
+                //setCollapsable();
+                
+                // enable tooltips over editor fields
+                //
+                setTooltips (TOOLTIPS["dep_plan"]);
+
+                createAlertDialog();
+                createConfirmDialog();
+
+                // parse this page's URL query parameters
+                //
+                var queryParams = $.parseQuery(location.search);
+                
+                $("#plan_name").html (decodeURIComponent(queryParams.path.replace(/\+/g, " ")).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\s/g, "&nbsp;"));
+                
+                // load the user's preferences.
+                //
+                var prefs = null, dp = null;
+                $.getJSON (
+                    "/prefs?rnd=" + myRand(), // base URL
+                    null,                     // argument
+                    function(data) {          // callback function
+                        prefs = data;
+                        
+                        // if there's a default profile defined
+                        //
+                        if (prefs.defaultProfile != null && prefs.defaultProfile.length > 0) {
+                            $.getJSON (
+                                "/deployment_profile/" + encodeURIComponent(prefs.defaultProfile) + "?rnd=" + myRand(),
+                                null,
+                                function (data) { 
+                                    dp = data; 
+                                    if (data != null) {
+                                        ALL_RESOURCES_INDICATOR = data.allResourcesIndicator;
+                                        EXCLUDE_RESOURCES_INDICATOR = data.excludeResourcesIndicator;
+                                    }
+                                }
+                            );
+                        }
+                    }
+                );
+
+                // build the main table and populate with a REST/JSON call
+                //
+                // this instance of the list is a little different than the rest. Since the plan step order is important here, we're disabling sorting
+                // and allowing the user to manually reposition plan steps.
+                //
+                list = $("#list")
+                    .jqGrid({
+                        url:'/deployment_plan_list/' + encodeURIComponent (queryParams.path),
+                        datatype: 'json',
+                        mtype: 'GET',
+                        autoencode: true,
+                        colNames:['Line Number', 'Enabled', 'Behavior', 'Exit?', 'Batch', 'Method', 'Server', 'Parameter 1', 'Parameter 2', 'Parameter 3', 'Parameter 4', 'Parameter 5', 'Parameter 6', 'Parameter 7', 'Parameter 8', 'Parameter 9'],
+                        colModel :[ 
+                            {name:'lineNum', index:'lineNum', width:30, key:true, hidden:true}, // not sure if we'll need this
+                            {name:'enabled', index:'enabled', width:50, fixed:true, align:'center', editable: true, edittype: 'checkbox', editoptions: {value: "true:false"},formatter: "checkbox", formatoptions: {disabled: true}},
+                            {name:'expectedBehavior', index:'expectedBehavior', width:60},
+                            {name:'exitOnError', index:'exitOnError', width:40, fixed:true, align:'center', editable: true, edittype: 'checkbox', editoptions: {value: "true:false"},formatter: "checkbox", formatoptions: {disabled: true}},
+                            {name:'batch', index:'batch', width:100, hidden:true}, // not displaying this column. the value never seems to change, why show it?
+                            {name:'method', index:'method', width:100, classes:'idGridCell'},
+                            {name:'server', index:'server', width:100},
+                            {name:'param1', index:'param1', width:150},
+                            {name:'param2', index:'param2', width:150},
+                            {name:'param3', index:'param3', width:150},
+                            {name:'param4', index:'param4', width:150},
+                            {name:'param5', index:'param5', width:150},
+                            {name:'param6', index:'param6', width:150},
+                            {name:'param7', index:'param7', width:150},
+                            {name:'param8', index:'param8', width:150},
+                            {name:'param9', index:'param9', width:150}
+                        ],
+                        pager: '#pager',
+                        height: "auto",
+                        autowidth: true,
+                        rowNum:-1, // showing all the records this time.
+                        rowList:[],
+                        recordtext: "Plan Steps {0} - {1} of {2}",
+                        cmTemplate: {sortable:false}, // not sorting because order is important here. user manages order with nav buttons.
+                        viewrecords: true,
+                        gridview: true,
+                        multiselect: true,
+
+                        // add a "before select row" event handler that prevents checking of the row's checkbox when the "id"
+                        // column is clicked, but opens the editor for the id instead. depends on the "idGridCell" class being
+                        // added to the column definition of the "id" column.
+                        //
+                        beforeSelectRow: function (rowid, e) {
+                            if ($(e.target).hasClass("idGridCell")) {
+                                
+                                operation.val("edit");
+                                setDialogDataFromList (rowid);
+                                $("#addEditDialog").dialog ({title: "Edit Plan Step"});
+                                $("#addEditDialog").dialog ("open");
+                                return false;
+                            } else {
+                                return true;
+                            }
+                        }
+                    }) // .jqGrid()
+                    
+                    .navGrid( // get rid of the default buttons (except for search; dunno how to programmatically show it's dialog) so we can reorder them below
+                        '#pager', 
+                        {
+                            edit: false,
+                            add: false,
+                            del: false,
+                            search: false // not letting users search because this filters rows and doesn't give an indication of where they are in the plan.
+                        },  // nav
+                        {}, // edit
+                        {}, // add
+                        {}, // del
+                        {
+                            closeAfterSearch: true,
+                            closeAfterReset: true,
+                            closeOnEscape: true,
+                            resize: false,
+                            searchOnEnter: true
+                        }, // search
+                        {
+                            caption: "my view caption"
+                        }   // view
+                    )  // .navGrid()
+                    
+                    // set up custom buttons in the order we want. load them in reverse order so they can be placed in front of the search and refresh buttons.
+                    //
+                    // disable all button
+                    //
+                    .navButtonAdd(
+                        '#pager',
+                        {
+                            caption: "",
+                            buttonicon: "ui-icon-circle-close",
+                            onClickButton: function() {
+
+                                for (var i = 0; i < list.getDataIDs().length; i++) {
+                                        var rowid = list.getDataIDs()[i];
+                                        list.setCell (rowid, "enabled", "false");
+                                }
+
+                                updateDepPlan (false, true);
+                            },
+                            title: "Disable All Plan Steps",
+                            position: "first"
+                        }
+                    ) // .navGrid()
+
+                    // enable all button
+                    //
+                    .navButtonAdd(
+                        '#pager',
+                        {
+                            caption: "",
+                            buttonicon: "ui-icon-circle-check",
+                            onClickButton: function() {
+								
+                                for (var i = 0; i < list.getDataIDs().length; i++) {
+                                        var rowid = list.getDataIDs()[i];
+                                        list.setCell (rowid, "enabled", "true");
+                                }
+
+                                updateDepPlan (false, true);
+                            },
+                            title: "Enable All Plan Steps",
+                            position: "first"
+                        }
+                    ) // .navGrid()
+
+                    // down button
+                    //
+                    .navButtonAdd(
+                        '#pager',
+                        {
+                            caption: "",
+                            buttonicon: "ui-icon-circle-arrow-s",
+                            onClickButton: function() {
+                                var selList = list.getGridParam ('selarrrow'); // list of selected rows
+                                var rowids = [];
+                                
+                                if (selList.length == 0) {
+                                    myAlert ("Please select at least one plan step to move.");
+                                    return false;
+                                }
+
+                                // gather the rowids ahead of time. rowids appear in the selected rows list in the order they were selected.
+                                // they will need to be sorted in order to make sure rows are moved properly.
+                                //
+                                for (var i = 0; i < selList.length; i++) {
+                                    rowids.push (selList[i]);
+                                }
+                                
+                                rowids.sort (function(a,b){ return (b * 1) - (a * 1); }); // perform a reverse numeric sort. multiply operands by 1 to make sure values are treated as numbers.
+
+                                for (var i = 0; i < rowids.length; i++) {
+                                    if (! moveRowDown (rowids[i])) // if we receive a false then we're already at the end of the list or the rowid isn't recognized.
+                                        break;
+                                }
+
+                                updateDepPlan (false, true);
+                            },
+                            title: "Move Selected Rows Down",
+                            position: "first"
+                        }
+                    ) // .navGrid()
+
+                    // up button
+                    //
+                    .navButtonAdd(
+                        '#pager',
+                        {
+                            caption: "",
+                            buttonicon: "ui-icon-circle-arrow-n",
+                            onClickButton: function() {
+                                var selList = list.getGridParam ('selarrrow'); // list of selected rows
+                                var rowids = [];
+
+                                if (selList.length == 0) {
+                                    myAlert ("Please select at least one plan step to move.");
+                                    return false;
+                                }
+
+                                // gather the rowids ahead of time. rowids appear in the selected rows list in the order they were selected.
+                                // they will need to be sorted in order to make sure rows are moved properly.
+                                //
+                                for (var i = 0; i < selList.length; i++) {
+                                    rowids.push (selList[i]);
+                                }
+                                
+                                rowids.sort (function(a,b){ return (a * 1) - (b * 1); }); // perform a numeric sort. multiply operands by 1 to make sure values are treated as numbers.
+
+                                for (var i = 0; i < rowids.length; i++) {
+                                    if (! moveRowUp (rowids[i])) // if we receive a false then we're already at the beginning of the list or the rowid isn't recognized.
+                                        break;
+                                }
+
+                                updateDepPlan (false, true);
+                            },
+                            title: "Move Selected Rows Up",
+                            position: "first"
+                        }
+                    ) // .navGrid()
+
+                    // delete button
+                    //
+                    .navButtonAdd(
+                        '#pager',
+                        {
+                            caption: "",
+                            buttonicon: "ui-icon-trash",
+                            onClickButton: function (jqEvent) { 
+                                var selList = list.getGridParam ('selarrrow'); // list of selected rows
+                                var rowids = [];
+
+                                if (selList.length == 0) {
+                                    myAlert ("Please select at least one plan step to delete.");
+                                    return false;
+                                }
+
+                                // gather the rowids ahead of time. deleting them while iterating the selected row list causes the iteration to skip rows.
+                                //
+                                for (var i = 0; i < selList.length; i++) {
+                                    rowids.push(selList[i]);
+                                }
+                                
+                                for (var i = 0; i < rowids.length; i++) {
+                                    list.delRowData (rowids[i]);
+                                }
+
+                                updateDepPlan (false, true);
+                            },
+                            title: "Delete Plan Step",
+                            position: "first"
+                        }
+                    )  // .navGrid()
+                    
+                    // copy button
+                    //
+                    .navButtonAdd(
+                        '#pager',
+                        {
+                            caption: "",
+                            buttonicon: "ui-icon-copy",
+                            onClickButton: function (jqEvent) { 
+                                var selList = list.getGridParam ('selarrrow'); // list of selected rows
+
+                                if (selList.length == 0) {
+                                    myAlert ("Please select at least one plan step to copy.");
+                                    return false;
+                                }
+
+                                for (var i = 0; i < selList.length; i++) {
+                                    var rowid = selList[i];
+                                    var data = list.getRowData (rowid);
+                                    var newRowid = getNextUnusedID();
+                                    data.lineNum = newRowid;
+                                    list.addRowData (newRowid, [data]);
+                                    $("#" + $.jgrid.jqID(list.getDataIDs()[list.getDataIDs().length - 1])).attr("id", newRowid);
+                                }
+                                
+                                updateDepPlan (false, true);
+                            },
+                            title: "Copy Plan Step",
+                            position: "first"
+                        }
+                    )  // .navGrid()
+                    
+                    // edit button
+                    //
+                    .navButtonAdd(
+                        '#pager',
+                        {
+                            caption: "",
+                            buttonicon: "ui-icon-pencil",
+                            onClickButton: function() {
+                                var selList = list.getGridParam ('selarrrow');
+
+                                if (selList.length > 1) {
+                                    myAlert ("Cannot edit more than one item at a time.");
+                                    return false;
+                                } else if (selList.length == 0) {
+                                    myAlert ("Please select a plan step to edit.");
+                                    return false;
+                                }
+                                
+                                setDialogDataFromList (selList[0]);
+
+                                operation.val("edit");
+                                $("#addEditDialog").dialog ({title: "Edit Plan Step"});
+                                $("#addEditDialog").dialog ("open");
+                            },
+                            title: "Edit Plan Step",
+                            position: "first"
+                        }
+                    )  // .navGrid()
+                    
+                    // add button
+                    //
+                    .navButtonAdd(
+                        '#pager',
+                        {
+                            caption: "",
+                            buttonicon: "ui-icon-plus",
+                            onClickButton: function() {
+                                operation.val ("add");
+                                $("#addEditDialog").dialog ({title: "Add Plan Step"});
+                                
+                                $('#id').val (getNextUnusedID());
+                                $('#enabled_true').prop ("checked", "checked");
+                                $("#enabled").buttonset ("refresh");
+                                $('#expectedBehavior_pass').prop ("checked", "checked");
+                                $("#expectedBehavior").buttonset ("refresh");
+                                $('#exitOnError_true').prop ("checked", "checked");
+                                $("#exitOnError").buttonset ("refresh");
+                                
+                                setServerAutoCompleteData ("#server");
+                                $("#server").val (prefs.defaultServer);
+
+                                $("#module").val ("");
+                                setMethodSelectData ("#method", null, null);
+                                $(".method_param").remove();
+
+                                $("#addEditDialog").dialog ("open");
+                            },
+                            title: "Add New Plan Step",
+                            position: "first"
+                        }
+                    ); // .navGrid()
+
+                // scale the jqGrid artifact as the user resizes the browser.
+                //
+                $(window).bind('resize', function() {
+                    list.setGridWidth($(window).width() - 60); // 30 pixels of padding on either side of the jqGrid.
+                }).trigger('resize');
+
+                // set up the add/edit dialog
+                //
+                var operation = $("#operation"),
+                    id = $("#id"),
+                    enabled = $("#enabled").buttonset(),
+                    expectedBehavior = $("#expectedBehavior").buttonset(),
+                    exitOnError = $("#exitOnError").buttonset(),
+                    module = $("#module"),
+                    method = $("#method"),
+                    server = $("#server"),
+                    server_list = $("#server_list"),
+                    allFields = $([]).add (enabled).add (expectedBehavior).add (exitOnError).add (module).add (method).add (server);
+
+                // set up the server text input to be an auto complete field.
+                // set a dummy list for now. opening the dialog will set auto-complete
+                // values each time.
+                //
+                $("#server").autocomplete ({
+                                source: [],
+                                appendTo: "#addEditDialog"
+                            });
+                
+                // populate the method menu and set a change event handler on it.
+                // not setting a method here so no default selected module
+                //
+                setModuleSelectData ("#module", null); 
+                module.change (function (event, ui) {
+                    setMethodSelectData ("#method", module.val(), null);
+                });
+                
+                // not setting a method here so no default selected method. the menu will not have any 
+                // methods until a user selects a module. set a change event handler so the input fields
+                // adjust according to the method's parameters.
+                //
+                setMethodSelectData ("#method", null, null);
+                method.change (function (event, ui) {
+                    setMethodParameters (
+                        "#inputs_table", 
+                        module.val(), 
+                        $(this).val(),
+                        {
+                            "method": $(this).val() /*,
+                            "param1": null,
+                            "param2": null,
+                            "param3": null,
+                            "param4": null,
+                            "param5": null,
+                            "param6": null,
+                            "param7": null,
+                            "param8": null,
+                            "param9": null*/
+                        }
+                    );
+                });
+                
+                dialogMsg = $(".dialogMsg");
+
+                addEditDialog = $("#addEditDialog").dialog ({
+                    autoOpen: false,
+                    //height: 300,
+                    width: 900,
+                    modal: true,
+                    buttons: [ // declaring buttons this way lets us assign ID's to the buttons so they can be interacted with later.
+                        {
+                            id: "aeOkButton",
+                            text: "OK",
+                            click: function() {
+                                var errMsg = "";
+                                
+                                allFields.removeClass ("ui-state-error");
+                                clearAEDialogMessage();
+                                $("#aeOkButton").button ("disable");
+                                
+                                if (operation.val() == "add") {
+
+                                    // add new row to the end of the list
+                                    //
+                                    list.addRowData (
+                                        id.val(), // jqGrid will generate an id, "jqgNN"
+                                        [generateRowDataFromDialog()]
+                                    );
+                                    
+                                    // for some reason list.addRowData() sets the row id to "jqg1". this 
+                                    // resets the last rowid to the value of the hidden "id" field.
+                                    //
+                                    $("#" + $.jgrid.jqID(list.getDataIDs()[list.getDataIDs().length - 1])).attr("id", id.val());
+
+                                } else {
+                                
+                                    // update an existing row.
+                                    //
+                                    list.setRowData(
+                                        id.val(),
+                                        generateRowDataFromDialog()
+                                    );
+                                }
+                                
+                                updateDepPlan (true, true);
+                            }
+                        }, {
+                            id: "aeCancelButton",
+                            text: "Cancel",
+                            click: function() {
+                                $(this).dialog ("close");
+                            }
+                        }
+                    ],
+                    // this is an event handler for when the dialog box closes (it can be closed in a number of ways.)
+                    // basically any error classes get cleared from the form elements and the message <div> is cleared.
+                    //
+                    close: function() {
+                        allFields.val ("").removeClass ("ui-state-error"); // empty out the fields and remove the error class.
+                        clearAEDialogMessage();
+                        $("#aeOkButton").button ("enable");
+                    },
+                    // add a custom class to the OK button so that it can be addressed for disabling/enabling later
+                    //
+                    create: function () {
+                        $(this).closest(".ui-dialog")
+                            .find(".ui-button:first") // the first button
+                            .addClass("aeOkButton");
+                    }
+                }); // #addEditDialog
+                
+                function getNextUnusedID() {
+                    return list.getDataIDs()[list.getDataIDs().length - 1] * 1 + 1;
+                }
+                
+                function generateRowDataFromDialog() {
+                    var data = {
+                        "lineNum": id.val(),
+                        "enabled": $('#enabled input:radio:checked').val(),
+                        "expectedBehavior": $('#expectedBehavior input:radio:checked').val(),
+                        "exitOnError": $('#exitOnError input:radio:checked').val(),
+                        "method": method.val(),
+                        "server": server.val(),
+                        "param1": ($("#param1").length > 0) ? $("#param1").val() : null,
+                        "param2": ($("#param2").length > 0) ? $("#param2").val() : null,
+                        "param3": ($("#param3").length > 0) ? $("#param3").val() : null,
+                        "param4": ($("#param4").length > 0) ? $("#param4").val() : null,
+                        "param5": ($("#param5").length > 0) ? $("#param5").val() : null,
+                        "param6": ($("#param6").length > 0) ? $("#param6").val() : null,
+                        "param7": ($("#param7").length > 0) ? $("#param7").val() : null,
+                        "param8": ($("#param8").length > 0) ? $("#param8").val() : null,
+                        "param9": ($("#param9").length > 0) ? $("#param9").val() : null
+                    };
+                    
+                    data.method = getOverloadedMethodName (method.val(), data);
+                    
+                    return data;
+                }
+                
+                function moveRowUp (rowid) {
+                    var rowIndex = getRowIndex (rowid);
+                    
+                    // no op if not found or already at beginning of list
+                    //
+                    if (rowIndex === undefined || rowIndex == 0)
+                        return;
+                    
+                    var prevRowid = list.getDataIDs()[rowIndex - 1];
+
+                    var r1 = list.getRowData (prevRowid);
+                    var r2 = list.getRowData (rowid);
+                    list.setRowData (prevRowid, r2);
+                    list.setRowData (rowid, r1);
+
+                    list.setSelection (prevRowid);
+                    list.setSelection (rowid);
+                    
+                    return true;
+                }
+                
+                function moveRowDown (rowid) {
+                    var rowIndex = getRowIndex (rowid);
+                    
+                    // no op if not found or already at end of list
+                    //
+                    if (rowIndex === undefined || rowIndex == (list.getDataIDs().length - 1))
+                        return false;
+                    
+                    var nextRowid = list.getDataIDs()[rowIndex + 1];
+
+                    var r1 = list.getRowData (rowid);
+                    var r2 = list.getRowData (nextRowid);
+                    list.setRowData (rowid, r2);
+                    list.setRowData (nextRowid, r1);
+
+                    list.setSelection (rowid);
+                    list.setSelection (nextRowid);
+                    
+                    return true;
+                }
+                
+                function getRowIndex (rowid) {
+                    for (var i = 0; i < list.getDataIDs().length; i++) {
+                        if (rowid == list.getDataIDs()[i])
+                            return i;
+                    }
+                    
+                    return undefined;
+                }
+                
+                // sets the form values of the dialog box from a data object (typically returned from an AJAX call.)
+                //
+                var methodName;
+                var moduleId;
+                function setDialogDataFromList (rowid) {
+                    $("#server_list").children().remove();
+
+                    setServerAutoCompleteData ("#server");
+                    
+                    // set the plan step value
+                    //
+                    id.val (rowid);
+                    
+                    $('#enabled_' + list.getCell (rowid,"enabled")).prop ("checked", "checked");
+                    $("#enabled").buttonset ("refresh");
+                    
+                    $('#expectedBehavior_' + list.getCell (rowid,"expectedBehavior").toLowerCase()).prop ("checked", "checked");
+                    $("#expectedBehavior").buttonset ("refresh");
+                    
+                    $('#exitOnError_' + list.getCell (rowid,"exitOnError")).prop ("checked", "checked");
+                    $("#exitOnError").buttonset ("refresh");
+                    
+                    // set the module select values and select the module based on 
+                    // the method entry in the deployment plan
+                    //
+                    methodName = list.getCell (rowid, "method")
+                    moduleId = setModuleSelectData ("#module", methodName);
+                    
+                    // determine if we're using an overloaded method and get the appropriate method
+                    // name, if any.
+                    //
+                    methodName = getOverloadedMethodName (methodName, list.getRowData (rowid));
+                    
+                    // set the method select values and select the method based on 
+                    // the method entry in the deployment plan
+                    //
+                    setMethodSelectData ("#method", moduleId, methodName);
+                    
+                    // set up the parameter fields and populate them with values
+                    // from the deployment plan
+                    //
+                    setMethodParameters ("#inputs_table", moduleId, methodName, list.getRowData (rowid));
+                    
+                    // set the serverId field value
+                    //
+                    server.val (list.getCell (rowid, "server"));                    
+                }
+
+                function updateDepPlan (iUseDialog, iAlertOnlyOnError) {
+                    var json = createJsonFromList();
+                    
+                    $.ajax({  
+                        type: 'PUT',
+                        contentType: 'application/json',
+                        url: "/deployment_plan_list?rnd=" + myRand(),
+                        dataType: "json",
+                        data: json,  
+                        success: function (data) {
+                            processAjaxResult (
+                                data, 
+                                {
+                                    useDialog:iUseDialog, 
+                                    reloadGrid:false, 
+                                    alertOnlyOnError:iAlertOnlyOnError, 
+                                    isDepPlanAdd:(operation.val() == "add")
+                                }
+                            );
+                        },
+                        // this should only happen when things go seriously wrong on the server
+                        //
+                        error: function(jqXHR, textStatus, errorThrown) {
+                            myAlert ("textStatus = " + textStatus + "<br>errorThrown = " + errorThrown);
+                            $("#aeOkButton").button ("enable");
+                        }
+                    });
+                }
+
+                // creates a JSON artifact for sending with AJAX queries. Jackson on the server side is very particular
+                // about the format of JSON objects: double quoted attributes AND values.
+                //
+                function createJsonFromList () {
+                    var steps = new Array();
+                    var rowids = list.getDataIDs();
+                    for (var i = 0; i < rowids.length; i++) {
+                        var rowid = rowids[i];
+                        var row = list.getRowData (rowid);
+                        
+                        steps.push ({
+                            "lineNum": rowid,
+                            "enabled": row.enabled,
+                            "expectedBehavior": (row.expectedBehavior == 'PASS'),
+                            "exitOnError": row.exitOnError,
+                            "batchName": "ExecuteAction",
+                            "method": row.method,
+                            "server": row.server,
+                            "param1": row.param1,
+                            "param2": row.param2,
+                            "param3": row.param3,
+                            "param4": row.param4,
+                            "param5": row.param5,
+                            "param6": row.param6,
+                            "param7": row.param7,
+                            "param8": row.param8,
+                            "param9": row.param9
+                        });
+                    }
+                    
+                    var data = {
+                        "path": decodeURIComponent (queryParams.path.replace(/\+/g, " ")),
+                        "steps": steps
+                    };
+                    
+                    return JSON.stringify (data);
+                }
+
+                // create the attribute value map dialog
+                //
+                var csvDialog = createCSVDialog("#csvDialog");
+
+                // set up the add CSV button in the CSV dialog. 
+                //
+                $("#csv_add")
+                    .button()
+                    .click(addCSVRow);
+
+            }); // $(document).ready()
+            
+        </script>
+<!-- InstanceEndEditable -->
+    </head>
+<!-- InstanceBeginEditable name="bodytag" -->
+    <body class="page">
+<!-- InstanceEndEditable -->
+        <div class="header">
+            <div class="logo" onClick="javascript:location='index.html'"><img src="images/cisco_logo.png"/></div>
+            <div class="app_title" onClick="javascript:location='index.html'">Promotion &amp; Deployment Tool</div>
+        </div>
+        <div class="nav_container">
+            <div class="nav_tab_container"><!-- divs are floated right so listed in reverse order -->
+                <div class="nav_tab_spacer"></div>
+                <div id="nav_tab_execute" class="nav_tab" onClick="javascript:location='execute.html'">
+                    <div class="nav_tab_left"></div>
+                    <div class="nav_tab_center">EXECUTE</div>
+                    <div class="nav_tab_right"></div>
+                </div>
+                <div id="nav_tab_modules" class="nav_tab" onClick="javascript:location='modules.html'">
+                    <div class="nav_tab_left"></div>
+                    <div class="nav_tab_center">MODULES</div>
+                    <div class="nav_tab_right"></div>
+                </div>
+                <div id="nav_tab_plans" class="nav_tab" onClick="javascript:location='dep_plans.html'">
+                    <div class="nav_tab_left"></div>
+                    <div class="nav_tab_center">PLANS</div>
+                    <div class="nav_tab_right"></div>
+                </div>
+                <div id="nav_tab_configuration" class="nav_tab" onClick="javascript:location='config_preferences.html'">
+                    <div class="nav_tab_left"></div>
+                    <div class="nav_tab_center">CONFIGURATION</div>
+                    <div class="nav_tab_right"></div>
+                </div>
+            </div>
+            <div class="nav_base"></div>
+            <div class="nav_submenu_container">
+                <div class="nav_submenu_items">
+<!-- InstanceBeginEditable name="nav_submenu" -->
+                    <div id="nav_submenu_dep_plans" class="nav_submenu_item">Deployment&nbsp;Plans</div>
+<!-- InstanceEndEditable -->
+                </div>
+                <div class="nav_submenu_right"><img src="images/nav_submenu_right.png"/></div>
+            </div>
+        </div>
+        <div class="page_content">
+            <div class="page_title_container">
+                <div class="page_title">
+<!-- InstanceBeginEditable name="page_title" -->
+                    DEPLOYMENT PLAN: <span id="plan_name"></span>
+<!-- InstanceEndEditable -->
+                </div>
+                <div class="page_description">
+<!-- InstanceBeginEditable name="page_description" -->
+                    <div class="collapsable"><!-- used with the setCollapsable() function above -->
+                        <div class="collapsable-content">
+                        </div>
+                    </div>
+<!-- InstanceEndEditable -->
+                </div>
+            </div>
+<!-- InstanceBeginEditable name="content" -->
+            <div class="table_container">
+                <table id="list"></table> <!-- table generated and populated by jqGrid in header -->
+                <div id="pager"></div> 
+            </div>
+            <div id="addEditDialog" title="Add/Edit Plan Step" class="dialog">
+                <form id="addEditForm" action="javascript:none">
+                    <fieldset>
+                    <input type="hidden" name="operation" id="operation" />
+                    <input type="hidden" name="id" id="id" />
+                    <table cellpadding="0" cellspacing="0" class="dialog_table">
+                        <tbody id="inputs_table">
+                            <tr>
+                                <td width="150"><label for="enabled" class="dialog_label">Enabled</label></td>
+                                <td class="dialog_radio">
+                                    <div id="enabled">
+                                        <input type="radio" name="enabled" id="enabled_true" value="true" /><label for="enabled_true" class="dialog_radio">True</label>
+                                        <input type="radio" name="enabled" id="enabled_false" value="false" /><label for="enabled_false" class="dialog_radio">False</label>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><label for="expectedBehavior" class="dialog_label">Expected&nbsp;Behavior</label></td>
+                                <td class="dialog_radio">
+                                    <div id="expectedBehavior">
+                                        <input type="radio" name="expectedBehavior" id="expectedBehavior_pass" value="PASS" /><label for="expectedBehavior_pass" class="dialog_radio">Pass</label>
+                                        <input type="radio" name="expectedBehavior" id="expectedBehavior_fail" value="FAIL" /><label for="expectedBehavior_fail" class="dialog_radio">Fail</label>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><label for="exitOnError" class="dialog_label">Halt On Error</label></td>
+                                <td class="dialog_radio">
+                                    <div id="exitOnError">
+                                        <input type="radio" name="exitOnError" id="exitOnError_true" value="true" /><label for="exitOnError_true" class="dialog_radio">True</label>
+                                        <input type="radio" name="exitOnError" id="exitOnError_false" value="false" /><label for="exitOnError_false" class="dialog_radio">False</label>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><label for="module" class="dialog_label">Module</label></td>
+                                <td><select name="module" id="module"></select></td>
+                            </tr>
+                            <tr>
+                                <td><label for="method" class="dialog_label">Method</label></td>
+                                <td><select name="method" id="method"></select></td>
+                            </tr>
+                            <tr>
+                                <td><label for="server" class="dialog_label">serverId</label></td>
+                                <td><input type="text" name="server" id="server" class="text ui-widget-content ui-corner-all"/>&nbsp;<a href="/pdtoolgui/config_servers.html"><img src="images/edit.gif" border="0" alt="Edit Server Profiles"/></a></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    </fieldset>
+                </form>
+                <p class="dialogMsg"></p>
+            </div>
+            <div id="alertDialog" title="Alert" class="dialog">
+                <p id="alertDialogMessage"></p>
+            </div>
+            <div id="confirmDialog" title="Confirm" class="dialog">
+                <p id="confirmDialogMessage"></p>
+            </div>
+            <div id="csvDialog" title="Comma Separated Values" class="dialog">
+                <form id="csvForm">
+                    <fieldset>
+                    <input type="hidden" name="csvParamNum" id="csvParamNum" />
+                    <table cellpadding="0" cellspacing="0">
+                        <tbody>
+                            <tr>
+                                <td><label class="tabs_form_label">Value</label></td>
+                                <td></td>
+                            </tr>
+                            <tr id="csv_add_row">
+                                <td colspan="2"><div id="csv_add" title="Add Value" >Add Value</div></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    </fieldset>
+                </form>
+            </div>
+            <!-- InstanceEndEditable -->
+        </div>
+    </body>
+<!-- InstanceEnd --></html>

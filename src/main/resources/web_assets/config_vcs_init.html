@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html><!-- InstanceBegin template="/Templates/pdtoolgui.dwt" codeOutsideHTMLIsLocked="false" -->
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<!-- InstanceBeginEditable name="doctitle" -->
+        <title>PDTool: VCS Initialization</title>
+<!-- InstanceEndEditable -->
+        <link rel="stylesheet" type="text/css" href="css/styles.css">
+        <link rel="stylesheet" type="text/css" href="css/smoothness/jquery-ui-1.10.2.custom.css" />
+        <link rel="stylesheet" type="text/css" href="css/ui.jqgrid.css" />
+        <script type="text/javascript" src="js/jquery-1.9.1.js"></script>
+        <script type="text/javascript" src="js/jquery-ui-1.10.2.custom.js"></script>
+        <script type="text/javascript" src="js/i18n/grid.locale-en.js"></script>
+        <script type="text/javascript" src="js/jquery.jqGrid.src.js"></script>
+        <script type="text/javascript" src="js/jquery-queryParser.min.js"></script>
+        <script type="text/javascript" src="js/pdtoolgui.js"></script>
+        <script type="text/javascript" src="js/pdtoolgui_docs_en.js"></script>
+<!-- InstanceBeginEditable name="head" -->
+        <script language="javascript">
+        
+            // set an event handler to fire when the page's DOM is complete (not necessarily when all the images or CSS finish loading.)
+            // this is similar to the <body> tag's "onload" attribute. however, "onload" waits until all the other resources (CSS,
+            // images, etc.) are done loading, too. this way the construction of the table can start a bit sooner.
+            //
+            $(document).ready (function() { 
+
+                // check access status and forward to incex.html if access is denied.
+                //
+                $.getJSON (
+                    "/security?rnd=" + myRand(), // base URL
+                    null,                       // argument
+                    function(data) {            // callback function to parse data
+                        if (data.status == "error") {
+                            location = "/pdtoolgui/index.html?denied=true&rnd=" + myRand();
+                        }
+                    }
+                );
+
+                // update the navigation tabs by highlighting the correct tab
+                //
+                setActiveNavTab('nav_tab_configuration'); 
+
+                // set the active submenu item and set click event handlers on all submenu items
+                //
+                $("#nav_submenu_prefs")     .click(function() {location='config_preferences.html'});
+                $("#nav_submenu_servers")   .click(function() {location='config_servers.html'});
+                $("#nav_submenu_dep_confs") .click(function() {location='config_dep_conf_files.html'});
+                $("#nav_submenu_vcs_init")  .addClass("nav_submenu_item_active");
+                
+                // enable the more/less functions of the page description
+                //
+                //setCollapsable();
+
+                // enable tooltips over editor fields
+                //
+                setTooltips (TOOLTIPS["config_vcs_init"]);
+
+                // load the user's preferences.
+                //
+                var prefs;
+                $.getJSON (
+                    "/prefs",         // base URL
+                    null,             // argument
+                    function(data) {  // callback function
+                        prefs = data;
+                        
+                        setConfigProfileSelectData ("#profilePath", prefs.defaultProfile);
+
+                        // load the form with preferences data on page load.
+                        //
+                        $.getJSON (
+                            "/vcs_init?profilePath=" + encodeURIComponent (prefs.defaultProfile) + "&rnd=" + myRand(), // base URL
+                            null,                                                                 // argument
+                            setFormData                                                           // callback function to parse data
+                        );
+                    }
+                );
+
+                // tells the check mechanism whether an initialization was running and whether to
+                // display the "details" link to pop up the log dialog.
+                // 
+                var initializationStarted = false;
+
+                var profilePath = $("#profilePath"),
+                    vcs_status = $("#vcs_status"),
+                    allFields = $([]).add (profilePath).add (vcs_status);
+                
+                // set up a change event handler for the profile path select list so that
+                // the initialization is checked automatically.
+                //
+                profilePath.change(
+                    function (event, ui) {
+                        $("#check").click();
+                    }
+                );
+                
+                // set up check status button
+                //
+                $("#check")
+                    .button()
+                    .click(
+                        function (event, ui) {
+                            if ($("#profilePath").val().length == 0) {
+                                myAlert ("Please choose a configuration profile to use for determining VCS initialization status.");
+                                return false;
+                            }
+
+                            // load the form with preferences data on page load.
+                            //
+                            $.getJSON (
+                                "/vcs_init?profilePath=" + encodeURIComponent ($("#profilePath").val()) + "&rnd=" + myRand(), // base URL
+                                null,                                                                                        // argument
+                                setFormData                                                                                  // callback function to parse data
+                            );
+                        }
+                    );
+
+                // set up initialize workspace button
+                //
+                $("#update")
+                    .button()
+                    .click( 
+                        function (event, ui) {
+                            var dc = $("#profilePath").val();
+
+                            if (dc.length == 0) {
+                                myAlert ("Please choose a configuration profile to use to initialize the VCS configuration.");
+                                return false;
+                            }
+
+                            myConfirm (
+                                "Do you want to initialize using deployment configuration " + dc + "?",
+                                function() {
+                                    // need list button to re-open dialog if it's closed (don't clear contents.)
+                                    
+                                    initializationStarted = true;
+                                    
+                                    // reset the log dialog metadata
+                                    //
+                                    lastLineNum = 0;
+                                    $("#logContent").html ("");
+                                    
+                                    $.ajax({  
+                                        type: "POST",
+                                        contentType: 'application/json',
+                                        url: "/vcs_init?profilePath=" + encodeURIComponent(dc) + "&rnd=" + myRand(),
+                                        dataType: "json",
+                                        success: function (data) {
+                                            if (data.resultCode == 0) {
+                                                var logFilePath = data.logFilePath;
+                                                
+                                                //alert ("path = " + encodeURIComponent (data.logFilePath));
+                                                
+                                                // set an interval to poll the server for log messages
+                                                //
+                                                var myInt = window.setInterval (
+                                                    function() {
+                                                        $.ajax({  
+                                                            type: "GET",
+                                                            contentType: 'application/json',
+                                                            url: "/log/" + encodeURIComponent (logFilePath) + "?startLine=" + lastLineNum + "&usePool=1&rnd=" + myRand(),
+                                                            dataType: "json",
+                                                            success: function (data) {
+                                                                
+                                                                // load up the log dialog with any new messages
+                                                                //
+                                                                for (var i = 0; i < data.messages.length; i++) {
+                                                                    addMessageToLog (data.messages[i], true);
+                                                                }
+                                                                
+                                                                // reset the last line number for the next call to get additional log messages.
+                                                                //
+                                                                lastLineNum = data.lastLineNum;
+                                                                
+                                                                // stop polling if the server indicated the execution has completed and
+                                                                // refresh the initialization status.
+                                                                //
+                                                                if (data.executionCompleted || lastLineNum == -1) {
+                                                                    if (lastLineNum == -1)
+                                                                        addMessageToLog ("Attempting to retrieve messages for non-existent log in pool: " + logFilePath, true);
+
+                                                                    myInt = window.clearInterval (myInt);
+                                                                    $("#check").click();
+                                                                }
+                                                            },
+                                                            // this should only happen when things get seriously wrong on the server
+                                                            //
+                                                            error: function(jqXHR, textStatus, errorThrown) {
+                                                                myAlert ("textStatus = " + textStatus + "<br/>errorThrown = " + errorThrown);
+                                                                myInt=window.clearInterval (myInt);
+                                                            }
+                                                        });
+                                                    },
+                                                    LOG_POLLING_INTERVAL
+                                                );
+                                            } else {
+                                                myAlert ("Launch of ExecutePDTool failed! Please see PDToolGUI log for more details.");
+                                            }
+                                        },
+                                        // this should only happen when things get seriously wrong on the server
+                                        //
+                                        error: function(jqXHR, textStatus, errorThrown) {
+                                            myAlert ("textStatus = " + textStatus + "<br/>errorThrown = " + errorThrown);
+                                        }
+                                    }); // $.ajax();
+                                    
+                                    //$("#logDialog").dialog ("open");
+                                    vcs_status.html ('Initializing ... <img src="images/spinner.gif" class="textAlignImg"/> <span id="show_detail" class="clickable">Details</span>');
+                                    $("#show_detail").click (
+                                        function (event, ui) {
+                                            $("#logDialog").dialog ("open");
+                                            $("#logDialog").scrollTop($("#logDialog").prop ("scrollHeight"));
+                                        }
+                                    );
+                                }
+                            );
+                        }
+                    );
+                
+                function setFormData (data) {
+                    var detailsHtml = "";
+                    
+                    if (initializationStarted) {
+                        detailsHtml = '<br/><span id="show_detail" class="clickable">Details</span>';
+                    }
+                    
+                    if (data.status == "success") {
+                        vcs_status.html (data.message + detailsHtml);
+                    } else {
+                        if (data.messagelist != null && data.messagelist.length > 0) {
+                            var msg = "";
+                            for (var i = 0; i < data.messagelist.length; i++) {
+                                if (i > 0) msg += "<br/>";
+                                
+                                msg += data.messagelist[i].message;
+                            }
+                            
+                            vcs_status.html (msg + detailsHtml);
+                        } else {
+                            vcs_status.html (data.message + detailsHtml);
+                        }
+                    }
+                    
+                    if (initializationStarted) {
+                        $("#show_detail").click (
+                            function (event, ui) {
+                                $("#logDialog").dialog ("open");
+                                $("#logDialog").scrollTop($("#logDialog").prop ("scrollHeight"));
+                            }
+                        );
+                    }
+                    
+                    initializationStarted = false;
+                }
+                
+                function createJSON() {
+                    var data = {
+                    }
+                        
+                    return JSON.stringify (data);
+                }
+                
+                createAlertDialog();
+                createConfirmDialog();
+
+                var logContent = $("#logContent");
+                var logDialog = $("#logDialog").dialog ({
+                    autoOpen: false,
+                    height: 600,
+                    width: 900,
+                    modal: true,
+                    buttons: [ // declaring buttons this way lets us assign ID's to the buttons so they can be interacted with later.
+                        {
+                            id: "logClearButton",
+                            text: "Clear",
+                            click: function() {
+                                $("#logContent").html ("");                          
+                            }
+                        },
+                        {
+                            id: "logCloseButton",
+                            text: "Close",
+                            click: function() {
+                                $(this).dialog ("close");                          
+                            }
+                        }
+                    ]
+                }); // #logDialog
+            }); // $(document).ready()
+            
+        </script>
+<!-- InstanceEndEditable -->
+    </head>
+<!-- InstanceBeginEditable name="bodytag" -->
+    <body class="page">
+<!-- InstanceEndEditable -->
+        <div class="header">
+            <div class="logo" onClick="javascript:location='index.html'"><img src="images/cisco_logo.png"/></div>
+            <div class="app_title" onClick="javascript:location='index.html'">Promotion &amp; Deployment Tool</div>
+        </div>
+        <div class="nav_container">
+            <div class="nav_tab_container"><!-- divs are floated right so listed in reverse order -->
+                <div class="nav_tab_spacer"></div>
+                <div id="nav_tab_execute" class="nav_tab" onClick="javascript:location='execute.html'">
+                    <div class="nav_tab_left"></div>
+                    <div class="nav_tab_center">EXECUTE</div>
+                    <div class="nav_tab_right"></div>
+                </div>
+                <div id="nav_tab_modules" class="nav_tab" onClick="javascript:location='modules.html'">
+                    <div class="nav_tab_left"></div>
+                    <div class="nav_tab_center">MODULES</div>
+                    <div class="nav_tab_right"></div>
+                </div>
+                <div id="nav_tab_plans" class="nav_tab" onClick="javascript:location='dep_plans.html'">
+                    <div class="nav_tab_left"></div>
+                    <div class="nav_tab_center">PLANS</div>
+                    <div class="nav_tab_right"></div>
+                </div>
+                <div id="nav_tab_configuration" class="nav_tab" onClick="javascript:location='config_preferences.html'">
+                    <div class="nav_tab_left"></div>
+                    <div class="nav_tab_center">CONFIGURATION</div>
+                    <div class="nav_tab_right"></div>
+                </div>
+            </div>
+            <div class="nav_base"></div>
+            <div class="nav_submenu_container">
+                <div class="nav_submenu_items">
+<!-- InstanceBeginEditable name="nav_submenu" -->
+                    <div id="nav_submenu_prefs"     class="nav_submenu_item">Preferences</div>
+                    <div id="nav_submenu_servers"   class="nav_submenu_item">Servers</div>
+                    <div id="nav_submenu_dep_confs" class="nav_submenu_item">Deployment&nbsp;Configurations</div>
+                    <div id="nav_submenu_vcs_init"  class="nav_submenu_item">VCS&nbsp;Initialization</div>
+<!-- InstanceEndEditable -->
+                </div>
+                <div class="nav_submenu_right"><img src="images/nav_submenu_right.png"/></div>
+            </div>
+        </div>
+        <div class="page_content">
+            <div class="page_title_container">
+                <div class="page_title">
+<!-- InstanceBeginEditable name="page_title" -->
+                    VCS INITIALIZATION
+<!-- InstanceEndEditable -->
+                </div>
+                <div class="page_description">
+<!-- InstanceBeginEditable name="page_description" -->
+                    <div class="collapsable"><!-- used with the setCollapsable() function above -->
+                        <div class="collapsable-content">
+                             This screen displays the current status of the VCS configuration and can also 
+                             initialize a VCS workspace based on a deployment configuration file.
+                       </div>
+                    </div>
+<!-- InstanceEndEditable -->
+                </div>
+            </div>
+<!-- InstanceBeginEditable name="content" -->
+            <div id="addEditDialog" class="dialog"><!-- not actually creating a dialog, just using the same div so it behaves the same -->
+                <form id="updateForm">
+                    <fieldset>
+                        <table cellpadding="0" cellspacing="0">
+                            <tbody>
+                                <tr>
+                                    <td><label for="profilePath" class="dialog_label">Configuration Profile</label></td>
+                                    <td><select id="profilePath"></select>&nbsp;&nbsp;<a href="/pdtoolgui/config_dep_conf_files.html"><img src="images/edit.gif" border="0" alt="edit_profiles"/></a></td>
+                                </tr>
+                                <tr>
+                                    <td><label for="vcs_status" class="dialog_label">VCS Initialization Status</label></td>
+                                    <td><span id="vcs_status" class="dialog_label"></span></td>
+                                </tr>
+                                <tr>
+                                    <td colspan="2" class="button_container">
+                                        <input type="button" id="check" value="Check Status" />
+                                        <input type="button" id="update" value="Initialize Workspace" />
+                                    </td>
+                                </tr>
+                                <!--tr>
+                                    <td colspan="2">
+                                        <p id="status_msg" class="dialog_label"></p>
+                                    </td>
+                                </tr-->
+                            </tbody>
+                        </table>
+                    </fieldset>
+                </form>
+            </div>
+            <div id="alertDialog" title="Alert" class="dialog">
+                <p id="alertDialogMessage"></p>
+            </div>
+            <div id="confirmDialog" title="Confirm" class="dialog">
+                <p id="confirmDialogMessage"></p>
+            </div>
+            <div id="logDialog" title="Execution Log" class="dialog">
+                <pre id="logContent" class="logContent"></pre>
+            </div>
+            <!-- InstanceEndEditable -->
+        </div>
+    </body>
+<!-- InstanceEnd --></html>

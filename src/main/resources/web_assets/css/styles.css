@@ -1,0 +1,365 @@
+@charset "UTF-8";
+/* CSS Document */
+
+/* element styles */
+a {
+    text-decoration: none;
+    color: #26347B;
+}
+a:hover {
+    text-decoration: underline;
+    color: #26347B;
+}
+
+div {
+    padding: 0;
+    margin: 0;
+}
+
+pre {
+    line-spacing: -0.5em;
+}
+
+fieldset td {
+    padding-bottom: 10px;
+}
+
+.page {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 0.9em;
+    color: #000;
+    background-color: #FFF;
+    margin: 0; /* for IE */
+    padding: 0;
+    border-width: 0;
+}
+
+/* page header styles */
+.header {
+    width: 100%;
+    min-width: 800px;
+    float: left;
+}
+.logo {
+    padding: 20px;
+    float: left;
+    cursor: pointer;
+}
+.app_title {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 24px;
+    float: left;
+    padding: 24px;
+    color: #4F5358;
+    cursor: pointer;
+}
+
+/* tabbed navigation styles */
+.nav_container {
+    height: 76px;
+    width: 100%;
+    min-width: 800px;
+    float: left;
+}
+.nav_tab_container {
+    width: 100%;
+    min-width: 800px;
+    float: left;
+}
+.nav_tab {
+    float: right;
+    cursor: pointer;
+}
+.nav_tab_spacer {
+    float: right;
+    width: 20px;
+    height: 30px;
+}
+.nav_tab_left {
+    background-image: url(../images/nav_tab_left.png);
+    height: 30px;
+    width: 7px;
+    float: left;
+}
+.nav_tab_right {
+    background-image: url(../images/nav_tab_right.png);
+    height: 30px;
+    width: 7px;
+    float: left;
+}
+.nav_tab_center {
+    height: 12px;
+    float: left;
+    font-family: Verdana, Geneva, sans-serif;
+    font-size: 11px;
+    font-weight:bold;
+    color: #FFF;
+    margin-left: -1px; /* for some reason, when accessed from a web server, little white lines were separating the tab's left, center, and right divs. wierd. */
+    margin-right: -1px;
+    padding-left: 10px;
+    padding-right: 10px;
+    padding-top: 9px;
+    padding-bottom: 9px;
+    background-image: url(../images/gradient_nav_tab.png);
+}
+.nav_tab_active_left {
+    background-image: url(../images/nav_tab_active_left.png);
+    height: 30px;
+    width: 7px;
+    float: left;
+}
+.nav_tab_active_right {
+    background-image: url(../images/nav_tab_active_right.png);
+    height: 30px;
+    width: 7px;
+    float: left;
+}
+.nav_tab_active_center {
+    height: 11px;
+    float: left;
+    font-family: Verdana, Geneva, sans-serif;
+    font-size: 11px;
+    font-weight:bold;
+    color: #4F5358;
+    padding-left: 10px;
+    padding-right: 10px;
+    padding-top: 8px;
+    padding-bottom: 9px;
+    border-color: #B9C4CE;
+    border-width: 1px 0px 0px 0px;
+    border-style:solid;
+    background-color: #FFF;
+}
+.nav_base {
+    background-image: url(../images/gradient_nav_base.png);
+    background-repeat: repeat-x;
+    height: 6px;
+    min-width: 100%;
+    float: left;
+}
+.nav_submenu_container {
+    width: 100%;
+    min-width: 800px;
+    /*float: left;*/
+}
+.nav_submenu_items {
+    background-color: #545A69;
+    float: left;
+    color: #99A;
+    font-family: Verdana, Geneva, sans-serif;
+    font-size: 11px;
+    font-weight: bold;
+    max-width: 700px;
+}
+.nav_submenu_right {
+    float: left;
+    height: 28px;
+    width: 14px;
+    background-color: #545A69;
+}
+.nav_submenu_item {
+    padding: 7px;
+    float: left;
+    cursor: pointer;
+}
+
+.nav_submenu_item:hover {
+    text-decoration: underline;
+}
+
+.nav_submenu_item_active {
+    color: white;
+    cursor: default;
+}
+
+.nav_submenu_item_active:hover {
+    text-decoration: none;
+}
+
+/* page content styles */
+.page_content {
+    margin-top: 2em;
+    width: 100%;
+    min-width: 800px;
+    float: left;
+}
+.page_breadcrumbs {
+    font-family: Verdana, Geneva, sans-serif;
+    font-size: 0.7em;
+    color: #000;
+    padding-left: 10px;
+    padding-right: 30px;
+    padding-top: 0.7em;
+    padding-bottom: 0.7em;
+}
+.page_title {
+    font-family: Verdana, Geneva, sans-serif;
+    font-size: 1em;
+    font-weight:bold;
+    color: #4F5358;
+    padding-left: 30px;
+    padding-right: 30px;
+    padding-top: 0;
+    padding-bottom: 0.8em;
+}
+.page_description {
+    padding-left: 30px;
+    padding-right: 30px;
+    padding-top: 0.7em;
+    padding-bottom: 10px;
+}
+
+.table_container {
+    padding-left: 30px;
+    padding-right: 30px;
+    padding-top: 10px;
+    padding-bottom: 30px;
+}
+
+.execute_form {
+    padding-bottom: 0.5em;
+}
+
+​.ui-buttonset {
+    padding: 0.3em; 
+}​
+
+​.dialog {
+}
+
+.dialog_label { 
+    padding-right: 1em; 
+    padding-bottom: 0.5em; 
+    display: block;
+    vertical-align: text-top;
+    white-space: nowrap;
+}
+
+.dialog_radio {
+    padding-bottom: 0.4em; 
+}​
+
+.dialog input.text { 
+    margin-bottom:12px; 
+    width:95%; 
+    padding: .4em; 
+    font-size: 1em; 
+    display: block;
+}
+
+.dialog fieldset, #tabs fieldset { 
+    padding: 0px; 
+    border: 0px; 
+    margin-top:25px; 
+}
+
+.ui-dialog .ui-state-error { 
+    padding: .3em; 
+}
+
+.dialogMsg { 
+    border: 1px solid transparent; 
+    padding: 0.3em; 
+}
+
+.genDialogMsg { 
+    border: 1px solid transparent; 
+    padding: 0.3em; 
+}
+
+.dialog_table {
+    width: 100%;
+}
+
+.idGridCell { 
+    text-decoration: underline; 
+    cursor: pointer; 
+}
+
+.clickable { 
+    text-decoration: underline; 
+    cursor: pointer; 
+}
+
+#tabs {
+    margin: 0 30px 30px 30px;
+}
+
+#tabs td {
+    padding-bottom: 10px; / * need to apply this style to module dialogs that don't have tabs. * /
+}
+
+.tabs_form_label {
+    margin-right: 30px;
+    white-space: nowrap;
+}
+
+.priv_tab_label {
+    text-align: center;
+    width: 100px;
+}
+
+.dynamic_row_name, .dynamic_row_value {
+    margin-right: 30px;
+}
+
+.custom_variable_del {
+    margin: 0 12px 0 12px;
+}
+
+.button_container {
+    text-align: center;
+}
+
+.button_container button {
+    margin: 0px 15px 30px 15px;
+}
+
+.button_column {
+    text-align: center;
+    padding: 0 30px 0 0;
+}
+
+.logContent {
+    font-size: 12px;
+}
+
+.syntax_highlight_error {
+    color: red;
+    font-weight: bold;
+}
+
+.syntax_highlight_success {
+    color: #007F00;
+    font-weight: bold;
+}
+
+.dialog_cb {
+    text-align: center;
+    margin-bottom: 12px; 
+    padding: .4em; 
+    vertical-align: bottom;
+    *overflow: hidden;
+}
+
+.textAlignImg {
+    vertical-align: baseline;
+}
+
+.ui-autocomplete {
+    max-height: 200px;
+    /*z-index: 100000000;*/
+    overflow-y: auto;
+    /* prevent horizontal scrollbar */
+    overflow-x: hidden;
+}
+
+.note {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 0.6em;
+    color: #000;
+}
+
+.code {
+    font-family: courier, fixed;
+}

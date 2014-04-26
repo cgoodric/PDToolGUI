@@ -1,0 +1,1228 @@
+<!DOCTYPE html>
+<html><!-- InstanceBegin template="/Templates/pdtoolgui.dwt" codeOutsideHTMLIsLocked="false" -->
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<!-- InstanceBeginEditable name="doctitle" -->
+        <title>PDTool: Modules - Archive</title>
+<!-- InstanceEndEditable -->
+        <link rel="stylesheet" type="text/css" href="css/styles.css">
+        <link rel="stylesheet" type="text/css" href="css/smoothness/jquery-ui-1.10.2.custom.css" />
+        <link rel="stylesheet" type="text/css" href="css/ui.jqgrid.css" />
+        <script type="text/javascript" src="js/jquery-1.9.1.js"></script>
+        <script type="text/javascript" src="js/jquery-ui-1.10.2.custom.js"></script>
+        <script type="text/javascript" src="js/i18n/grid.locale-en.js"></script>
+        <script type="text/javascript" src="js/jquery.jqGrid.src.js"></script>
+        <script type="text/javascript" src="js/jquery-queryParser.min.js"></script>
+        <script type="text/javascript" src="js/pdtoolgui.js"></script>
+        <script type="text/javascript" src="js/pdtoolgui_docs_en.js"></script>
+<!-- InstanceBeginEditable name="head" -->
+        <script language="javascript">
+        
+            // set an event handler to fire when the page's DOM is complete (not necessarily when all the images or CSS finish loading.)
+            // this is similar to the <body> tag's "onload" attribute. however, "onload" waits until all the other resources (CSS,
+            // images, etc.) are done loading, too. this way the construction of the table can start a bit sooner.
+            //
+            $(document).ready (function() { 
+
+                // check access status and forward to incex.html if access is denied.
+                //
+                $.getJSON (
+                    "/security?rnd=" + myRand(), // base URL
+                    null,                       // argument
+                    function(data) {            // callback function to parse data
+                        if (data.status == "error") {
+                            location = "/pdtoolgui/index.html?denied=true&rnd=" + myRand();
+                        }
+                    }
+                );
+
+                // update the navigation tabs by highlighting the correct tab
+                //
+                setActiveNavTab('nav_tab_modules'); 
+                
+                createAlertDialog();
+                createConfirmDialog();
+
+                // parse this page's URL query parameters
+                //
+                var queryParams = $.parseQuery(location.search);
+                
+                // set the module path at the top of the page so the user knows what file he/she is working on.
+                // URL decode the string and HTML-escape any special characters.
+                //
+                $("#module_path").html (decodeURIComponent(queryParams.path.replace(/\+/g, " ")).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\s/g, "&nbsp;"));
+                
+                // set the active submenu item and set click event handlers on all submenu items
+                //
+                $("#nav_submenu_archive")         .click(function() {location='modules_archive.html'}).addClass("nav_submenu_item_active");
+                $("#nav_submenu_data_source")     .click(function() {location='modules_data_source.html'});
+                $("#nav_submenu_group")           .click(function() {location='modules_group.html'});
+                $("#nav_submenu_privilege")       .click(function() {location='modules_privilege.html'});
+                $("#nav_submenu_rebind")          .click(function() {location='modules_rebind.html'});
+                $("#nav_submenu_regression")      .click(function() {location='modules_regression.html'});
+                $("#nav_submenu_resource")        .click(function() {location='modules_resource.html'});
+                $("#nav_submenu_resource_cache")  .click(function() {location='modules_resource_cache.html'});
+                $("#nav_submenu_server_attribute").click(function() {location='modules_server_attribute.html'});
+                $("#nav_submenu_server_manager")  .click(function() {location='modules_server_manager.html'});
+                $("#nav_submenu_trigger")         .click(function() {location='modules_trigger.html'});
+                $("#nav_submenu_user")            .click(function() {location='modules_user.html'});
+                $("#nav_submenu_vcs")             .click(function() {location='modules_vcs.html'});
+
+                // enable the more/less functions of the page description
+                //
+                //setCollapsable();
+
+                // enable tooltips over editor fields
+                //
+                setTooltips (TOOLTIPS["module_archive"]);
+
+                // build the main table and populate with a REST/JSON call
+                //
+                list = $("#list")
+                    .jqGrid({
+                        url:'/archive_module/' + encodeURIComponent (queryParams.path),
+                        datatype: 'json',
+                        mtype: 'GET',
+                        autoencode: true,
+                        colNames:['Archive ID','Package Name',  'Archive File Name', 'Description'],
+                        colModel :[ 
+                            {name:'id', index:'id', width:100, classes:"idGridCell"},
+                            {name:'pkgName', index:'pkgName', width:200},
+                            {name:'archiveFileName', index:'archiveFileName', width:300},
+                            {name:'description', index:'description', width:300}
+                        ],
+                        pager: '#pager',
+                        height: "auto",
+                        autowidth: true,
+                        rowNum:10,
+                        rowList:[10,20,50],
+                        recordtext: "Archives {0} - {1} of {2}",
+                        sortname: 'id',
+                        sortorder: 'asc',
+                        viewrecords: true,
+                        gridview: true,
+                        multiselect: true,
+
+                        // add a "before select row" event handler that blocks checking of the row's checkbox when the "id"
+                        // column is clicked, but opens the editor for the id instead. depends on the "idGridCell" class being
+                        // added to the column definition of the "id" column.
+                        //
+                        beforeSelectRow: function (rowid, e) {
+                            if ($(e.target).hasClass("idGridCell")) {
+                                
+                                $.getJSON (
+                                    "/archive/" + encodeURIComponent (queryParams.path) + "?id=" + encodeURIComponent (rowid) + "&rnd=" + myRand(), // base URL
+                                    null,                                    // argument
+                                    setDialogData                            // callback function to parse data
+                                );
+        
+                                operation.val("edit");
+                                $("#tabs").tabs({ active: 0 });
+                                $("#addEditDialog").dialog ({title: "Edit Archive"});
+                                $("#addEditDialog").dialog ("open");
+                                return false;
+                            } else {
+                                return true;
+                            }
+                        }
+                    }) // .jqGrid()
+                    
+                    .navGrid( // normally sets up buttons at bottom of grid, but we get rid of them so we can reorder the buttons below
+                        '#pager', 
+                        {
+                            edit: false,
+                            add: false,
+                            del: false,
+                            search: true,
+                            searchtitle: "Search for Archive Elements"
+                        },  // nav
+                        {}, // edit
+                        {}, // add
+                        {}, // del
+                        {
+                            closeAfterSearch: true,
+                            closeAfterReset: true,
+                            closeOnEscape: true,
+                            resize: false,
+                            searchOnEnter: true
+                        }, // search
+                        {
+                            caption: "my view caption"
+                        }   // view
+                    )  // .navGrid()
+                    
+                    // set up custom buttons in the order we want. load them in reverse order so they can be placed in front of the search and refresh buttons.
+                    //
+                    .navButtonAdd(
+                        '#pager',
+                        {
+                            caption: "",
+                            buttonicon: "ui-icon-trash",
+                            onClickButton: function (jqEvent) { 
+                                var selList = list.getGridParam('selarrrow'); // list of selected rows
+
+                                if (selList.length == 0) {
+                                    myAlert ("Please select at least one archive element to delete.");
+                                    return false;
+                                }
+
+                                var args = "";
+                                var confirmList = "";
+                                for (var i = 0; i < selList.length; i++) {
+                                    if (i > 0) args += ",";
+                                    args += selList[i];
+    
+                                    if (i > 0) confirmList += "<br/>";
+                                    confirmList += decodeURIComponent (selList[i].replace (/\+/, " "));
+                                }
+                                
+                                myConfirm (
+                                    "Do you want to delete the following archive element(s)?<br/><br/>" + confirmList, 
+                                    function() {
+                                        $.ajax({  
+                                            type: "DELETE",
+                                            contentType: 'application/json',
+                                            url: "/archive/" + encodeURIComponent (queryParams.path) + "?ids=" + encodeURIComponent (args) + "&rnd=" + myRand(), // base URL
+                                            dataType: "json",
+                                            success: function (data) {
+                                                processAjaxResult (
+                                                    data, 
+                                                    {
+                                                        useDialog:false, 
+                                                        reloadGrid:true
+                                                    }
+                                                );
+                                            },
+                                            // this should only happen when things get seriously wrong on the server
+                                            //
+                                            error: function(jqXHR, textStatus, errorThrown) {
+                                                myAlert ("textStatus = " + textStatus + "<br/>errorThrown = " + errorThrown);
+                                            }
+                                        }); 
+                                    }
+                                );
+                            },
+                            title: "Delete Archive Element",
+                            position: "first"
+                        }
+                    )  // .navGrid()
+                    
+                    .navButtonAdd(
+                        '#pager',
+                        {
+                            caption: "",
+                            buttonicon: "ui-icon-copy",
+                            onClickButton: function (jqEvent) { 
+                                var selList = list.getGridParam('selarrrow'); // list of selected rows
+
+                                if (selList.length == 0) {
+                                    myAlert ("Please select at least one archive element to copy.");
+                                    return false;
+                                }
+
+                                var args = "";
+                                var confirmList = "";
+                                for (var i = 0; i < selList.length; i++) {
+                                    if (i > 0) args += ",";
+                                    args += selList[i];
+    
+                                    if (i > 0) confirmList += "<br/>";
+                                    confirmList += decodeURIComponent (selList[i]);
+                                }
+                                
+                                myConfirm (
+                                    "Do you want to copy the following archive element(s)?<br/><br/>" + confirmList, 
+                                    function() {
+                                        $.ajax({  
+                                            type: "POST",
+                                            contentType: 'application/json',
+                                            url: "/archive/" + encodeURIComponent (queryParams.path) + "?ids=" + encodeURIComponent (args) + "&rnd=" + myRand(), // base URL
+                                            dataType: "json",
+                                            data: null,
+                                            success: function (data) {
+                                                processAjaxResult (
+                                                    data, 
+                                                    {
+                                                        useDialog:false, 
+                                                        reloadGrid:true
+                                                    }
+                                                );
+                                            },
+                                            // this should only happen when things get seriously wrong on the server
+                                            //
+                                            error: function(jqXHR, textStatus, errorThrown) {
+                                                myAlert ("textStatus = " + textStatus + "<br/>errorThrown = " + errorThrown);
+                                            }
+                                        }); 
+                                    }
+                                );
+                            },
+                            title: "Copy Archive Element",
+                            position: "first"
+                        }
+                    )  // .navGrid()
+                    
+                    .navButtonAdd(
+                        '#pager',
+                        {
+                            caption: "",
+                            buttonicon: "ui-icon-pencil",
+                            onClickButton: function() {
+                                var selList = list.getGridParam('selarrrow');
+
+                                if (selList.length > 1) {
+                                    myAlert ("Cannot edit more than one item at a time.");
+                                    return false;
+                                } else if (selList.length == 0) {
+                                    myAlert ("Please select an archive element to edit.");
+                                    return false;
+                                }
+
+                                $.getJSON (
+                                    "/archive/" + encodeURIComponent (queryParams.path) + "?id=" + encodeURIComponent (selList[0]) + "&rnd=" + myRand(), // base URL
+                                    null,                                         // argument
+                                    setDialogData                                 // callback function to parse data
+                                );
+
+                                operation.val("edit");
+                                $("#addEditDialog").dialog ({title: "Edit Archive Element"});
+                                $("#addEditDialog").dialog ("open");
+                            },
+                            title: "Edit Archive Element",
+                            position: "first"
+                        }
+                    )  // .navGrid()
+                    
+                    .navButtonAdd(
+                        '#pager',
+                        {
+                            caption: "",
+                            buttonicon: "ui-icon-plus",
+                            onClickButton: function() {
+                                operation.val("add");
+                                setDialogData({ // reset the form values to the defaults.
+                                    id: "",
+                                    origId: "",
+                                    pkgName: "",
+                                    archiveFileName: "",
+                                    archiveMethod: "CAR",
+                                    description: "",
+                                    includeDependencies: true,
+                                    encrypt: false,
+                                    includeaccess: true,
+                                    includeallusers: false,
+                                    includerequiredusers: false,
+                                    includecaching: true,
+                                    includejars: true,
+                                    includesourceinfo: true,
+                                    includestatistics: false,
+                                    messagesonly: false,
+                                    overridelocks: false,
+                                    overwrite: false,
+                                    printinfo: false,
+                                    printroots: false,
+                                    printusers: false,
+                                    printcontents: false,
+                                    printreferences: false,
+                                    resources: null,
+                                    setAttributes: null,
+                                    users: null
+                                });
+                                $("#tabs").tabs({ active: 0 });
+                                $("#addEditDialog").dialog ({title: "Add Archive"});
+                                $("#addEditDialog").dialog ("open");
+                                id.focus();
+                            },
+                            title: "Add New Archive Element",
+                            position: "first"
+                        }
+                    ); // .navGrid()
+
+
+                $(window).bind('resize', function() {
+                    list.setGridWidth($(window).width() - 60); // 30 pixels of padding on either side of the jqGrid.
+                }).trigger('resize');
+
+                // set up the add/edit dialog
+                //
+                var operation = $("#operation"),
+                    origId = $("#origId"),
+                    id = $("#id"),
+                    pkgName = $("#pkgName"),
+                    archiveFileName = $("#archiveFileName"),
+                    archiveMethod = $("#archiveMethod"),
+                    description = $("#description"),
+                    allFields = $([]).add (operation).add (origId).add (id).add (pkgName).add (archiveFileName).add (archiveMethod).add (description);
+
+                $("#includeDependencies").buttonset();
+                $("#encrypt").buttonset();
+                $("#includeaccess").buttonset();
+                $("#includeallusers").buttonset();
+                $("#includerequiredusers").buttonset();
+                $("#includecaching").buttonset();
+                $("#includejars").buttonset();
+                $("#includesourceinfo").buttonset();
+                $("#includestatistics").buttonset();
+                $("#messagesonly").buttonset();
+                $("#overridelocks").buttonset();
+                $("#overwrite").buttonset();
+                $("#printinfo").buttonset();
+                $("#printroots").buttonset();
+                $("#printusers").buttonset();
+                $("#printcontents").buttonset();
+                $("#printreferences").buttonset();
+
+                dialogMsg = $(".dialogMsg");
+
+                addEditDialog = $("#addEditDialog").dialog ({
+                    autoOpen: false,
+                    //height: 300,
+                    width: 950,
+                    modal: true,
+                    buttons: [ // declaring buttons this way lets us assign ID's to the buttons so they can be interacted with later.
+                        {
+                            id: "aeOkButton",
+                            text: "OK",
+                            click: function() {
+                                var actionType = (operation.val() == "add") ? "POST" : "PUT";
+                                var errMsg = "";
+                                
+                                allFields.removeClass ("ui-state-error");
+                                clearAEDialogMessage();
+                                $("#aeOkButton").button ("disable");
+                                
+                                var ajaxOpts = {  
+                                    type: actionType,
+                                    contentType: 'application/json',
+                                    url: "/archive/" + encodeURIComponent (queryParams.path) + "?rnd=" + myRand(),
+                                    dataType: "json",
+                                    data: createJSON(),  
+                                    success: function (data) {
+                                        processAjaxResult (
+                                            data, 
+                                            {
+                                                useDialog:true, 
+                                                reloadGrid:true
+                                            }
+                                        );
+                                        $("#aeOkButton").button ("enable");
+                                    },
+                                    // this should only happen when things go seriously wrong on the server
+                                    //
+                                    error: function (jqXHR, textStatus, errorThrown) {
+                                        myAlert ("textStatus = " + textStatus + "<br>errorThrown = " + errorThrown);
+                                        $("#aeOkButton").button ("enable");
+                                    }
+                                }
+
+                                $.ajax(ajaxOpts);
+                            }
+                        }, {
+                            id: "aeCancelButton",
+                            text: "Cancel",
+                            click: function() {
+                                $(this).dialog ("close");
+                                $("#aeOkButton").button ("enable");
+                          
+                            }
+                        }
+                    ],
+                    // this is an event handler for when the dialog box closes (it can be closed in a number of ways.)
+                    // basically any error classes get cleared from the form elements and the message <div> is cleared.
+                    //
+                    close: function() {
+                        allFields.val ("").removeClass ("ui-state-error");
+                        clearAEDialogMessage();
+                        $("#aeOkButton").button ("enable");
+                    },
+                    // add a custom class to the OK button so that it can be addressed for disabling/enabling later
+                    //
+                    create: function () {
+                        $(this).closest(".ui-dialog")
+                            .find(".ui-button:first") // the first button
+                            .addClass("aeOkButton");
+                    }
+                }); // #addEditDialog
+                
+                // create the tabs container for the dialog (the unordered list child provides the tab names and the 
+                // four child <div>'s become the tabs in the tabs container.)
+                //
+                $("#tabs").tabs();
+                
+                // sets the form values of the dialog box from a data object (typically returned from an AJAX call.)
+                //
+                function setDialogData (data) {
+                    id.val (data.id);
+                    origId.val (data.id);
+                    pkgName.val (data.pkgName);
+                    archiveFileName.val (data.archiveFileName);
+                    archiveMethod.val (data.archiveMethod);
+                    description.val (data.description);
+                    $('#includeDependencies_' + data.includeDependencies).prop ("checked", "checked");
+                    $("#includeDependencies").buttonset("refresh");
+                    $('#encrypt_' + data.encrypt).prop ("checked", "checked");
+                    $("#encrypt").buttonset("refresh");
+                    $('#includeaccess_' + data.includeaccess).prop ("checked", "checked");
+                    $("#includeaccess").buttonset("refresh");
+                    $('#includeallusers_' + data.includeallusers).prop ("checked", "checked");
+                    $("#includeallusers").buttonset("refresh");
+                    $('#includerequiredusers_' + data.includerequiredusers).prop ("checked", "checked");
+                    $("#includerequiredusers").buttonset("refresh");
+                    $('#includecaching_' + data.includecaching).prop ("checked", "checked");
+                    $("#includecaching").buttonset("refresh");
+                    $('#includejars_' + data.includejars).prop ("checked", "checked");
+                    $("#includejars").buttonset("refresh");
+                    $('#includesourceinfo_' + data.includesourceinfo).prop ("checked", "checked");
+                    $("#includesourceinfo").buttonset("refresh");
+                    $('#includestatistics_' + data.includestatistics).prop ("checked", "checked");
+                    $("#includestatistics").buttonset("refresh");
+                    $('#messagesonly_' + data.messagesonly).prop ("checked", "checked");
+                    $("#messagesonly").buttonset("refresh");
+                    $('#overridelocks_' + data.overridelocks).prop ("checked", "checked");
+                    $("#overridelocks").buttonset("refresh");
+                    $('#overwrite_' + data.overwrite).prop ("checked", "checked");
+                    $("#overwrite").buttonset("refresh");
+                    $('#printinfo_' + data.printinfo).prop ("checked", "checked");
+                    $("#printinfo").buttonset("refresh");
+                    $('#printroots_' + data.printroots).prop ("checked", "checked");
+                    $("#printroots").buttonset("refresh");
+                    $('#printusers_' + data.printusers).prop ("checked", "checked");
+                    $("#printusers").buttonset("refresh");
+                    $('#printcontents_' + data.printcontents).prop ("checked", "checked");
+                    $("#printcontents").buttonset("refresh");
+                    $('#printreferences_' + data.printreferences).prop ("checked", "checked");
+                    $("#printreferences").buttonset("refresh");
+                    
+                    // remove any resources rows
+                    //
+                    $('#addEditForm2 .dynamic_row').remove();
+                    resourcesRowCount = 0;
+
+                    if (data.resources != null) {
+                        for (var i = 0; i < data.resources.length; i++) {
+                            if (data.resources[i].oldPath == null || data.resources[i].oldPath.length == 0)
+                                continue;
+    
+                            addResourcesRow();
+                            
+                            $('#resources_type_' + i + ' option[value=' + data.resources[i].resourceType + ']').attr ('selected','selected');
+                            $('#resources_oldPath_' + i).val(data.resources[i].oldPath);
+                            $('#resources_newPath_' + i).val(data.resources[i].newPath);
+                        }
+                    } else {
+                        // add a blank row if there are no resources elements.
+                        //
+                        addResourcesRow();
+                    }
+                    
+                    // remove any set attributes rows
+                    //
+                    $('#addEditForm3 .dynamic_row').remove();
+                    attributesRowCount = 0;
+
+                    if (data.setAttributes != null) {
+                        for (var i = 0; i < data.setAttributes.length; i++) {
+                            if (data.setAttributes[i].resourcePath == null || data.setAttributes[i].resourcePath.length == 0)
+                                continue;
+    
+                            addAttributesRow();
+                            
+                            $('#attribute_path_' + i).val(data.setAttributes[i].resourcePath);
+                            $('#attribute_type_' + i).val(data.setAttributes[i].resourceType);
+                            $('#attribute_' + i).val(data.setAttributes[i].attribute);
+                            
+                            if (data.setAttributes[i].attribute == "password" || data.setAttributes[i].attribute == "password2") {
+                                $('#attribute_value_' + i + '_pw')
+                                    .val(data.setAttributes[i].value)
+                                    .show();
+                                $('#attribute_value_' + i).hide();
+                            } else {
+                                $('#attribute_value_' + i)
+                                    .val(data.setAttributes[i].value)
+                                    .show();
+                                $('#attribute_value_' + i + '_pw').hide();
+                            }
+                        }
+                    } else {
+                        // add a blank row if there are no setAttributes elements.
+                        //
+                        addAttributesRow();
+                    }
+
+                    // remove any users rows
+                    //
+                    $('#addEditForm4 .dynamic_row').remove();
+                    usersRowCount = 0;
+                    
+                    // simply setting the value of the select isn't working for some reason. using the brute force approach
+                    // of replaceing the entire select seems to work. :)
+                    //
+                    $('#user_import').replaceWith (
+                        '<select id="user_import" class="dynamic_row_value">\n' +
+                        '    <option value="nil"></option>\n' +
+                        '    <option value="false">Merge</option>\n' +
+                        '    <option value="true">Overwrite</option>\n' +
+                        '</select>\n'
+                    );
+
+                    if (data.users != null) {
+                        for (var i = 0; i < data.users.length; i++) {
+                            if (data.users[i]["export"]) {
+                                addUsersRow();
+
+                                var isGroup = (data.users[i].group != null && data.users[i].group.length > 0);
+                                
+                                $('#users_domain_' + (usersRowCount - 1)).val(data.users[i].domain);
+                                $('#users_ug_' + (usersRowCount - 1) + ' option[value=' + ((isGroup) ? 'group' : 'user') + ']').attr ('selected','selected');
+                                $('#users_value_' + (usersRowCount - 1)).val((isGroup) ? data.users[i].group : data.users[i].user);
+                            } else {
+                                $('#user_import option[value=' + ((data.users[i].overwrite) ? 'true' : 'false') + ']').attr ('selected','selected');
+                            }
+                        }
+                    }
+                    
+                    // add a blank row if there ended up being no users elements.
+                    //
+                    if (usersRowCount == 0) {
+                        addUsersRow();
+                    }
+
+                } // setDialogData()
+                
+                // creates a JSON artifact for sending with AJAX queries. Jackson on the server side is very particular
+                // about the format of JSON objects: double quoted attributes AND values.
+                //
+                function createJSON() {
+                    var resources = new Array();
+                    for (var i = 0; i < resourcesRowCount; i++) {
+                        // make sure the row hasn't been deleted by the user and that the origPath value is filled in
+                        //
+                        if ($("#resources_row_" + i).length > 0 && $('#resources_oldPath_' + i).val().length > 0) {
+                            resources.push ({
+                                "resourceType": $('#resources_type_' + i).val(),
+                                "oldPath": $('#resources_oldPath_' + i).val(),
+                                "newPath": $('#resources_newPath_' + i).val()
+                            });
+                        }
+                    }
+
+                    var setAttributes = new Array();
+                    for (var i = 0; i < attributesRowCount; i++) {
+
+                        // make sure the row hasn't been deleted by the user and that the resourcePath value is filled in
+                        //
+                        if ($("#attributes_row_" + i).length > 0 && $('#attribute_path_' + i).val().length > 0) {
+                            setAttributes.push ({
+                                "resourcePath": $('#attribute_path_' + i).val(),
+                                "resourceType": $('#attribute_type_' + i).val(),
+                                "attribute": $('#attribute_' + i).val(),
+                                "value": (($('#attribute_' + i).val() == "password" || $('#attribute_' + i).val() == "password2")) 
+                                            ? $('#attribute_value_' + i + '_pw').val()
+                                            : $('#attribute_value_' + i).val()
+                            });
+                        }
+                    }
+
+                    var users = new Array();
+
+                    // set the import overwrite setting if set
+                    //
+                    if ($("#user_import").val().length > 0 && $("#user_import").val() != "nil") {
+                        users.push ({
+                            "export": false, 
+                            "overwrite": $("#user_import").val()
+                        });
+                    }
+
+                    for (var i = 0; i < usersRowCount; i++) {
+
+                        // make sure the row hasn't been deleted by the user and that the user/group value is filled in
+                        //
+                        if ($("#users_row_" + i).length > 0 && $('#users_value_' + i).val().length > 0) {
+                            var userNode = {
+                                "export": true,
+                                "domain": $('#users_domain_' + i).val(),
+                            };
+                            userNode[$('#users_ug_' + i).val()] = $('#users_value_' + i).val();
+                            
+                            users.push (userNode);
+                        }
+                    }
+
+                    var data = {
+                        "operation": operation.val(),
+                        "origId": origId.val(),
+                        "id": id.val(),
+                        "pkgName": pkgName.val(),
+                        "archiveFileName": archiveFileName.val(),
+                        "archiveMethod": archiveMethod.val(),
+                        "description": description.val(),
+                        "includeDependencies": $('#includeDependencies input:radio:checked').val(),
+                        "encrypt": $('#encrypt input:radio:checked').val(),
+                        "includeaccess": $('#includeaccess input:radio:checked').val(),
+                        "includeallusers": $('#includeallusers input:radio:checked').val(),
+                        "includerequiredusers": $('#includerequiredusers input:radio:checked').val(),
+                        "includecaching": $('#includecaching input:radio:checked').val(),
+                        "includejars": $('#includejars input:radio:checked').val(),
+                        "includesourceinfo": $('#includesourceinfo input:radio:checked').val(),
+                        "includestatistics": $('#includestatistics input:radio:checked').val(),
+                        "messagesonly": $('#messagesonly input:radio:checked').val(),
+                        "overridelocks": $('#overridelocks input:radio:checked').val(),
+                        "overwrite": $('#overwrite input:radio:checked').val(),
+                        "printinfo": $('#printinfo input:radio:checked').val(),
+                        "printroots": $('#printroots input:radio:checked').val(),
+                        "printusers": $('#printusers input:radio:checked').val(),
+                        "printcontents": $('#printcontents input:radio:checked').val(),
+                        "printreferences": $('#printreferences input:radio:checked').val(),
+                        "resources": resources,
+                        "setAttributes": setAttributes,
+                        "users": users
+                    };
+                    
+                    return JSON.stringify (data);
+                }
+                
+                var resourcesRowCount = 0;
+
+                // set up the add resource button in the Resources tab. use the same click event handler code
+                // as the AJAX callback does.
+                //
+                $("#resources_add")
+                    .button()
+                    .click(addResourcesRow);
+                
+                // creates a row containing the form elements for a resource in the Resources tab.
+                //
+                function addResourcesRow() {
+                    // add the html code before the "add new custom variable" button container row.
+                    //
+                    $('#resources_add_row').before (function() {
+                        return '<tr id="resources_row_' + resourcesRowCount + '" class="dynamic_row">\n' +
+                               '    <td>\n' +
+                               '        <select id="resources_type_' + resourcesRowCount + '" class="dynamic_row_value">\n' +
+                               '            <option value="0">Export</option>\n' +
+                               '            <option value="1">Relocate</option>\n' +
+                               '            <option value="2">Rebind</option>\n' +
+                               '        </select>\n' +
+                               '    </td>\n' +
+                               '    <td><input type="text" name="resources_oldPath_' + resourcesRowCount + '" id="resources_oldPath_' + resourcesRowCount + '" size="30" class="text ui-widget-content ui-corner-all dynamic_row_value" /></td>\n' +
+                               '    <td><input type="text" name="resources_newPath_' + resourcesRowCount + '" id="resources_newPath_' + resourcesRowCount + '" size="30" class="text ui-widget-content ui-corner-all dynamic_row_value" /></td>\n' +
+                               '    <td><div id="resources_row_' + resourcesRowCount + '_del" title="Delete Resource">Delete Resource</div></td>\n' +
+                               '</tr>\n';
+                    });
+
+                    // add a click event handler to the delete button to delete the custom variable when clicked.
+                    //
+                    $("#resources_row_" + resourcesRowCount + "_del")
+                        .button({
+                            icons: {
+                                primary: "ui-icon-trash"
+                            },
+                            text: false
+                        })
+                        .data ('rownum', resourcesRowCount)
+                        .click(function() {
+                            $('#resources_row_' + $(this).data ('rownum')).remove();
+                            if ($('#addEditForm2 .dynamic_row').length == 0) {
+                                addResourcesRow();
+                            }
+                        });
+
+                    resourcesRowCount++;
+                    
+                    return false;
+                }
+
+                var attributesRowCount = 0;
+
+                // set up the add attribute button in the Set Attributes tab. use the same click event handler code
+                // as the AJAX callback does.
+                //
+                $("#attributes_add")
+                    .button()
+                    .click(addAttributesRow);
+                
+                // creates a row containing the form elements for an attribute in the Set Attributes tab.
+                //
+                function addAttributesRow() {
+                    // add the html code before the "add new custom variable" button container row.
+                    //
+                    $('#attributes_add_row').before (function() {
+                        return '<tr id="attributes_row_' + attributesRowCount + '" class="dynamic_row">\n' +
+                               '    <td><input type="text" name="attribute_path_' + attributesRowCount + '" id="attribute_path_' + attributesRowCount + '" class="text ui-widget-content ui-corner-all dynamic_row_value" /></td>\n' +
+                               '    <td>\n' +
+                               '        <select id="attribute_type_' + attributesRowCount + '" class="dynamic_row_value">\n' +
+                               '            <option value="DATA_SOURCE">Data Source</option>\n' +
+                               '        </select>\n' +
+                               '    </td>\n' +
+                               '    <td>\n' +
+                               '        <select id="attribute_' + attributesRowCount + '" class="dynamic_row_value">\n' +
+                               '            <option value="user">user</option>\n' +
+                               '            <option value="password">password</option>\n' +
+                               '            <option value="user2">user2</option>\n' +
+                               '            <option value="password2">password2</option>\n' +
+                               '            <option value="host">host</option>\n' +
+                               '            <option value="port">port</option>\n' +
+                               '            <option value="database">database</option>\n' +
+                               '            <option value="path">path</option>\n' +
+                               '            <option value="annotation">annotation</option>\n' +
+                               '        </select>\n' +
+                               '    </td>\n' +
+                               '    <td>\n' +
+                               '        <input type="text" name="attribute_value_' + attributesRowCount + '" id="attribute_value_' + attributesRowCount + '" class="text ui-widget-content ui-corner-all dynamic_row_value" />\n' +
+                               '        <input type="password" name="attribute_value_' + attributesRowCount + '_pw" id="attribute_value_' + attributesRowCount + '_pw" class="text ui-widget-content ui-corner-all dynamic_row_value" />\n' +
+                               '    </td>\n' +
+                               '    <td><div id="attributes_row_' + attributesRowCount + '_del" title="Delete Attribute">Delete Attribute</div></td>\n' +
+                               '</tr>\n';
+                    });
+
+                    // add a click event handler to the delete button to delete the custom variable when clicked.
+                    //
+                    $("#attributes_row_" + attributesRowCount + "_del")
+                        .button ({
+                            icons: {
+                                primary: "ui-icon-trash"
+                            },
+                            text: false
+                        })
+                        .data ('rownum', attributesRowCount)
+                        .click (function() {
+                            $('#attributes_row_' + $(this).data ('rownum')).remove();
+                            if ($('#addEditForm3 .dynamic_row').length == 0) {
+                                addAttributesRow();
+                            }
+                        });
+
+                    // add a change event handler to the type select to switch between password and non-password fields.
+                    //
+                    $("#attribute_" + attributesRowCount)
+                        .data ('rownum', attributesRowCount)
+                        .change (function() {
+                            var rownum = $(this).data ('rownum');
+
+                            if ($(this).val() == "password" || $(this).val() == "password2") {
+                                $("#attribute_value_" + rownum).hide();
+                                $("#attribute_value_" + rownum + "_pw").show();
+                            } else {
+                                $("#attribute_value_" + rownum).show();
+                                $("#attribute_value_" + rownum + "_pw").hide();
+                            }
+                        });
+
+                    // initially hide the password field
+                    //
+                    $("#attribute_value_" + attributesRowCount + "_pw").hide();
+
+                    attributesRowCount++;
+                    
+                    return false;
+                }
+
+                var usersRowCount = 0;
+
+                // set up the add user button in the Users tab. use the same click event handler code
+                // as the AJAX callback does.
+                //
+                $("#users_add")
+                    .button()
+                    .click(addUsersRow);
+                
+                // creates a row containing the form elements for a user/group entry in the Users tab.
+                //
+                function addUsersRow() {
+                    // add the html code before the "add new custom variable" button container row.
+                    //
+                    $('#users_add_row').before (function() {
+                         return '<tr id="users_row_' + usersRowCount + '" class="dynamic_row">\n' +
+                                '    <td><input type="text" name="users_domain_' + usersRowCount + '" id="users_domain_' + usersRowCount + '" class="text ui-widget-content ui-corner-all dynamic_row_value" /></td>\n' +
+                                '    <td>\n' +
+                                '        <select id="users_ug_' + usersRowCount + '" class="dynamic_row_value">\n' +
+                                '            <option value="user">User</option>\n' +
+                                '            <option value="group">Group</option>\n' +
+                                '        </select>\n' +
+                                '    </td>\n' +
+                                '    <td><input type="text" name="users_value_' + usersRowCount + '" id="users_value_' + usersRowCount + '" class="text ui-widget-content ui-corner-all dynamic_row_value" /></td>\n' +
+                                '    <td><div id="users_row_' + usersRowCount + '_del" title="Delete User" >Delete User</div></td>\n' +
+                                '</tr>\n';
+                    });
+
+                    // add a click event handler to the delete button to delete the custom variable when clicked.
+                    //
+                    $("#users_row_" + usersRowCount + "_del")
+                        .button({
+                            icons: {
+                                primary: "ui-icon-trash"
+                            },
+                            text: false
+                        })
+                        .data ('rownum', usersRowCount)
+                        .click(function() {
+                            $('#users_row_' + $(this).data ('rownum')).remove();
+                            if ($('#addEditForm4 .dynamic_row').length == 0) {
+                                addUsersRow();
+                            }
+                        });
+
+                    usersRowCount++;
+                    
+                    return false;
+                }
+
+            }); // $(document).ready()
+            
+        </script>
+<!-- InstanceEndEditable -->
+    </head>
+<!-- InstanceBeginEditable name="bodytag" -->
+    <body class="page">
+<!-- InstanceEndEditable -->
+        <div class="header">
+            <div class="logo" onClick="javascript:location='index.html'"><img src="images/cisco_logo.png"/></div>
+            <div class="app_title" onClick="javascript:location='index.html'">Promotion &amp; Deployment Tool</div>
+        </div>
+        <div class="nav_container">
+            <div class="nav_tab_container"><!-- divs are floated right so listed in reverse order -->
+                <div class="nav_tab_spacer"></div>
+                <div id="nav_tab_execute" class="nav_tab" onClick="javascript:location='execute.html'">
+                    <div class="nav_tab_left"></div>
+                    <div class="nav_tab_center">EXECUTE</div>
+                    <div class="nav_tab_right"></div>
+                </div>
+                <div id="nav_tab_modules" class="nav_tab" onClick="javascript:location='modules.html'">
+                    <div class="nav_tab_left"></div>
+                    <div class="nav_tab_center">MODULES</div>
+                    <div class="nav_tab_right"></div>
+                </div>
+                <div id="nav_tab_plans" class="nav_tab" onClick="javascript:location='dep_plans.html'">
+                    <div class="nav_tab_left"></div>
+                    <div class="nav_tab_center">PLANS</div>
+                    <div class="nav_tab_right"></div>
+                </div>
+                <div id="nav_tab_configuration" class="nav_tab" onClick="javascript:location='config_preferences.html'">
+                    <div class="nav_tab_left"></div>
+                    <div class="nav_tab_center">CONFIGURATION</div>
+                    <div class="nav_tab_right"></div>
+                </div>
+            </div>
+            <div class="nav_base"></div>
+            <div class="nav_submenu_container">
+                <div class="nav_submenu_items">
+<!-- InstanceBeginEditable name="nav_submenu" -->
+                    <div id="nav_submenu_archive"          class="nav_submenu_item">Archive</div>
+                    <div id="nav_submenu_data_source"      class="nav_submenu_item">Data&nbsp;Source</div>
+                    <div id="nav_submenu_group"            class="nav_submenu_item">Group</div>
+                    <div id="nav_submenu_privilege"        class="nav_submenu_item">Privilege</div>
+                    <div id="nav_submenu_rebind"           class="nav_submenu_item">Rebind</div>
+                    <div id="nav_submenu_regression"       class="nav_submenu_item">Regression</div>
+                    <div id="nav_submenu_resource"         class="nav_submenu_item">Resource</div>
+                    <div id="nav_submenu_resource_cache"   class="nav_submenu_item" style="clear: left;">Resource Cache</div>
+                    <div id="nav_submenu_server_attribute" class="nav_submenu_item">Server&nbsp;Attribute</div>
+                    <div id="nav_submenu_server_manager"   class="nav_submenu_item">Server&nbsp;Manager</div>
+                    <div id="nav_submenu_trigger"          class="nav_submenu_item">Trigger</div>
+                    <div id="nav_submenu_user"             class="nav_submenu_item">User</div>
+                    <div id="nav_submenu_vcs"              class="nav_submenu_item">VCS</div>
+<!-- InstanceEndEditable -->
+                </div>
+                <div class="nav_submenu_right"><img src="images/nav_submenu_right.png"/></div>
+            </div>
+        </div>
+        <div class="page_content">
+            <div class="page_title_container">
+                <div class="page_title">
+<!-- InstanceBeginEditable name="page_title" -->
+                    ARCHIVE MODULE: <span id="module_path"></span>
+<!-- InstanceEndEditable -->
+                </div>
+                <div class="page_description">
+<!-- InstanceBeginEditable name="page_description" -->
+                    <div class="collapsable"><!-- used with the setCollapsable() function above -->
+                        <div class="collapsable-content">
+                            Each archive module entry will generally be used for both import and export. There are settings
+                            specific to imports, exports, or both (hover the mouse over a setting in the entry editor dialog
+                            to see details.)
+                        </div>
+                    </div>
+<!-- InstanceEndEditable -->
+                </div>
+            </div>
+<!-- InstanceBeginEditable name="content" -->
+            <div class="table_container">
+                <table id="list"></table> <!-- table generated and populated by jqGrid in header -->
+                <div id="pager"></div> 
+            </div>
+            <div id="addEditDialog" title="Add Archive" class="dialog">
+                <p class="dialogMsg"></p>
+                <div id="tabs">
+                    <ul>
+                        <li><a href="#tabs-1">Archive Properties</a></li>
+                        <li><a href="#tabs-2">Resources</a></li>
+                        <li><a href="#tabs-3">Set Attributes</a></li>
+                        <li><a href="#tabs-4">Users</a></li>
+                    </ul>
+                    <div id="tabs-1">
+                        <form id="addEditForm1">
+                            <fieldset>
+                            <input type="hidden" name="operation" id="operation" />
+                            <input type="hidden" name="origId" id="origId" />
+                            <input type="hidden" name="archiveMethod" id="archiveMethod" />
+                            <table cellpadding="0" cellspacing="0">
+                                <tbody>
+                                    <tr>
+                                        <td><label for="id" class="dialog_label">Archive ID</label></td>
+                                        <td><input type="text" name="id" id="id" class="text ui-widget-content ui-corner-all" /></td>
+                                    </tr>
+                                    <tr>
+                                        <td><label for="pkgName" class="dialog_label">Package Name</label></td>
+                                        <td><input type="text" name="pkgName" id="pkgName" size="60" class="text ui-widget-content ui-corner-all" /></td>
+                                    </tr>
+                                    <tr>
+                                        <td><label for="archiveFileName" class="dialog_label">Archive File Name</label></td>
+                                        <td><input type="text" name="archiveFileName" id="archiveFileName" size="60" class="text ui-widget-content ui-corner-all" /></td>
+                                    </tr>
+                                    <tr>
+                                        <td><label for="description" class="dialog_label">Description</label></td>
+                                        <td><input type="text" name="description" id="description" size="60" class="text ui-widget-content ui-corner-all" /></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            <table cellpadding="0" cellspacing="0">
+                                <tbody>
+                                    <tr>
+                                        <td><label for="includeDependencies" class="tabs_form_label">Include Dependencies?</label></td>
+                                        <td>
+                                            <div id="includeDependencies">
+                                                <input type="radio" name="includeDependencies" id="includeDependencies_true" value="true" /><label for="includeDependencies_true">True</label>
+                                                <input type="radio" name="includeDependencies" id="includeDependencies_false" value="false" /><label for="includeDependencies_false">False</label>
+                                            </div>
+                                        </td>
+                                        <td><label for="encrypt" class="tabs_form_label">Encrypt?</label></td>
+                                        <td>
+                                            <div id="encrypt">
+                                                <input type="radio" name="encrypt" id="encrypt_true" value="true" /><label for="encrypt_true">True</label>
+                                                <input type="radio" name="encrypt" id="encrypt_false" value="false" /><label for="encrypt_false">False</label>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td><label for="includeaccess" class="tabs_form_label">Include Access?</label></td>
+                                        <td>
+                                            <div id="includeaccess">
+                                                <input type="radio" name="includeaccess" id="includeaccess_true" value="true" /><label for="includeaccess_true">True</label>
+                                                <input type="radio" name="includeaccess" id="includeaccess_false" value="false" /><label for="includeaccess_false">False</label>
+                                            </div>
+                                        </td>
+                                        <td><label for="includeallusers" class="tabs_form_label">Include All Users?</label></td>
+                                        <td>
+                                            <div id="includeallusers">
+                                                <input type="radio" name="includeallusers" id="includeallusers_true" value="true" /><label for="includeallusers_true">True</label>
+                                                <input type="radio" name="includeallusers" id="includeallusers_false" value="false" /><label for="includeallusers_false">False</label>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td><label for="includerequiredusers" class="tabs_form_label">Include Required Users?</label></td>
+                                        <td>
+                                            <div id="includerequiredusers">
+                                                <input type="radio" name="includerequiredusers" id="includerequiredusers_true" value="true" /><label for="includerequiredusers_true">True</label>
+                                                <input type="radio" name="includerequiredusers" id="includerequiredusers_false" value="false" /><label for="includerequiredusers_false">False</label>
+                                            </div>
+                                        </td>
+                                        <td><label for="includecaching" class="tabs_form_label">Include Caching Config?</label></td>
+                                        <td>
+                                            <div id="includecaching">
+                                                <input type="radio" name="includecaching" id="includecaching_true" value="true" /><label for="includecaching_true">True</label>
+                                                <input type="radio" name="includecaching" id="includecaching_false" value="false" /><label for="includecaching_false">False</label>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td><label for="includejars" class="tabs_form_label">Include Jars?</label></td>
+                                        <td>
+                                            <div id="includejars">
+                                                <input type="radio" name="includejars" id="includejars_true" value="true" /><label for="includejars_true">True</label>
+                                                <input type="radio" name="includejars" id="includejars_false" value="false" /><label for="includejars_false">False</label>
+                                            </div>
+                                        </td>
+                                        <td><label for="includesourceinfo" class="tabs_form_label">Include Source Info?</label></td>
+                                        <td>
+                                            <div id="includesourceinfo">
+                                                <input type="radio" name="includesourceinfo" id="includesourceinfo_true" value="true" /><label for="includesourceinfo_true">True</label>
+                                                <input type="radio" name="includesourceinfo" id="includesourceinfo_false" value="false" /><label for="includesourceinfo_false">False</label>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td><label for="includestatistics" class="tabs_form_label">Include Statistics?</label></td>
+                                        <td>
+                                            <div id="includestatistics">
+                                                <input type="radio" name="includestatistics" id="includestatistics_true" value="true" /><label for="includestatistics_true">True</label>
+                                                <input type="radio" name="includestatistics" id="includestatistics_false" value="false" /><label for="includestatistics_false">False</label>
+                                            </div>
+                                        </td>
+                                        <td><label for="messagesonly" class="tabs_form_label">Messages Only?</label></td>
+                                        <td>
+                                            <div id="messagesonly">
+                                                <input type="radio" name="messagesonly" id="messagesonly_true" value="true" /><label for="messagesonly_true">True</label>
+                                                <input type="radio" name="messagesonly" id="messagesonly_false" value="false" /><label for="messagesonly_false">False</label>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td><label for="overridelocks" class="tabs_form_label">Override Locks?</label></td>
+                                        <td>
+                                            <div id="overridelocks">
+                                                <input type="radio" name="overridelocks" id="overridelocks_true" value="true" /><label for="overridelocks_true">True</label>
+                                                <input type="radio" name="overridelocks" id="overridelocks_false" value="false" /><label for="overridelocks_false">False</label>
+                                            </div>
+                                        </td>
+                                        <td><label for="overwrite" class="tabs_form_label">Overwrite?</label></td>
+                                        <td>
+                                            <div id="overwrite">
+                                                <input type="radio" name="overwrite" id="overwrite_true" value="true" /><label for="overwrite_true">True</label>
+                                                <input type="radio" name="overwrite" id="overwrite_false" value="false" /><label for="overwrite_false">False</label>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td><label for="printinfo" class="tabs_form_label">Only Print Info?</label></td>
+                                        <td>
+                                            <div id="printinfo">
+                                                <input type="radio" name="printinfo" id="printinfo_true" value="true" /><label for="printinfo_true">True</label>
+                                                <input type="radio" name="printinfo" id="printinfo_false" value="false" /><label for="printinfo_false">False</label>
+                                            </div>
+                                        </td>
+                                        <td><label for="printroots" class="tabs_form_label">Only Print Roots?</label></td>
+                                        <td>
+                                            <div id="printroots">
+                                                <input type="radio" name="printroots" id="printroots_true" value="true" /><label for="printroots_true">True</label>
+                                                <input type="radio" name="printroots" id="printroots_false" value="false" /><label for="printroots_false">False</label>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td><label for="printusers" class="tabs_form_label">Only Print Users?</label></td>
+                                        <td>
+                                            <div id="printusers">
+                                                <input type="radio" name="printusers" id="printusers_true" value="true" /><label for="printusers_true">True</label>
+                                                <input type="radio" name="printusers" id="printusers_false" value="false" /><label for="printusers_false">False</label>
+                                            </div>
+                                        </td>
+                                        <td><label for="printcontents" class="tabs_form_label">Only Print Contents?</label></td>
+                                        <td>
+                                            <div id="printcontents">
+                                                <input type="radio" name="printcontents" id="printcontents_true" value="true" /><label for="printcontents_true">True</label>
+                                                <input type="radio" name="printcontents" id="printcontents_false" value="false" /><label for="printcontents_false">False</label>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td><label for="printreferences" class="tabs_form_label">Only Print References?</label></td>
+                                        <td>
+                                            <div id="printreferences">
+                                                <input type="radio" name="printreferences" id="printreferences_true" value="true" /><label for="printreferences_true">True</label>
+                                                <input type="radio" name="printreferences" id="printreferences_false" value="false" /><label for="printreferences_false">False</label>
+                                            </div>
+                                        </td>
+                                        <td></td>
+                                        <td></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            </fieldset>
+                        </form>
+                    </div>
+                    <div id="tabs-2">
+                        <p>Specify resources to export or resources to relocate or rebind on import.</p>
+                        <form id="addEditForm2">
+                            <fieldset>
+                            <table cellpadding="0" cellspacing="0">
+                                <tbody>
+                                    <tr>
+                                        <td><label for="res_action" class="tabs_form_label">Action</label></td>
+                                        <td><label for="res_orig_path" class="tabs_form_label">Original Path</label></td>
+                                        <td><label for="res_new_path" class="tabs_form_label">New Path</label></td>
+                                        <td></td>
+                                    </tr>
+                                    <tr id="resources_add_row">
+                                        <td colspan="4"><div id="resources_add">Add Resource</div></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            </fieldset>
+                        </form>
+                    </div>
+                    <div id="tabs-3">
+                        <p>Specify resource attributes to update on import.</p>
+                        <form id="addEditForm3">
+                            <fieldset>
+                            <table cellpadding="0" cellspacing="0">
+                                <tbody>
+                                    <tr>
+                                        <td><label for="attr_path" class="tabs_form_label">Resource Path</label></td>
+                                        <td><label for="attr_type" class="tabs_form_label">Resource Type</label></td>
+                                        <td><label for="attr_name" class="tabs_form_label">Attribute</label></td>
+                                        <td><label for="attr_value" class="tabs_form_label">Value</label></td>
+                                        <td></td>
+                                    </tr>
+                                    <tr id="attributes_add_row">
+                                        <td colspan="4"><div id="attributes_add">Add Attribute</div></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            </fieldset>
+                        </form>
+                    </div>
+                    <div id="tabs-4">
+                        <p>Specify import/export options for users and groups.</p>
+                        <form id="addEditForm4">
+                            <fieldset>
+                            <table cellpadding="0" cellspacing="0">
+                                <tbody>
+                                    <tr>
+                                        <td colspan="4">
+                                            <hr/>
+                                            <label for="user_import_banner" class="tabs_form_label">Import</label>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td colspan="4">
+                                            <label for="user_import" class="tabs_form_label">Overwrite or Merge Users On Import?</label>
+                                            <select id="user_import" class="dynamic_row_value">
+                                                <option value="nil"></option>
+                                                <option value="false">Merge</option>
+                                                <option value="true">Overwrite</option>
+                                            </select>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td colspan="4">
+                                            <hr/>
+                                            <label for="user_export_banner" class="tabs_form_label">Export</label>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td><label for="exp_domain" class="tabs_form_label">Domain</label></td>
+                                        <td><label for="exp_ug" class="tabs_form_label">User / Group</label></td>
+                                        <td><label for="exp_value" class="tabs_form_label">Value</label></td>
+                                        <td></td>
+                                    </tr>
+                                    <tr id="users_add_row">
+                                        <td colspan="4"><div id="users_add">Add Export Group / User</div></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            </fieldset>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <div id="alertDialog" title="Alert" class="dialog">
+                <p id="alertDialogMessage"></p>
+            </div>
+            <div id="confirmDialog" title="Confirm" class="dialog">
+                <p id="confirmDialogMessage"></p>
+            </div>
+<!-- InstanceEndEditable -->
+        </div>
+    </body>
+<!-- InstanceEnd --></html>

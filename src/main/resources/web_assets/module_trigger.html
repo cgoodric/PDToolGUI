@@ -1,0 +1,1431 @@
+<!DOCTYPE html>
+<html><!-- InstanceBegin template="/Templates/pdtoolgui.dwt" codeOutsideHTMLIsLocked="false" -->
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<!-- InstanceBeginEditable name="doctitle" -->
+        <title>PDTool: Modules - Trigger</title>
+<!-- InstanceEndEditable -->
+        <link rel="stylesheet" type="text/css" href="css/styles.css">
+        <link rel="stylesheet" type="text/css" href="css/smoothness/jquery-ui-1.10.2.custom.css" />
+        <link rel="stylesheet" type="text/css" href="css/ui.jqgrid.css" />
+        <script type="text/javascript" src="js/jquery-1.9.1.js"></script>
+        <script type="text/javascript" src="js/jquery-ui-1.10.2.custom.js"></script>
+        <script type="text/javascript" src="js/i18n/grid.locale-en.js"></script>
+        <script type="text/javascript" src="js/jquery.jqGrid.src.js"></script>
+        <script type="text/javascript" src="js/jquery-queryParser.min.js"></script>
+        <script type="text/javascript" src="js/pdtoolgui.js"></script>
+        <script type="text/javascript" src="js/pdtoolgui_docs_en.js"></script>
+<!-- InstanceBeginEditable name="head" -->
+        <script language="javascript">
+        
+            // set an event handler to fire when the page's DOM is complete (not necessarily when all the images or CSS finish loading.)
+            // this is similar to the <body> tag's "onload" attribute. however, "onload" waits until all the other resources (CSS,
+            // images, etc.) are done loading, too. this way the construction of the table can start a bit sooner.
+            //
+            $(document).ready (function() { 
+
+                // check access status and forward to incex.html if access is denied.
+                //
+                $.getJSON (
+                    "/security?rnd=" + myRand(), // base URL
+                    null,                       // argument
+                    function(data) {            // callback function to parse data
+                        if (data.status == "error") {
+                            location = "/pdtoolgui/index.html?denied=true&rnd=" + myRand();
+                        }
+                    }
+                );
+
+                // update the navigation tabs by highlighting the correct tab
+                //
+                setActiveNavTab('nav_tab_modules'); 
+                
+                createAlertDialog();
+                createConfirmDialog();
+
+                // parse this page's URL query parameters
+                //
+                var queryParams = $.parseQuery(location.search);
+                
+                // set the module path at the top of the page so the user knows what file he/she is working on.
+                // URL decode the string and HTML-escape any special characters.
+                //
+                $("#module_path").html (decodeURIComponent(queryParams.path.replace(/\+/g, " ")).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\s/g, "&nbsp;"));
+                
+                // set the active submenu item and set click event handlers on all submenu items
+                //
+                $("#nav_submenu_archive")         .click(function() {location='modules_archive.html'});
+                $("#nav_submenu_data_source")     .click(function() {location='modules_data_source.html'});
+                $("#nav_submenu_group")           .click(function() {location='modules_group.html'});
+                $("#nav_submenu_privilege")       .click(function() {location='modules_privilege.html'});
+                $("#nav_submenu_rebind")          .click(function() {location='modules_rebind.html'});
+                $("#nav_submenu_regression")      .click(function() {location='modules_regression.html'});
+                $("#nav_submenu_resource")        .click(function() {location='modules_resource.html'});
+                $("#nav_submenu_resource_cache")  .click(function() {location='modules_resource_cache.html'});
+                $("#nav_submenu_server_attribute").click(function() {location='modules_server_attribute.html'});
+                $("#nav_submenu_server_manager")  .click(function() {location='modules_server_manager.html'});
+                $("#nav_submenu_trigger")         .click(function() {location='modules_trigger.html'}).addClass("nav_submenu_item_active");
+                $("#nav_submenu_user")            .click(function() {location='modules_user.html'});
+                $("#nav_submenu_vcs")             .click(function() {location='modules_vcs.html'});
+
+                // enable the more/less functions of the page description
+                //
+                //setCollapsable();
+
+                // enable tooltips over editor fields
+                //
+                setTooltips (TOOLTIPS["module_trigger"]);
+
+                // load the user's preferences.
+                //
+                var prefs;
+                $.getJSON (
+                    "/prefs?rnd=" + myRand(), // base URL
+                    null,                                         // argument
+                    function(data) {prefs = data;}                // callback function
+                );
+
+                // build the main table and populate with a REST/JSON call
+                //
+                list = $("#list")
+                    .jqGrid({
+                        url:'/trigger_module/' + encodeURIComponent (queryParams.path),
+                        datatype: 'json',
+                        mtype: 'GET',
+                        autoencode: true,
+                        colNames:['ID', 'Type', 'Resource Path', 'Condition', 'Action'],
+                        colModel :[ 
+                            {name:'id', index:'id', width:100, classes:"idGridCell"},
+                            {name:'type', index:'type', width:100},
+                            {name:'resourcePath', index:'resourcePath', width:500},
+                            {name:'condition', index:'condition', width:100},
+                            {name:'action', index:'action', width:100}
+                        ],
+                        pager: '#pager',
+                        height: "auto",
+                        autowidth: true,
+                        rowNum:10,
+                        rowList:[10,20,50],
+                        recordtext: "Triggers {0} - {1} of {2}",
+                        sortname: 'id',
+                        sortorder: 'asc',
+                        viewrecords: true,
+                        gridview: true,
+                        multiselect: true,
+
+                        // add a "before select row" event handler that blocks checking of the row's checkbox when the "id"
+                        // column is clicked, but opens the editor for the id instead. depends on the "idGridCell" class being
+                        // added to the column definition of the "id" column.
+                        //
+                        beforeSelectRow: function (rowid, e) {
+                            if ($(e.target).hasClass("idGridCell")) {
+                                
+                                $.getJSON (
+                                    "/trigger/" + encodeURIComponent (queryParams.path) + "?id=" + encodeURIComponent (rowid) + "&rnd=" + myRand(), // base URL
+                                    null,                                    // argument
+                                    setDialogData                            // callback function to parse data
+                                );
+        
+                                operation.val("edit");
+                                $("#tabs").tabs({ active: 0 });
+                                $("#addEditDialog").dialog ({title: "Edit Trigger"});
+                                $("#addEditDialog").dialog ("open");
+                                return false;
+                            } else {
+                                return true;
+                            }
+                        }
+                    }) // .jqGrid()
+                    
+                    .navGrid( // normally sets up buttons at bottom of grid, but we get rid of them so we can reorder the buttons below
+                        '#pager', 
+                        {
+                            edit: false,
+                            add: false,
+                            del: false,
+                            search: true,
+                            searchtitle: "Search for Trigger Elements"
+                        },  // nav
+                        {}, // edit
+                        {}, // add
+                        {}, // del
+                        {
+                            closeAfterSearch: true,
+                            closeAfterReset: true,
+                            closeOnEscape: true,
+                            resize: false,
+                            searchOnEnter: true
+                        }, // search
+                        {
+                            caption: "my view caption"
+                        }   // view
+                    )  // .navGrid()
+                    
+                    // set up custom buttons in the order we want. load them in reverse order so they can be placed in front of the search and refresh buttons.
+                    //
+                    .navButtonAdd(
+                        '#pager',
+                        {
+                            caption: "",
+                            buttonicon: "ui-icon-trash",
+                            onClickButton: function (jqEvent) { 
+                                var selList = list.getGridParam('selarrrow'); // list of selected rows
+
+                                if (selList.length == 0) {
+                                    myAlert ("Please select at least one trigger element to delete.");
+                                    return false;
+                                }
+
+                                var args = "";
+                                var confirmList = "";
+                                for (var i = 0; i < selList.length; i++) {
+                                    if (i > 0) args += ",";
+                                    args += selList[i];
+    
+                                    if (i > 0) confirmList += "<br/>";
+                                    confirmList += decodeURIComponent (selList[i].replace (/\+/, " "));
+                                }
+                                
+                                myConfirm (
+                                    "Do you want to delete the following trigger element(s)?<br/><br/>" + confirmList, 
+                                    function() {
+                                        $.ajax({  
+                                            type: "DELETE",
+                                            contentType: 'application/json',
+                                            url: "/trigger/" + encodeURIComponent (queryParams.path) + "?ids=" + encodeURIComponent (args), // base URL
+                                            dataType: "json",
+                                            success: function (data) {
+                                                processAjaxResult (
+                                                    data, 
+                                                    {
+                                                        useDialog:false, 
+                                                        reloadGrid:true
+                                                    }
+                                                );
+                                            },
+                                            // this should only happen when things get seriously wrong on the server
+                                            //
+                                            error: function(jqXHR, textStatus, errorThrown) {
+                                                myAlert ("textStatus = " + textStatus + "<br/>errorThrown = " + errorThrown);
+                                            }
+                                        }); 
+                                    }
+                                );
+                            },
+                            title: "Delete Trigger Element",
+                            position: "first"
+                        }
+                    )  // .navGrid()
+                    
+                    .navButtonAdd(
+                        '#pager',
+                        {
+                            caption: "",
+                            buttonicon: "ui-icon-copy",
+                            onClickButton: function (jqEvent) { 
+                                var selList = list.getGridParam ('selarrrow'); // list of selected rows
+
+                                if (selList.length == 0) {
+                                    myAlert ("Please select at least one trigger element to copy.");
+                                    return false;
+                                }
+
+                                var args = "";
+                                var confirmList = "";
+                                for (var i = 0; i < selList.length; i++) {
+                                    if (i > 0) args += ",";
+                                    args += selList[i];
+    
+                                    if (i > 0) confirmList += "<br/>";
+                                    confirmList += decodeURIComponent (selList[i]);
+                                }
+                                
+                                myConfirm (
+                                    "Do you want to copy the following trigger element(s)?<br/><br/>" + confirmList, 
+                                    function() {
+                                        $.ajax({  
+                                            type: "POST",
+                                            contentType: 'application/json',
+                                            url: "/trigger/" + encodeURIComponent (queryParams.path) + "?ids=" + encodeURIComponent (args) + "&rnd=" + myRand(), // base URL
+                                            dataType: "json",
+                                            data: null,
+                                            success: function (data) {
+                                                processAjaxResult (
+                                                    data, 
+                                                    {
+                                                        useDialog:false, 
+                                                        reloadGrid:true
+                                                    }
+                                                );
+                                            },
+                                            // this should only happen when things get seriously wrong on the server
+                                            //
+                                            error: function(jqXHR, textStatus, errorThrown) {
+                                                myAlert ("textStatus = " + textStatus + "<br/>errorThrown = " + errorThrown);
+                                            }
+                                        }); 
+                                    }
+                                );
+                            },
+                            title: "Copy Trigger Element",
+                            position: "first"
+                        }
+                    )  // .navGrid()
+                    
+                    .navButtonAdd(
+                        '#pager',
+                        {
+                            caption: "",
+                            buttonicon: "ui-icon-pencil",
+                            onClickButton: function() {
+                                var selList = list.getGridParam('selarrrow');
+
+                                if (selList.length > 1) {
+                                    myAlert ("Cannot edit more than one item at a time.");
+                                    return false;
+                                } else if (selList.length == 0) {
+                                    myAlert ("Please select a trigger element to edit.");
+                                    return false;
+                                }
+
+                                $.getJSON (
+                                    "/trigger/" + encodeURIComponent (queryParams.path) + "?id=" + encodeURIComponent (selList[0]) + "&rnd=" + myRand(), // base URL
+                                    null,                                         // argument
+                                    setDialogData                                 // callback function to parse data
+                                );
+
+                                operation.val("edit");
+                                $("#addEditDialog").dialog ({title: "Edit Trigger Element"});
+                                $("#addEditDialog").dialog ("open");
+                            },
+                            title: "Edit Trigger Element",
+                            position: "first"
+                        }
+                    )  // .navGrid()
+                    
+                    .navButtonAdd(
+                        '#pager',
+                        {
+                            caption: "",
+                            buttonicon: "ui-icon-plus",
+                            onClickButton: function() {
+                                operation.val("add");
+                                setDialogData({ // reset the form values to the defaults.
+                                    id: "",
+                                    origId: "",
+                                    type: 0,
+                                    resourcePath: "",
+                                    isEnabled: false,
+                                    maxEventsQueued: "",
+                                    annotation: "",
+                                    condition: null,
+                                    action: null,
+                                    mode: 0,
+                                    startTime: "",
+                                    schedulePeriod: null,
+                                    fromTimeInADay: -1,
+                                    endTimeInADay: -1,
+                                    recurringDay: -1,
+                                    isCluster: false
+                                });
+                                $("#addEditDialog").dialog ({title: "Add Trigger"});
+                                $("#addEditDialog").dialog ("open");
+                                id.focus();
+                            },
+                            title: "Add New Trigger Element",
+                            position: "first"
+                        }
+                    )  // .navGrid()
+                    
+                    .navButtonAdd(
+                        '#pager',
+                        {
+                            caption: "",
+                            buttonicon: "ui-icon-gear",
+                            onClickButton: function() {
+                            
+                                $("#profile_list").children().remove();
+                                
+                                setConfigProfileSelectData('#profile_list', prefs.defaultProfile);
+
+                                $("#server_list").children().remove();
+                                
+                                setServerSelectData ("#server_list", prefs.defaultServer);
+                                
+                                $("#generateDialog").dialog ("open");
+                            },
+                            title: "Auto-Generate Trigger Elements",
+                            position: "first"
+                        }
+                    ); // .navGrid()
+
+
+                $(window).bind('resize', function() {
+                    list.setGridWidth($(window).width() - 60); // 30 pixels of padding on either side of the jqGrid.
+                }).trigger('resize');
+
+                // set up the add/edit dialog
+                //
+                var operation = $("#operation"),
+                    origId = $("#origId"),
+                    id = $("#id"),
+
+                    resourcePath = $("#resourcePath"),
+                    maxEventsQueued = $("#maxEventsQueued"),
+                    annotation = $("#annotation"),
+                    c0_eventName = $("#c0_eventName"),
+                    c1_scheduleId = $("#c1_scheduleId"),
+                    c2_connector = $("#c2_connector"),
+                    c2_destination = $("#c2_destination"),
+                    c2_selector = $("#c2_selector"),
+                    c3_eventName = $("#c3_eventName"),
+                    procedurePath = $("#procedurePath"),
+                    a03_parameterValues = $("#a03_parameterValues"),
+                    a23_emailTo = $("#a23_emailTo"),
+                    a23_emailCC = $("#a23_emailCC"),
+                    a23_emailBCC = $("#a23_emailBCC"),
+                    a23_emailReplyTo = $("#a23_emailReplyTo"),
+                    a23_emailSubject = $("#a23_emailSubject"),
+                    a23_emailBody = $("#a23_emailBody"),
+
+                    mode = $("#mode"),
+                    startTime_date = $("#startTime_date"),
+                    startTime_hour = $("#startTime_hour"),
+                    startTime_min = $("#startTime_min"),
+                    startTime_sec = $("#startTime_sec"),
+                    startTime_offs = $("#startTime_offs"),
+                    schedulePeriod_count = $("#schedulePeriod_count"),
+                    schedulePeriod_period = $("#schedulePeriod_period"),
+                    fromTimeInADay_hour = $("#fromTimeInADay_hour"),
+                    fromTimeInADay_min = $("#fromTimeInADay_min"),
+                    endTimeInADay_hour = $("#endTimeInADay_hour"),
+                    endTimeInADay_min = $("#endTimeInADay_min"),
+
+                    profile_list = $("#profile_list"),
+                    server_list = $("#server_list"),
+                    domain = $("#domain"),
+                    allFields = $([]).add (operation).add (origId).add (id)
+                                     .add (resourcePath).add (maxEventsQueued).add (annotation).add (c0_eventName).add (c2_connector).add (c2_destination)
+                                     .add (c2_selector).add (c3_eventName).add (procedurePath).add (a03_parameterValues).add (a23_emailTo)
+                                     .add (a23_emailCC).add (a23_emailBCC).add (a23_emailReplyTo).add (a23_emailSubject).add (a23_emailBody)
+                                     .add (mode).add (startTime_date).add (startTime_hour).add (startTime_min).add (startTime_sec)
+                                     .add (startTime_offs).add (schedulePeriod_count).add (schedulePeriod_period).add (fromTimeInADay_hour)
+                                     .add (fromTimeInADay_min).add (endTimeInADay_hour).add (endTimeInADay_min);
+
+                dialogMsg = $(".dialogMsg");
+
+                $("#type").buttonset();
+                $("#isEnabled").buttonset();
+                $("#condition_type").buttonset();
+                $("#action_type").buttonset();
+                $("#a23_skipIfNoResults").buttonset();
+                $("#a2_noCommit").buttonset();
+                $("#a3_includeSummary").buttonset();
+                $("#isCluster").buttonset();
+
+                $("#type input:radio").change (setTypeFields);
+                $("#condition_type input:radio").change (setConditionFields);
+                $("#action_type input:radio").change (setActionFields);
+                
+                $("#maxEventsQueued").spinner ({min: 0});
+                $("#schedulePeriod_count").spinner ({min: 0});
+
+                // create a date picker dialog for the schedule period date field. set the format to ISO standard.
+                //
+                $("#startTime_date").datepicker ({dateFormat: "yy-mm-dd"});
+                // create custom spinners for the schedule period hour, minute, and second fields. (see js/pdtoolgui.js)
+                //
+                $("#startTime_hour").zpadspinner ({
+                    spin: function (event, ui) {
+                        if (ui.value > 23) {
+                            $(this).zpadspinner ("value", 0);
+                            return false;
+                        } else if (ui.value < 0) {
+                            $(this).zpadspinner ("value", 23);
+                            return false;
+                        }
+                    }
+                });
+                $("#startTime_min").zpadspinner ({
+                    spin: function (event, ui) {
+                        if (ui.value > 59) {
+                            $(this).zpadspinner ("value", 0);
+                            return false;
+                        } else if (ui.value < 0) {
+                            $(this).zpadspinner ("value", 59);
+                            return false;
+                        }
+                    }
+                });
+                $("#startTime_sec").zpadspinner ({
+                    spin: function (event, ui) {
+                        if (ui.value > 59) {
+                            $(this).zpadspinner ("value", 0);
+                            return false;
+                        } else if (ui.value < 0) {
+                            $(this).zpadspinner ("value", 59);
+                            return false;
+                        }
+                    }
+                });
+                // use a custom timezone spinner for the schedule period (see js/pdtoolgui.js)
+                //
+                setTimezoneSelectData("#startTime_offs");
+
+                // set up custom spinners for restriction window inputs
+                //
+                $("#fromTimeInADay_hour").zpadspinner ({
+                    spin: function (event, ui) {
+                        if (ui.value > 23) {
+                            $(this).zpadspinner ("value", 0);
+                            return false;
+                        } else if (ui.value < 0) {
+                            $(this).zpadspinner ("value", 23);
+                            return false;
+                        }
+                    }
+                });
+                $("#fromTimeInADay_min").zpadspinner ({
+                    spin: function (event, ui) {
+                        if (ui.value > 59) {
+                            $(this).zpadspinner ("value", 0);
+                            return false;
+                        } else if (ui.value < 0) {
+                            $(this).zpadspinner ("value", 59);
+                            return false;
+                        }
+                    }
+                });
+                $("#endTimeInADay_hour").zpadspinner ({
+                    spin: function (event, ui) {
+                        if (ui.value > 23) {
+                            $(this).zpadspinner ("value", 0);
+                            return false;
+                        } else if (ui.value < 0) {
+                            $(this).zpadspinner ("value", 23);
+                            return false;
+                        }
+                    }
+                });
+                $("#endTimeInADay_min").zpadspinner ({
+                    spin: function (event, ui) {
+                        if (ui.value > 59) {
+                            $(this).zpadspinner ("value", 0);
+                            return false;
+                        } else if (ui.value < 0) {
+                            $(this).zpadspinner ("value", 59);
+                            return false;
+                        }
+                    }
+                });
+                
+                // not really needed here
+                //setScheduleIdSelectData (c1_scheduleId, queryParams.path, null);
+                
+                // hides or shows the appropriate trigger/schedule specific settings based on the trigger type radio button setting.
+                //
+                function setTypeFields() {
+                    var selectedVal = $("#type input:radio:checked").val();
+
+                    $(".trigger_input, .schedule_input").hide();
+                    
+                    if (selectedVal == 0) {
+                        $(".trigger_input").show();
+                        addEditDialog.dialog({width: 780});
+                        setConditionFields();
+                        setActionFields();
+                    } else {
+                        $(".schedule_input").show();
+                        addEditDialog.dialog({width: 850});
+                    }
+                }
+                
+                // hides or shows the appropriate trigger/schedule specific settings based on the trigger type radio button setting.
+                //
+                function setConditionFields() {
+                    var selectedVal = $("#condition_type input:radio:checked").val();
+
+                    $(".c0, .c1, .c2, .c3").hide();
+                    $(".c" + selectedVal).show();
+                }
+                
+                // hides or shows the appropriate trigger/schedule specific settings based on the trigger type radio button setting.
+                //
+                function setActionFields() {
+                    var selectedVal = $("#action_type input:radio:checked").val();
+
+                    $(".a0, .a1, .a2, .a3").hide();
+                    $(".a" + selectedVal).show();
+                }
+                
+                addEditDialog = $("#addEditDialog").dialog ({
+                    autoOpen: false,
+                    //height: 300,
+                    width: 600,
+                    modal: true,
+                    buttons: [ // declaring buttons this way lets us assign ID's to the buttons so they can be interacted with later.
+                        {
+                            id: "aeOkButton",
+                            text: "OK",
+                            click: function() {
+                                var actionType = (operation.val() == "add") ? "POST" : "PUT";
+                                var errMsg = "";
+                                
+                                allFields.removeClass ("ui-state-error");
+                                clearAEDialogMessage();
+                                $("#aeOkButton").button ("disable");
+                                
+                                var ajaxOpts = {  
+                                    type: actionType,
+                                    contentType: 'application/json',
+                                    url: "/trigger/" + encodeURIComponent (queryParams.path) + "?rnd=" + myRand(),
+                                    dataType: "json",
+                                    data: createJSON(),  
+                                    success: function (data) {
+                                        processAjaxResult (
+                                            data, 
+                                            {
+                                                useDialog:true, 
+                                                reloadGrid:true
+                                            }
+                                        );
+                                        $("#aeOkButton").button ("enable");
+                                    },
+                                    // this should only happen when things go seriously wrong on the server
+                                    //
+                                    error: function (jqXHR, textStatus, errorThrown) {
+                                        myAlert ("textStatus = " + textStatus + "<br>errorThrown = " + errorThrown);
+                                        $("#aeOkButton").button ("enable");
+                                    }
+                                }
+
+                                $.ajax(ajaxOpts);
+                            }
+                        }, {
+                            id: "aeCancelButton",
+                            text: "Cancel",
+                            click: function() {
+                                $(this).dialog ("close");
+                                $("#aeOkButton").button ("enable");
+                            }
+                        }
+                    ],
+                    // this is an event handler for when the dialog box closes (it can be closed in a number of ways.)
+                    // basically any error classes get cleared from the form elements and the message <div> is cleared.
+                    //
+                    close: function() {
+                        allFields.val ("").removeClass ("ui-state-error");
+                        clearAEDialogMessage();
+                        $("#aeOkButton").button ("enable");
+                    },
+                    // add a custom class to the OK button so that it can be addressed for disabling/enabling later
+                    //
+                    create: function () {
+                        $(this).closest(".ui-dialog")
+                            .find(".ui-button:first") // the first button
+                            .addClass("aeOkButton");
+                    }
+                }); // #addEditDialog
+                
+                // set up generate groups dialog
+                //
+                genDialogMsg = $("#genDialogMsg");
+                generateDialog = $("#generateDialog").dialog ({
+                    autoOpen: false,
+                    //height: 300,
+                    width: 500,
+                    modal: true,
+                    buttons: [ // declaring buttons this way lets us assign ID's to the buttons so they can be interacted with later.
+                        {
+                            id: "genOkButton",
+                            text: "OK",
+                            click: function() {
+                                var errMsg = "";
+                                var profilePath = $("#profile_list").val();
+                                var serverId = $("#server_list").val();
+                                var startPath = $("#startPath").val();
+                                
+                                if (profilePath == null || profilePath.length == 0) {
+                                    errMsg += "Please choose a configuration profile.<br/>";
+                                    $("#profile_list").addClass ("ui-state-error");
+                                } 
+                                if (serverId == null || serverId.length == 0) {
+                                    errMsg += "Please choose a server.<br/>";
+                                    $("#server_list").addClass ("ui-state-error");
+                                } 
+                                if (startPath == null || startPath.length == 0) {
+                                    errMsg += "Please enter a starting path.<br/>";
+                                    $("#startPath").addClass ("ui-state-error");
+                                }
+                                if (errMsg.length > 0) {
+                                    myAlert (errMsg);
+                                    return false;
+                                }
+                                
+                                allFields.removeClass ("ui-state-error");
+                                updateGenDialogMessage('Gathering triggers ... <img src="images/spinner.gif" class="textAlignImg"/>');
+                                
+                                $("#genOkButton").button ("disable");
+                                
+                                var ajaxOpts = {  
+                                    type: "POST",
+                                    contentType: 'application/json',
+                                    url: "/trigger_module/" + encodeURIComponent (queryParams.path) + "?profilePath=" + encodeURIComponent (profilePath) + "&serverId=" + encodeURIComponent (serverId) + "&startPath=" + encodeURIComponent (startPath) + "&rnd=" + myRand(),
+                                    dataType: "json",
+                                    data: createJSON(),  
+                                    success: function (data) {
+                                        processGenerateResult(
+                                            data, 
+                                            {
+                                                useDialog:true, 
+                                                reloadGrid:true
+                                            }
+                                        );
+                                        $("#genOkButton").button ("enable");
+                                    },
+                                    // this should only happen when things go seriously wrong on the server
+                                    //
+                                    error: function (jqXHR, textStatus, errorThrown) {
+                                        myAlert ("textStatus = " + textStatus + "<br>errorThrown = " + errorThrown);
+                                        clearGenDialogMessage();
+                                        $("#genOkButton").button ("enable");
+                                    }
+                                }
+
+                                $.ajax(ajaxOpts);
+                            }
+                        }, {
+                            id: "genCancelButton",
+                            text: "Cancel",
+                            click: function() {
+                                $(this).dialog ("close");
+                                $("#genOkButton").button ("enable");
+                          
+                            }
+                        }
+                    ],
+                    // this is an event handler for when the dialog box closes (it can be closed in a number of ways.)
+                    // basically the OK button is re-enabled and the message <div> is cleared.
+                    //
+                    close: function() { 
+                        allFields.removeClass ("ui-state-error");
+                        clearGenDialogMessage();
+                        $("#genOkButton").button ("enable");
+                    },
+                    // add a custom class to the OK button so that it can be addressed for disabling/enabling later
+                    //
+                    create: function () {
+                        $(this).closest(".ui-dialog")
+                            .find(".ui-button:first") // the first button
+                            .addClass("genOkButton");
+                    }
+                }); // #generateDialog
+                
+                // sets the form values of the dialog box from a data object (typically returned from an AJAX call.)
+                //
+                function setDialogData (data) {
+                    id.val (data.id);
+                    origId.val (data.id);
+
+                    $('#type_' + data.type).prop ("checked", "checked");
+                    $("#type").buttonset ("refresh");
+                    setTypeFields();
+
+                    // set trigger type fields
+                    //
+                    resourcePath.val (data.resourcePath);
+                    annotation.val (data.annotation);
+                    
+                    $('#isEnabled_' + data.isEnabled).prop ("checked", "checked");
+                    $("#isEnabled").buttonset ("refresh");
+                    
+                    if (! isNaN (data.maxEventsQueued) && data.maxEventsQueued >= 0) {
+                        maxEventsQueued.val (data.maxEventsQueued);
+                    } else {
+                        maxEventsQueued.val ("");
+                    }
+                    
+                    // set trigger condition fields
+                    //
+                    if (data.condition == null) {
+                        data.condition = {
+                            type: 0,
+                            eventName: "",
+                            scheduleId: "",
+                            connector: "",
+                            destination: "",
+                            selector: ""
+                        };
+                    }
+
+                    $('#condition_type_' + data.condition.type).prop ("checked", "checked");
+                    $("#condition_type").buttonset ("refresh");
+                    if (data.type == 0)
+                        setConditionFields();
+                
+                    c0_eventName.val (data.condition.eventName);
+                    setScheduleIdSelectData (c1_scheduleId, queryParams.path, data.condition.scheduleId);
+                    c2_connector.val (data.condition.connector);
+                    c2_destination.val (data.condition.destination);
+                    c2_selector.val (data.condition.selector);
+                    c3_eventName.val (data.condition.eventName);
+                    
+                    // set trigger action fields
+                    //
+                    if (data.action == null) {
+                        data.action = {
+                            type: 0,
+                            resourcePath: "",
+                            parameterValues: "",
+                            emailTo: "",
+                            emailCC: "",
+                            emailBCC: "",
+                            emailReplyTo: "",
+                            emailSubject: "",
+                            emailBody: "",
+                            skipIfNoResults: true,
+                            noCommit: true,
+                            includeSummary: false
+                        };
+                    }
+
+                    $('#action_type_' + data.action.type).prop ("checked", "checked");
+                    $("#action_type").buttonset ("refresh");
+                    if (data.type == 0)
+                        setActionFields();
+                    
+                    procedurePath.val (data.action.resourcePath);
+                    a03_parameterValues.val (data.action.parameterValues); 
+                    a23_emailTo.val (data.action.emailTo);
+                    a23_emailCC.val (data.action.emailCC);
+                    a23_emailBCC.val (data.action.emailBCC);
+                    a23_emailReplyTo.val (data.action.emailReplyTo);
+                    a23_emailSubject.val (data.action.emailSubject);
+                    a23_emailBody.val (data.action.emailBody);
+                    
+                    $("#a23_skipIfNoResults_" + data.action.skipIfNoResults).prop ("checked", "checked");
+                    $("#a23_skipIfNoResults").buttonset ("refresh");
+
+                    $("#a2_noCommit_" + data.action.noCommit).prop ("checked", "checked");
+                    $("#a2_noCommit").buttonset ("refresh");
+
+                    $("#a3_includeSummary_" + data.action.includeSummary).prop ("checked", "checked");
+                    $("#a3_includeSummary").buttonset ("refresh");
+                    
+                    // set schedule fields
+                    //
+                    mode.val (data.mode);
+                    
+                    // need to split up the start time into multiple form fields
+                    //
+                    var startTime_groups = /(\-?\d+\-\d{2}\-\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d+)?([\+\-]\d{2}:\d{2}|Z)?/.exec(data.startTime);
+                    if (startTime_groups != null && startTime_groups.length > 0) {
+                        startTime_date.val(startTime_groups[1]);
+                        startTime_hour.zpadspinner ("value", startTime_groups[2]);
+                        startTime_min.zpadspinner ("value", startTime_groups[3]);
+                        startTime_sec.zpadspinner ("value", startTime_groups[4]);
+                        startTime_offs.val (startTime_groups[5]);
+                    } else {
+                        startTime_date.val("");
+                        startTime_hour.val("");
+                        startTime_min.val("");
+                        startTime_sec.val("");
+                        startTime_offs.val("");
+                    }
+                    
+                    // if schedule mode is periodic
+                    //
+                    if (data.mode == 2) {
+                    
+                        // schedule period is a separate object in the server, even though they're
+                        // in-line in the trigger module
+                        //
+                        if (data.schedulePeriod == null) {
+                            data.schedulePeriod = {
+                                period: 0,
+                                count: -1
+                            };
+                        }
+                        schedulePeriod_period.val(data.schedulePeriod.period);
+                        if (data.schedulePeriod.count >= 0)
+                            schedulePeriod_count.val (data.schedulePeriod.count);
+                        
+                        // separate hours and minutes values from fromTimeInADay
+                        //
+                        if (! isNaN (data.fromTimeInADay) && data.fromTimeInADay >= 0) {
+                            fromTimeInADay_hour.zpadspinner ("value", Math.floor (data.fromTimeInADay / 60));
+                            fromTimeInADay_min.zpadspinner ("value", data.fromTimeInADay % 60);
+                        } else {
+                            fromTimeInADay_hour.val ("");
+                            fromTimeInADay_min.val ("");
+                        }
+                        
+                        // separate hours and minutes values from endTimeInADay
+                        //
+                        if (! isNaN (data.endTimeInADay) && data.endTimeInADay >= 0) {
+                            endTimeInADay_hour.zpadspinner ("value", Math.floor (data.endTimeInADay / 60));
+                            endTimeInADay_min.zpadspinner ("value", data.endTimeInADay % 60);
+                        } else {
+                            endTimeInADay_hour.val ("");
+                            endTimeInADay_min.val ("");
+                        }
+                        
+                        // separate the bits representing the days of the week from recurringDay
+                        //
+                        if (isNaN (data.recurringDay) || data.recurringDay < 0) {
+                            data.recurringDay = 0;
+                        }
+                        data.recurringDay = Math.floor (data.recurringDay) % 128; // strip off any decimals and bits higher than 6
+                        for (var i = 6; i >= 0; i--) {
+                        
+                            // if subtracting the bit leaves us with a value higher than 0, then the bit was set.
+                            //
+                            if (data.recurringDay - Math.pow (2, i) >= 0) {
+                                $("#recurringDay_" + i).prop("checked", true);
+                                data.recurringDay -= Math.pow (2, i); // take the bit off
+                            } else {
+                                $("#recurringDay_" + i).prop("checked", false);
+                            }
+                        }
+                    } // mode is periodic
+                    
+                    $("#isCluster_" + data.isCluster).prop ("checked", "checked");
+                    $("#isCluster").buttonset ("refresh");
+                } // setDialogData()
+                
+                // creates a JSON artifact for sending with AJAX queries. Jackson on the server side is very particular
+                // about the format of JSON objects: double quoted attributes AND values.
+                //
+                function createJSON() {
+                    var data = {
+                        id: id.val(),
+                        origId: origId.val(),
+                        type: $('#type input:radio:checked').val()
+                    };
+
+                    if ($('#type input:radio:checked').val() == 0) {
+                        data["resourcePath"] = resourcePath.val();
+                        data["isEnabled"] = $('#isEnabled input:radio:checked').val();
+                        data["maxEventsQueued"] = maxEventsQueued.val();
+                        data["annotation"] = annotation.val();
+
+                        var condition = {
+                            type: $('#condition_type input:radio:checked').val()
+                        };
+                        var action = {
+                            type: $('#action_type input:radio:checked').val(),
+                            resourcePath: procedurePath.val()
+                        };
+
+                        switch (condition.type * 1) {
+                            case CONDITION_TYPE_SYSTEM_EVENT:
+                                condition["eventName"] = c0_eventName.val();
+                                break;
+                                
+                            case CONDITION_TYPE_TIMER:
+                                condition["scheduleId"] = c1_scheduleId.val();
+
+                                break;
+                                
+                            case CONDITION_TYPE_JMS:
+                                condition["connector"] = c2_connector.val();
+                                condition["destination"] = c2_destination.val();
+                                condition["selector"] = c2_selector.val();
+                                break;
+                            
+                            case CONDITION_TYPE_USER:
+                                condition["eventName"] = c3_eventName.val();
+                                break;
+                        }
+
+                        switch (action.type * 1) {
+                            case ACTION_TYPE_PROCEDURE:
+                                action["parameterValues"] = a03_parameterValues.val();
+                                break;
+                                
+                            case ACTION_TYPE_REINTROSPECT:
+                                action["emailTo"] = a23_emailTo.val();
+                                action["emailCC"] = a23_emailCC.val();
+                                action["emailBCC"] = a23_emailBCC.val();
+                                action["emailReplyTo"] = a23_emailReplyTo.val();
+                                action["emailSubject"] = a23_emailSubject.val();
+                                action["emailBody"] = a23_emailBody.val();
+                                action["skipIfNoResults"] = $('#a23_skipIfNoResults input:radio:checked').val();
+                                action["noCommit"] = $('#a2_noCommit input:radio:checked').val();
+
+                                break;
+                                
+                            case ACTION_TYPE_EMAIL:
+                                action.parameterValues = a03_parameterValues.val();
+                                action["emailTo"] = a23_emailTo.val();
+                                action["emailCC"] = a23_emailCC.val();
+                                action["emailBCC"] = a23_emailBCC.val();
+                                action["emailReplyTo"] = a23_emailReplyTo.val();
+                                action["emailSubject"] = a23_emailSubject.val();
+                                action["emailBody"] = a23_emailBody.val();
+                                action["skipIfNoResults"] = $('#a23_skipIfNoResults input:radio:checked').val();
+                                action["includeSummary"] = $('#a3_includeSummary input:radio:checked').val();
+                                break;
+                        }
+
+                        data["condition"] = condition;
+                        data["action"] = action;
+
+                    } else {
+                        var startTime_val = "";
+                        var schedulePeriod = null;
+                        var fromTimeInADay_val = -1;
+                        var endTimeInADay_val = -1;
+                        var recurringDay_val = 0;
+
+                        data["mode"] = mode.val();
+                        data["isCluster"] = $('#isCluster input:radio:checked').val();
+
+                        if (startTime_date.val() != null && startTime_date.val().length > 0 &&
+                            startTime_hour.val() != null && startTime_hour.val().length > 0 &&
+                            startTime_min.val() != null && startTime_min.val().length > 0 &&
+                            startTime_sec.val() != null && startTime_sec.val().length > 0
+                        ) {
+                            startTime_val = startTime_date.val() + "T" +
+                                            startTime_hour.val() + ":" +
+                                            startTime_min.val() + ":" +
+                                            startTime_sec.val() +
+                                            startTime_offs.val();
+                        }
+                        data["startTime"] = startTime_val;
+
+                        // only set the periodic info if schedule mode is, in fact, periodic.
+                        //
+                        if (mode.val() == 2) {
+                            if (schedulePeriod_period.val() != 0 || schedulePeriod_count.val() != "") {
+                                schedulePeriod = {
+                                    period: schedulePeriod_period.val(),
+                                    count: ((schedulePeriod_count.val() == null || isNaN (schedulePeriod_count.val())) ? -1 : schedulePeriod_count.val())
+                                }
+                            }
+                            data["schedulePeriod"] = schedulePeriod;
+                            
+                            if (fromTimeInADay_hour.zpadspinner("value") != null && fromTimeInADay_hour.length > 0 &&
+                                fromTimeInADay_min.zpadspinner("value") != null && fromTimeInADay_min.length > 0
+                            ) {
+                                fromTimeInADay_val = fromTimeInADay_hour.zpadspinner("value") * 60 + fromTimeInADay_min.zpadspinner("value") * 1;
+                            }
+                            data["fromTimeInADay"] = fromTimeInADay_val;
+                            
+                            if (endTimeInADay_hour.zpadspinner("value") != null && endTimeInADay_hour.length > 0 &&
+                                endTimeInADay_min.zpadspinner("value") != null && endTimeInADay_min.length > 0
+                            ) {
+                                endTimeInADay_val = endTimeInADay_hour.zpadspinner("value") * 60 + endTimeInADay_min.zpadspinner("value") * 1;
+                            }
+                            data["endTimeInADay"] = endTimeInADay_val;
+
+                            for (var i = 0; i <= 6; i++) {
+                                if ($("#recurringDay_" + i).prop("checked")) {
+                                    recurringDay_val += Math.pow (2, i);
+                                }
+                            }
+                            data["recurringDay"] = recurringDay_val;
+                        }
+                    }
+
+                    return JSON.stringify (data);
+                }
+
+            }); // $(document).ready()
+            
+        </script>
+<!-- InstanceEndEditable -->
+    </head>
+<!-- InstanceBeginEditable name="bodytag" -->
+    <body class="page">
+<!-- InstanceEndEditable -->
+        <div class="header">
+            <div class="logo" onClick="javascript:location='index.html'"><img src="images/cisco_logo.png"/></div>
+            <div class="app_title" onClick="javascript:location='index.html'">Promotion &amp; Deployment Tool</div>
+        </div>
+        <div class="nav_container">
+            <div class="nav_tab_container"><!-- divs are floated right so listed in reverse order -->
+                <div class="nav_tab_spacer"></div>
+                <div id="nav_tab_execute" class="nav_tab" onClick="javascript:location='execute.html'">
+                    <div class="nav_tab_left"></div>
+                    <div class="nav_tab_center">EXECUTE</div>
+                    <div class="nav_tab_right"></div>
+                </div>
+                <div id="nav_tab_modules" class="nav_tab" onClick="javascript:location='modules.html'">
+                    <div class="nav_tab_left"></div>
+                    <div class="nav_tab_center">MODULES</div>
+                    <div class="nav_tab_right"></div>
+                </div>
+                <div id="nav_tab_plans" class="nav_tab" onClick="javascript:location='dep_plans.html'">
+                    <div class="nav_tab_left"></div>
+                    <div class="nav_tab_center">PLANS</div>
+                    <div class="nav_tab_right"></div>
+                </div>
+                <div id="nav_tab_configuration" class="nav_tab" onClick="javascript:location='config_preferences.html'">
+                    <div class="nav_tab_left"></div>
+                    <div class="nav_tab_center">CONFIGURATION</div>
+                    <div class="nav_tab_right"></div>
+                </div>
+            </div>
+            <div class="nav_base"></div>
+            <div class="nav_submenu_container">
+                <div class="nav_submenu_items">
+<!-- InstanceBeginEditable name="nav_submenu" -->
+                    <div id="nav_submenu_archive"          class="nav_submenu_item">Archive</div>
+                    <div id="nav_submenu_data_source"      class="nav_submenu_item">Data&nbsp;Source</div>
+                    <div id="nav_submenu_group"            class="nav_submenu_item">Group</div>
+                    <div id="nav_submenu_privilege"        class="nav_submenu_item">Privilege</div>
+                    <div id="nav_submenu_rebind"           class="nav_submenu_item">Rebind</div>
+                    <div id="nav_submenu_regression"       class="nav_submenu_item">Regression</div>
+                    <div id="nav_submenu_resource"         class="nav_submenu_item">Resource</div>
+                    <div id="nav_submenu_resource_cache"   class="nav_submenu_item" style="clear: left;">Resource Cache</div>
+                    <div id="nav_submenu_server_attribute" class="nav_submenu_item">Server&nbsp;Attribute</div>
+                    <div id="nav_submenu_server_manager"   class="nav_submenu_item">Server&nbsp;Manager</div>
+                    <div id="nav_submenu_trigger"          class="nav_submenu_item">Trigger</div>
+                    <div id="nav_submenu_user"             class="nav_submenu_item">User</div>
+                    <div id="nav_submenu_vcs"              class="nav_submenu_item">VCS</div>
+<!-- InstanceEndEditable -->
+                </div>
+                <div class="nav_submenu_right"><img src="images/nav_submenu_right.png"/></div>
+            </div>
+        </div>
+        <div class="page_content">
+            <div class="page_title_container">
+                <div class="page_title">
+<!-- InstanceBeginEditable name="page_title" -->
+                    TRIGGER MODULE: <span id="module_path"></span>
+<!-- InstanceEndEditable -->
+                </div>
+                <div class="page_description">
+<!-- InstanceBeginEditable name="page_description" -->
+                    <div class="collapsable"><!-- used with the setCollapsable() function above -->
+                        <div class="collapsable-content">
+                            Each trigger module entry describes either a trigger resource or the schedule associated 
+                            with a timed trigger resource.
+                        </div>
+                    </div>
+<!-- InstanceEndEditable -->
+                </div>
+            </div>
+<!-- InstanceBeginEditable name="content" -->
+            <div class="table_container">
+                <table id="list"></table> <!-- table generated and populated by jqGrid in header -->
+                <div id="pager"></div> 
+            </div>
+            <div id="addEditDialog" title="Add Group" class="dialog">
+                <p class="dialogMsg"></p>
+                <form id="addEditForm">
+                    <fieldset>
+                    <input type="hidden" name="operation" id="operation" />
+                    <input type="hidden" name="origId" id="origId" />
+                    <table cellpadding="0" cellspacing="0">
+                        <tbody>
+                            <tr>
+                                <td><label for="id" class="dialog_label">Trigger / Schedule ID</label></td>
+                                <td><input type="text" name="id" id="id" class="text ui-widget-content ui-corner-all" /></td>
+                            </tr>
+                            <tr>
+                                <td><label for="type" class="tabs_form_label">Type</label></td>
+                                <td>
+                                    <div id="type">
+                                        <input type="radio" name="type" id="type_0" value="0" /><label for="type_0">Trigger</label>
+                                        <input type="radio" name="type" id="type_1" value="1" /><label for="type_1">Schedule</label>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr class="trigger_input">
+                                <td><label for="resourcePath" class="dialog_label">Resource Path</label></td>
+                                <td><input type="text" name="resourcePath" id="resourcePath" size="60" class="text ui-widget-content ui-corner-all" /></td>
+                            </tr>
+                            <tr class="trigger_input">
+                                <td><label for="isEnabled" class="tabs_form_label">Enabled?</label></td>
+                                <td>
+                                    <div id="isEnabled">
+                                        <input type="radio" name="isEnabled" id="isEnabled_true" value="true" /><label for="isEnabled_true">True</label>
+                                        <input type="radio" name="isEnabled" id="isEnabled_false" value="false" /><label for="isEnabled_false">False</label>
+                                    </div>
+                                </td>
+                            </tr>
+
+                            <!-- trigger inputs -->
+                            <tr class="trigger_input">
+                                <td><label for="maxEventsQueued" class="dialog_label">Max Events Queued</label></td>
+                                <td><input type="text" name="maxEventsQueued" id="maxEventsQueued" size="3" class="text ui-widget-content ui-corner-all" /></td>
+                            </tr>
+                            <tr class="trigger_input">
+                                <td><label for="annotation" class="dialog_label">Annotation</label></td>
+                                <td><textarea name="annotation" id="annotation" rows="4" cols="50" class="text ui-widget-content ui-corner-all" ></textarea></td>
+                            </tr>
+
+                            <!-- trigger conditions inputs -->
+                            <tr class="trigger_input">
+                                <td colspan="2"><hr></td>
+                            </tr>
+                            <tr class="trigger_input">
+                                <td colspan="2"><label for="condition" class="dialog_label">Condition</label></td>
+                            </tr>
+                            <tr class="trigger_input">
+                                <td><label for="condition_type" class="dialog_label">Condition Type</label></td>
+                                <td>
+                                    <div id="condition_type">
+                                        <input type="radio" name="condition_type" id="condition_type_0" value="0" /><label for="condition_type_0">System Event</label>
+                                        <input type="radio" name="condition_type" id="condition_type_1" value="1" /><label for="condition_type_1">Timer</label>
+                                        <input type="radio" name="condition_type" id="condition_type_2" value="2" /><label for="condition_type_2">JMS Event</label>
+                                        <input type="radio" name="condition_type" id="condition_type_3" value="3" /><label for="condition_type_3">User Defined</label>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr class="trigger_input c0">
+                                <td><label for="c0_eventName" class="dialog_label">Event Name</label></td>
+                                <td>
+                                    <select name="c0_eventName" id="c0_eventName">
+                                        <option value="">(Choose System Event Name ...)</option>
+                                        <option value="CacheRefreshFailure">CacheRefreshFailure</option>
+                                        <option value="CacheRefreshSuccess">CacheRefreshSuccess</option>
+                                        <option value="DataSourceDown">DataSourceDown</option>
+                                        <option value="DataSourceUp">DataSourceUp</option>
+                                        <option value="RequestFailure">RequestFailure</option>
+                                        <option value="RequestInactive">RequestInactive</option>
+                                        <option value="RequestRunForTooLong">RequestRunForTooLong</option>
+                                        <option value="ResourceLock">ResourceLock</option>
+                                        <option value="ResourceUnlock">ResourceUnlock</option>
+                                        <option value="RequestsSpike">RequestsSpike</option>
+                                        <option value="ErrorsSpike">ErrorsSpike</option>
+                                        <option value="FailedLoginSpike">FailedLoginSpike</option>
+                                        <option value="StatisticsGatheringFailure">StatisticsGatheringFailure</option>
+                                        <option value="ServerStart">ServerStart</option>
+                                        <option value="ServerStop">ServerStop</option>
+                                        <option value="TransactionFailure">TransactionFailure</option>
+                                    </select>
+                                </td>
+                            </tr>
+                            <tr class="trigger_input c1">
+                                <td><label for="c1_scheduleId" class="dialog_label">Schedule ID</label></td>
+                                <td><select name="c1_scheduleId" id="c1_scheduleId"></select></td><!-- to be filled in automatically -->
+                            </tr>
+                            <tr class="trigger_input c2">
+                                <td><label for="c2_connector" class="dialog_label">Connector</label></td>
+                                <td><input type="text" name="c2_connector" id="c2_connector" class="text ui-widget-content ui-corner-all" /></td>
+                            </tr>
+                            <tr class="trigger_input c2">
+                                <td><label for="c2_destination" class="dialog_label">Destination</label></td>
+                                <td><input type="text" name="c2_destination" id="c2_destination" class="text ui-widget-content ui-corner-all" /></td>
+                            </tr>
+                            <tr class="trigger_input c2">
+                                <td><label for="c2_selector" class="dialog_label">Selector</label></td>
+                                <td><input type="text" name="c2_selector" id="c2_selector" class="text ui-widget-content ui-corner-all" /></td>
+                            </tr>
+                            <tr class="trigger_input c3">
+                                <td><label for="c3_eventName" class="dialog_label">Event Name</label></td>
+                                <td><input type="text" name="c3_eventName" id="c3_eventName" class="text ui-widget-content ui-corner-all" /></td>
+                            </tr>
+
+                            <!-- trigger actions inputs -->
+                            <tr class="trigger_input">
+                                <td colspan="2"><hr></td>
+                            </tr>
+                            <tr class="trigger_input">
+                                <td colspan="2"><label for="action" class="dialog_label">Action</label></td>
+                            </tr>
+                            <tr class="trigger_input">
+                                <td><label for="action_type" class="tabs_form_label">Action Type</label></td>
+                                <td>
+                                    <div id="action_type">
+                                        <input type="radio" name="action_type" id="action_type_0" value="0" /><label for="action_type_0">Execute Proc</label>
+                                        <input type="radio" name="action_type" id="action_type_1" value="1" /><label for="action_type_1">Gather Stats</label>
+                                        <input type="radio" name="action_type" id="action_type_2" value="2" /><label for="action_type_2">Reintrospect</label>
+                                        <input type="radio" name="action_type" id="action_type_3" value="3" /><label for="action_type_3">Send EMail</label>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr class="trigger_input">
+                                <td>
+                                    <label for="a03_procedurePath" class="dialog_label a0 a3">Procedure Path</label>
+                                    <label for="a12_procedurePath" class="dialog_label a1 a2">Data Source Path</label>
+                                </td>
+                                <td><input type="text" name="procedurePath" id="procedurePath" size="60" class="text ui-widget-content ui-corner-all" /></td>
+                            </tr>
+                            <tr class="trigger_input a0 a3">
+                                <td><label for="a03_parameterValues" class="dialog_label">Parameter Values</label></td>
+                                <td><input type="text" name="a03_parameterValues" id="a03_parameterValues" size="60" class="text ui-widget-content ui-corner-all" /></td>
+                            </tr>
+                            <tr class="trigger_input a2 a3">
+                                <td><label for="a23_emailTo" class="dialog_label">EMail To</label></td>
+                                <td><input type="text" name="a23_emailTo" id="a23_emailTo" size="60" class="text ui-widget-content ui-corner-all" /></td>
+                            </tr>
+                            <tr class="trigger_input a2 a3">
+                                <td><label for="a23_emailCC" class="dialog_label">EMail CC</label></td>
+                                <td><input type="text" name="a23_emailCC" id="a23_emailCC" size="60" class="text ui-widget-content ui-corner-all" /></td>
+                            </tr>
+                            <tr class="trigger_input a2 a3">
+                                <td><label for="a23_emailBCC" class="dialog_label">EMail BCC</label></td>
+                                <td><input type="text" name="a23_emailBCC" id="a23_emailBCC" size="60" class="text ui-widget-content ui-corner-all" /></td>
+                            </tr>
+                            <tr class="trigger_input a2 a3">
+                                <td><label for="a23_emailReplyTo" class="dialog_label">EMail Reply To</label></td>
+                                <td><input type="text" name="a23_emailReplyTo" id="a23_emailReplyTo" size="60" class="text ui-widget-content ui-corner-all" /></td>
+                            </tr>
+                            <tr class="trigger_input a2 a3">
+                                <td><label for="a23_emailSubject" class="dialog_label">EMail Subject</label></td>
+                                <td><input type="text" name="a23_emailSubject" id="a23_emailSubject" size="60" class="text ui-widget-content ui-corner-all" /></td>
+                            </tr>
+                            <tr class="trigger_input a2 a3">
+                                <td><label for="a23_emailBody" class="dialog_label">EMail Body</label></td>
+                                <td><input type="text" name="a23_emailBody" id="a23_emailBody" size="60" class="text ui-widget-content ui-corner-all" /></td>
+                            </tr>
+                            <tr class="trigger_input a2 a3">
+                                <td><label for="a23_skipIfNoResults" class="tabs_form_label">Skip If No Results?</label></td>
+                                <td>
+                                    <div id="a23_skipIfNoResults">
+                                        <input type="radio" name="a23_skipIfNoResults" id="a23_skipIfNoResults_true" value="true" /><label for="a23_skipIfNoResults_true">True</label>
+                                        <input type="radio" name="a23_skipIfNoResults" id="a23_skipIfNoResults_false" value="false" /><label for="a23_skipIfNoResults_false">False</label>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr class="trigger_input a2">
+                                <td><label for="a2_noCommit" class="tabs_form_label">Disable Commit?</label></td>
+                                <td>
+                                    <div id="a2_noCommit">
+                                        <input type="radio" name="a2_noCommit" id="a2_noCommit_true" value="true" /><label for="a2_noCommit_true">True</label>
+                                        <input type="radio" name="a2_noCommit" id="a2_noCommit_false" value="false" /><label for="a2_noCommit_false">False</label>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr class="trigger_input a3">
+                                <td><label for="a3_includeSummary" class="tabs_form_label">Include Summary?</label></td>
+                                <td>
+                                    <div id="a3_includeSummary">
+                                        <input type="radio" name="a3_includeSummary" id="a3_includeSummary_true" value="true" /><label for="a3_includeSummary_true">True</label>
+                                        <input type="radio" name="a3_includeSummary" id="a3_includeSummary_false" value="false" /><label for="a3_includeSummary_false">False</label>
+                                    </div>
+                                </td>
+                            </tr>
+
+                            <!-- schedule inputs -->
+                            <tr class="schedule_input">
+                                <td><label for="mode" class="dialog_label">Schedule Mode</label></td>
+                                <td>
+                                    <select name="mode" id="mode">
+                                        <option value="0">(Select Schedule Mode ...)</option>
+                                        <option value="1">None</option>
+                                        <option value="2">Periodic</option>
+                                    </select>
+                                </td>
+                            </tr>
+                            <tr class="schedule_input">
+                                <td><label for="startTime" class="dialog_label">Start Time</label></td>
+                                <td>
+                                    <input type="text" name="startTime_date" id="startTime_date" size="10" class="text ui-widget-content ui-corner-all" />&nbsp;
+                                    <input type="text" name="startTime_hour" id="startTime_hour" size="2" class="text ui-widget-content ui-corner-all" />:
+                                    <input type="text" name="startTime_min" id="startTime_min" size="2" class="text ui-widget-content ui-corner-all" />:
+                                    <input type="text" name="startTime_sec" id="startTime_sec" size="2" class="text ui-widget-content ui-corner-all" />
+                                    <select name="startTime_offs" id="startTime_offs"></select>
+                                </td>
+                            </tr>
+                            <tr class="schedule_input">
+                                <td><label for="schedulePeriod" class="dialog_label">Schedule Period</label></td>
+                                <td>
+                                    <input type="text" name="schedulePeriod_count" id="schedulePeriod_count" size="6" class="text ui-widget-content ui-corner-all" />
+                                    <select name="schedulePeriod_period" id="schedulePeriod_period">
+                                        <option value="0">(Select Schedule Period ...)</option>
+                                        <!-- option value="1">Seconds</option **seconds not supported here** -->
+                                        <option value="2">Minutes</option>
+                                        <option value="3">Hours</option>
+                                        <option value="4">Days</option>
+                                        <option value="5">Weeks</option>
+                                        <option value="6">Months</option>
+                                        <option value="7">Years</option>
+                                    </select>
+                                </td>
+                            </tr>
+                            <tr class="schedule_input">
+                                <td><label for="fromTimeInADay" class="dialog_label">Restriction Window Start</label></td>
+                                <td>
+                                    <input type="text" name="fromTimeInADay_hour" id="fromTimeInADay_hour" size="2" class="text ui-widget-content ui-corner-all" />:
+                                    <input type="text" name="fromTimeInADay_min" id="fromTimeInADay_min" size="2" class="text ui-widget-content ui-corner-all" />
+                                </td>
+                            </tr>
+                            <tr class="schedule_input">
+                                <td><label for="endTimeInADay" class="dialog_label">Restriction Window End</label></td>
+                                <td>
+                                    <input type="text" name="endTimeInADay_hour" id="endTimeInADay_hour" size="2" class="text ui-widget-content ui-corner-all" />:
+                                    <input type="text" name="endTimeInADay_min" id="endTimeInADay_min" size="2" class="text ui-widget-content ui-corner-all" />
+                                </td>
+                            </tr>
+                            <tr class="schedule_input">
+                                <td><label for="recurringDay" class="dialog_label">Recurring Day(s)</label></td>
+                                <td>
+                                    <table cellpadding="0" cellspacing="0">
+                                        <tbody>
+                                            <tr>
+                                                <td><label for="recurringDay" class="dialog_label">Sun</label></td>
+                                                <td><label for="recurringDay" class="dialog_label">Mon</label></td>
+                                                <td><label for="recurringDay" class="dialog_label">Tue</label></td>
+                                                <td><label for="recurringDay" class="dialog_label">Wed</label></td>
+                                                <td><label for="recurringDay" class="dialog_label">Thu</label></td>
+                                                <td><label for="recurringDay" class="dialog_label">Fri</label></td>
+                                                <td><label for="recurringDay" class="dialog_label">Sat</label></td>
+                                            </tr>
+                                            <tr>
+                                                <td><input type="checkbox" name="recurringDay_0" id="recurringDay_0" class="dialog_cb"/></td>
+                                                <td><input type="checkbox" name="recurringDay_1" id="recurringDay_1" class="dialog_cb"/></td>
+                                                <td><input type="checkbox" name="recurringDay_2" id="recurringDay_2" class="dialog_cb"/></td>
+                                                <td><input type="checkbox" name="recurringDay_3" id="recurringDay_3" class="dialog_cb"/></td>
+                                                <td><input type="checkbox" name="recurringDay_4" id="recurringDay_4" class="dialog_cb"/></td>
+                                                <td><input type="checkbox" name="recurringDay_5" id="recurringDay_5" class="dialog_cb"/></td>
+                                                <td><input type="checkbox" name="recurringDay_6" id="recurringDay_6" class="dialog_cb"/></td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </td>
+                            </tr>
+                            <tr class="schedule_input">
+                                <td><label for="isCluster" class="tabs_form_label">Run Once Per Cluster?</label></td>
+                                <td>
+                                    <div id="isCluster">
+                                        <input type="radio" name="isCluster" id="isCluster_true" value="true" /><label for="isCluster_true">True</label>
+                                        <input type="radio" name="isCluster" id="isCluster_false" value="false" /><label for="isCluster_false">False</label>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    </fieldset>
+                </form>
+            </div>
+            <div id="generateDialog" title="Auto-Generate Triggers" class="dialog">
+                <form id="generateForm">
+                    <fieldset>
+                    <input type="hidden" name="operation" id="operation" />
+                    <input type="hidden" name="origId" id="origId" />
+                    <table cellpadding="0" cellspacing="0">
+                        <tbody>
+                            <tr>
+                                <td><label for="profile_list" class="dialog_label">Configuration Profile</label></td>
+                                <td><select id="profile_list">&nbsp;&nbsp;</select><a href="/pdtoolgui/config_dep_conf_files.html"><img src="images/edit.gif" border="0" alt="edit_profiles"/></a></td>
+                            </tr>
+                            <tr>
+                                <td><label for="server_list" class="dialog_label">Server ID</label></td>
+                                <td><select id="server_list">&nbsp;&nbsp;</select><a href="/pdtoolgui/config_servers.html"><img src="images/edit.gif" border="0" alt="edit_servers"/></a></td>
+                            </tr>
+                            <tr>
+                                <td><label for="startPath" class="dialog_label">Starting Folder</label></td>
+                                <td><input type="text" name="startPath" id="startPath" class="text ui-widget-content ui-corner-all" /></td>
+                                <td></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    </fieldset>
+                </form>
+                <p id="genDialogMsg"></p>
+            </div>
+            <div id="alertDialog" title="Alert" class="dialog">
+                <p id="alertDialogMessage"></p>
+            </div>
+            <div id="confirmDialog" title="Confirm" class="dialog">
+                <p id="confirmDialogMessage"></p>
+            </div>
+<!-- InstanceEndEditable -->
+        </div>
+    </body>
+<!-- InstanceEnd --></html>

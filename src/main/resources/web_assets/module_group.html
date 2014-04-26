@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html><!-- InstanceBegin template="/Templates/pdtoolgui.dwt" codeOutsideHTMLIsLocked="false" -->
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<!-- InstanceBeginEditable name="doctitle" -->
+        <title>PDTool: Modules - Group</title>
+<!-- InstanceEndEditable -->
+        <link rel="stylesheet" type="text/css" href="css/styles.css">
+        <link rel="stylesheet" type="text/css" href="css/smoothness/jquery-ui-1.10.2.custom.css" />
+        <link rel="stylesheet" type="text/css" href="css/ui.jqgrid.css" />
+        <script type="text/javascript" src="js/jquery-1.9.1.js"></script>
+        <script type="text/javascript" src="js/jquery-ui-1.10.2.custom.js"></script>
+        <script type="text/javascript" src="js/i18n/grid.locale-en.js"></script>
+        <script type="text/javascript" src="js/jquery.jqGrid.src.js"></script>
+        <script type="text/javascript" src="js/jquery-queryParser.min.js"></script>
+        <script type="text/javascript" src="js/pdtoolgui.js"></script>
+        <script type="text/javascript" src="js/pdtoolgui_docs_en.js"></script>
+<!-- InstanceBeginEditable name="head" -->
+        <script language="javascript">
+        
+            // set an event handler to fire when the page's DOM is complete (not necessarily when all the images or CSS finish loading.)
+            // this is similar to the <body> tag's "onload" attribute. however, "onload" waits until all the other resources (CSS,
+            // images, etc.) are done loading, too. this way the construction of the table can start a bit sooner.
+            //
+            $(document).ready (function() { 
+
+                // check access status and forward to incex.html if access is denied.
+                //
+                $.getJSON (
+                    "/security?rnd=" + myRand(), // base URL
+                    null,                       // argument
+                    function(data) {            // callback function to parse data
+                        if (data.status == "error") {
+                            location = "/pdtoolgui/index.html?denied=true&rnd=" + myRand();
+                        }
+                    }
+                );
+
+                // update the navigation tabs by highlighting the correct tab
+                //
+                setActiveNavTab('nav_tab_modules'); 
+                
+                createAlertDialog();
+                createConfirmDialog();
+
+                // parse this page's URL query parameters
+                //
+                var queryParams = $.parseQuery(location.search);
+                
+                // set the module path at the top of the page so the user knows what file he/she is working on.
+                // URL decode the string and HTML-escape any special characters.
+                //
+                $("#module_path").html (decodeURIComponent(queryParams.path.replace(/\+/g, " ")).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\s/g, "&nbsp;"));
+                
+                // set the active submenu item and set click event handlers on all submenu items
+                //
+                $("#nav_submenu_archive")         .click(function() {location='modules_archive.html'});
+                $("#nav_submenu_data_source")     .click(function() {location='modules_data_source.html'});
+                $("#nav_submenu_group")           .click(function() {location='modules_group.html'}).addClass("nav_submenu_item_active");
+                $("#nav_submenu_privilege")       .click(function() {location='modules_privilege.html'});
+                $("#nav_submenu_rebind")          .click(function() {location='modules_rebind.html'});
+                $("#nav_submenu_regression")      .click(function() {location='modules_regression.html'});
+                $("#nav_submenu_resource")        .click(function() {location='modules_resource.html'});
+                $("#nav_submenu_resource_cache")  .click(function() {location='modules_resource_cache.html'});
+                $("#nav_submenu_server_attribute").click(function() {location='modules_server_attribute.html'});
+                $("#nav_submenu_server_manager")  .click(function() {location='modules_server_manager.html'});
+                $("#nav_submenu_trigger")         .click(function() {location='modules_trigger.html'});
+                $("#nav_submenu_user")            .click(function() {location='modules_user.html'});
+                $("#nav_submenu_vcs")             .click(function() {location='modules_vcs.html'});
+
+                // enable the more/less functions of the page description
+                //
+                //setCollapsable();
+
+                // enable tooltips over editor fields
+                //
+                setTooltips (TOOLTIPS["module_group"]);
+
+                // load the user's preferences.
+                //
+                var prefs;
+                $.getJSON (
+                    "/prefs?rnd=" + myRand(), // base URL
+                    null,                                         // argument
+                    function(data) {prefs = data;}                // callback function
+                );
+
+                // build the main table and populate with a REST/JSON call
+                //
+                list = $("#list")
+                    .jqGrid({
+                        url:'/group_module/' + encodeURIComponent (queryParams.path),
+                        datatype: 'json',
+                        mtype: 'GET',
+                        autoencode: true,
+                        colNames:['Group ID','Group Name',  'Domain Name', 'Privileges'],
+                        colModel :[ 
+                            {name:'id', index:'id', width:100, classes:"idGridCell"},
+                            {name:'groupName', index:'groupName', width:100},
+                            {name:'groupDomain', index:'groupDomain', width:100},
+                            {name:'privilege', index:'privilege', width:500}
+                        ],
+                        pager: '#pager',
+                        height: "auto",
+                        autowidth: true,
+                        rowNum:10,
+                        rowList:[10,20,50],
+                        recordtext: "Groups {0} - {1} of {2}",
+                        sortname: 'id',
+                        sortorder: 'asc',
+                        viewrecords: true,
+                        gridview: true,
+                        multiselect: true,
+
+                        // add a "before select row" event handler that blocks checking of the row's checkbox when the "id"
+                        // column is clicked, but opens the editor for the id instead. depends on the "idGridCell" class being
+                        // added to the column definition of the "id" column.
+                        //
+                        beforeSelectRow: function (rowid, e) {
+                            if ($(e.target).hasClass("idGridCell")) {
+                                
+                                $.getJSON (
+                                    "/group/" + encodeURIComponent (queryParams.path) + "?id=" + encodeURIComponent (rowid) + "&rnd=" + myRand(), // base URL
+                                    null,                                    // argument
+                                    setDialogData                            // callback function to parse data
+                                );
+        
+                                operation.val("edit");
+                                $("#tabs").tabs({ active: 0 });
+                                $("#addEditDialog").dialog ({title: "Edit Group"});
+                                $("#addEditDialog").dialog ("open");
+                                return false;
+                            } else {
+                                return true;
+                            }
+                        }
+                    }) // .jqGrid()
+                    
+                    .navGrid( // normally sets up buttons at bottom of grid, but we get rid of them so we can reorder the buttons below
+                        '#pager', 
+                        {
+                            edit: false,
+                            add: false,
+                            del: false,
+                            search: true,
+                            searchtitle: "Search for Group Elements"
+                        },  // nav
+                        {}, // edit
+                        {}, // add
+                        {}, // del
+                        {
+                            closeAfterSearch: true,
+                            closeAfterReset: true,
+                            closeOnEscape: true,
+                            resize: false,
+                            searchOnEnter: true
+                        }, // search
+                        {
+                            caption: "my view caption"
+                        }   // view
+                    )  // .navGrid()
+                    
+                    // set up custom buttons in the order we want. load them in reverse order so they can be placed in front of the search and refresh buttons.
+                    //
+                    .navButtonAdd(
+                        '#pager',
+                        {
+                            caption: "",
+                            buttonicon: "ui-icon-trash",
+                            onClickButton: function (jqEvent) { 
+                                var selList = list.getGridParam('selarrrow'); // list of selected rows
+
+                                if (selList.length == 0) {
+                                    myAlert ("Please select at least one group element to delete.");
+                                    return false;
+                                }
+
+                                var args = "";
+                                var confirmList = "";
+                                for (var i = 0; i < selList.length; i++) {
+                                    if (i > 0) args += ",";
+                                    args += selList[i];
+    
+                                    if (i > 0) confirmList += "<br/>";
+                                    confirmList += decodeURIComponent (selList[i].replace (/\+/, " "));
+                                }
+                                
+                                myConfirm (
+                                    "Do you want to delete the following group element(s)?<br/><br/>" + confirmList, 
+                                    function() {
+                                        $.ajax({  
+                                            type: "DELETE",
+                                            contentType: 'application/json',
+                                            url: "/group/" + encodeURIComponent (queryParams.path) + "?ids=" + encodeURIComponent (args) + "&rnd=" + myRand(), // base URL
+                                            dataType: "json",
+                                            success: function (data) {
+                                                processAjaxResult (
+                                                    data, 
+                                                    {
+                                                        useDialog:false, 
+                                                        reloadGrid:true
+                                                    }
+                                                );
+                                            },
+                                            // this should only happen when things get seriously wrong on the server
+                                            //
+                                            error: function(jqXHR, textStatus, errorThrown) {
+                                                myAlert ("textStatus = " + textStatus + "<br/>errorThrown = " + errorThrown);
+                                            }
+                                        }); 
+                                    }
+                                );
+                            },
+                            title: "Delete Group Element",
+                            position: "first"
+                        }
+                    )  // .navGrid()
+                    
+                    .navButtonAdd(
+                        '#pager',
+                        {
+                            caption: "",
+                            buttonicon: "ui-icon-copy",
+                            onClickButton: function (jqEvent) { 
+                                var selList = list.getGridParam('selarrrow'); // list of selected rows
+
+                                if (selList.length == 0) {
+                                    myAlert ("Please select at least one group element to copy.");
+                                    return false;
+                                }
+
+                                var args = "";
+                                var confirmList = "";
+                                for (var i = 0; i < selList.length; i++) {
+                                    if (i > 0) args += ",";
+                                    args += selList[i];
+    
+                                    if (i > 0) confirmList += "<br/>";
+                                    confirmList += decodeURIComponent (selList[i]);
+                                }
+                                
+                                myConfirm (
+                                    "Do you want to copy the following group element(s)?<br/><br/>" + confirmList, 
+                                    function() {
+                                        $.ajax({  
+                                            type: "POST",
+                                            contentType: 'application/json',
+                                            url: "/group/" + encodeURIComponent (queryParams.path) + "?ids=" + encodeURIComponent (args) + "&rnd=" + myRand(), // base URL
+                                            dataType: "json",
+                                            data: null,
+                                            success: function (data) {
+                                                processAjaxResult (
+                                                    data, 
+                                                    {
+                                                        useDialog:false, 
+                                                        reloadGrid:true
+                                                    }
+                                                );
+                                            },
+                                            // this should only happen when things get seriously wrong on the server
+                                            //
+                                            error: function(jqXHR, textStatus, errorThrown) {
+                                                myAlert ("textStatus = " + textStatus + "<br/>errorThrown = " + errorThrown);
+                                            }
+                                        }); 
+                                    }
+                                );
+                            },
+                            title: "Copy Group Element",
+                            position: "first"
+                        }
+                    )  // .navGrid()
+                    
+                    .navButtonAdd(
+                        '#pager',
+                        {
+                            caption: "",
+                            buttonicon: "ui-icon-pencil",
+                            onClickButton: function() {
+                                var selList = list.getGridParam('selarrrow');
+
+                                if (selList.length > 1) {
+                                    myAlert ("Cannot edit more than one item at a time.");
+                                    return false;
+                                } else if (selList.length == 0) {
+                                    myAlert ("Please select a group element to edit.");
+                                    return false;
+                                }
+
+                                $.getJSON (
+                                    "/group/" + encodeURIComponent (queryParams.path) + "?id=" + encodeURIComponent (selList[0]) + "&rnd=" + myRand(), // base URL
+                                    null,                                         // argument
+                                    setDialogData                                 // callback function to parse data
+                                );
+
+                                operation.val("edit");
+                                $("#addEditDialog").dialog ({title: "Edit Group Element"});
+                                $("#addEditDialog").dialog ("open");
+                            },
+                            title: "Edit Group Element",
+                            position: "first"
+                        }
+                    )  // .navGrid()
+                    
+                    .navButtonAdd(
+                        '#pager',
+                        {
+                            caption: "",
+                            buttonicon: "ui-icon-plus",
+                            onClickButton: function() {
+                                operation.val("add");
+                                setDialogData({ // reset the form values to the defaults.
+                                    id: "",
+                                    origId: "",
+                                    groupName: "",
+                                    groupDomain: "",
+                                    privilege: ""
+                                });
+                                $("#addEditDialog").dialog ({title: "Add Group"});
+                                $("#addEditDialog").dialog ("open");
+                                id.focus();
+                            },
+                            title: "Add New Group Element",
+                            position: "first"
+                        }
+                    )  // .navGrid()
+                    
+                    .navButtonAdd(
+                        '#pager',
+                        {
+                            caption: "",
+                            buttonicon: "ui-icon-gear",
+                            onClickButton: function() {
+                            
+                                $("#profile_list").children().remove();
+                                
+                                setConfigProfileSelectData('#profile_list', prefs.defaultProfile);
+
+                                $("#server_list").children().remove();
+                                
+                                setServerSelectData ("#server_list", prefs.defaultServer);
+                                
+                                $("#generateDialog").dialog ("open");
+                            },
+                            title: "Auto-Generate Group Elements",
+                            position: "first"
+                        }
+                    ); // .navGrid()
+
+
+                $(window).bind('resize', function() {
+                    list.setGridWidth($(window).width() - 60); // 30 pixels of padding on either side of the jqGrid.
+                }).trigger('resize');
+
+                // set up the add/edit dialog
+                //
+                var operation = $("#operation"),
+                    origId = $("#origId"),
+                    id = $("#id"),
+                    groupName = $("#groupName"),
+                    groupDomain = $("#groupDomain"),
+                    profile_list = $("#profile_list"),
+                    server_list = $("#server_list"),
+                    domain = $("#domain"),
+                    allFields = $([]).add (operation).add (origId).add (id).add (groupName).add (groupDomain).add (profile_list).add (server_list).add (domain);
+
+                dialogMsg = $(".dialogMsg");
+
+                addEditDialog = $("#addEditDialog").dialog ({
+                    autoOpen: false,
+                    //height: 300,
+                    width: 500,
+                    modal: true,
+                    buttons: [ // declaring buttons this way lets us assign ID's to the buttons so they can be interacted with later.
+                        {
+                            id: "aeOkButton",
+                            text: "OK",
+                            click: function() {
+                                var actionType = (operation.val() == "add") ? "POST" : "PUT";
+                                var errMsg = "";
+                                
+                                allFields.removeClass ("ui-state-error");
+                                clearAEDialogMessage();
+                                $("#aeOkButton").button ("disable");
+                                
+                                var ajaxOpts = {  
+                                    type: actionType,
+                                    contentType: 'application/json',
+                                    url: "/group/" + encodeURIComponent (queryParams.path) + "?rnd=" + myRand(),
+                                    dataType: "json",
+                                    data: createJSON(),  
+                                    success: function (data) {
+                                        processAjaxResult (
+                                            data, 
+                                            {
+                                                useDialog:true, 
+                                                reloadGrid:true
+                                            }
+                                        );
+                                        $("#aeOkButton").button ("enable");
+                                    },
+                                    // this should only happen when things go seriously wrong on the server
+                                    //
+                                    error: function (jqXHR, textStatus, errorThrown) {
+                                        myAlert ("textStatus = " + textStatus + "<br>errorThrown = " + errorThrown);
+                                        $("#aeOkButton").button ("enable");
+                                    }
+                                }
+
+                                $.ajax(ajaxOpts);
+                            }
+                        }, {
+                            id: "aeCancelButton",
+                            text: "Cancel",
+                            click: function() {
+                                $(this).dialog ("close");
+                                $("#aeOkButton").button ("enable");
+                            }
+                        }
+                    ],
+                    // this is an event handler for when the dialog box closes (it can be closed in a number of ways.)
+                    // basically any error classes get cleared from the form elements and the message <div> is cleared.
+                    //
+                    close: function() {
+                        allFields.val ("").removeClass ("ui-state-error");
+                        clearAEDialogMessage();
+                        $("#aeOkButton").button ("enable");
+                    },
+                    // add a custom class to the OK button so that it can be addressed for disabling/enabling later
+                    //
+                    create: function () {
+                        $(this).closest(".ui-dialog")
+                            .find(".ui-button:first") // the first button
+                            .addClass("aeOkButton");
+                    }
+                }); // #addEditDialog
+                
+                // set up generate groups dialog
+                //
+                genDialogMsg = $("#genDialogMsg");
+                generateDialog = $("#generateDialog").dialog ({
+                    autoOpen: false,
+                    //height: 300,
+                    width: 500,
+                    modal: true,
+                    buttons: [ // declaring buttons this way lets us assign ID's to the buttons so they can be interacted with later.
+                        {
+                            id: "genOkButton",
+                            text: "OK",
+                            click: function() {
+                                var errMsg = "";
+                                var profilePath = $("#profile_list").val();
+                                var serverId = $("#server_list").val();
+                                var domain = $("#domain").val();
+                                
+                                if (profilePath == null || profilePath.length == 0) {
+                                    errMsg += "Please choose a configuration profile.<br/>";
+                                    $("#profile_list").addClass ("ui-state-error");
+                                } 
+                                if (serverId == null || serverId.length == 0) {
+                                    errMsg += "Please choose a server.<br/>";
+                                    $("#server_list").addClass ("ui-state-error");
+                                } 
+                                if (domain == null || domain.length == 0) {
+                                    errMsg += "Please enter a domain.<br/>";
+                                    $("#domain").addClass ("ui-state-error");
+                                }
+                                if (errMsg.length > 0) {
+                                    myAlert (errMsg);
+                                    return false;
+                                }
+                                
+                                allFields.removeClass ("ui-state-error");
+                                updateGenDialogMessage('Gathering groups ... <img src="images/spinner.gif" class="textAlignImg"/>');
+                                
+                                $("#genOkButton").button ("disable");
+                                
+                                var ajaxOpts = {  
+                                    type: "POST",
+                                    contentType: 'application/json',
+                                    url: "/group_module/" + encodeURIComponent (queryParams.path) + "?profilePath=" + encodeURIComponent (profilePath) + "&serverId=" + encodeURIComponent (serverId) + "&domain=" + encodeURIComponent (domain) + "&rnd=" + myRand(),
+                                    dataType: "json",
+                                    data: createJSON(),  
+                                    success: function (data) {
+                                        processGenerateResult(
+                                            data, 
+                                            {
+                                                useDialog:true, 
+                                                reloadGrid:true
+                                            }
+                                        );
+                                        $("#genOkButton").button ("enable");
+                                    },
+                                    // this should only happen when things go seriously wrong on the server
+                                    //
+                                    error: function (jqXHR, textStatus, errorThrown) {
+                                        myAlert ("textStatus = " + textStatus + "<br>errorThrown = " + errorThrown);
+                                        clearGenDialogMessage();
+                                        $("#genOkButton").button ("enable");
+                                    }
+                                }
+
+                                $.ajax(ajaxOpts);
+                            }
+                        }, {
+                            id: "genCancelButton",
+                            text: "Cancel",
+                            click: function() {
+                                $(this).dialog ("close");
+                                $("#genOkButton").button ("enable");
+                          
+                            }
+                        }
+                    ],
+                    // this is an event handler for when the dialog box closes (it can be closed in a number of ways.)
+                    // basically the OK button is re-enabled and the message <div> is cleared.
+                    //
+                    close: function() { 
+                        allFields.removeClass ("ui-state-error");
+                        clearGenDialogMessage();
+                        $("#genOkButton").button ("enable");
+                    },
+                    // add a custom class to the OK button so that it can be addressed for disabling/enabling later
+                    //
+                    create: function () {
+                        $(this).closest(".ui-dialog")
+                            .find(".ui-button:first") // the first button
+                            .addClass("genOkButton");
+                    }
+                }); // #generateDialog
+                
+                // sets the form values of the dialog box from a data object (typically returned from an AJAX call.)
+                //
+                function setDialogData (data) {
+                    id.val (data.id);
+                    origId.val (data.id);
+                    groupName.val (data.groupName);
+                    groupDomain.val (data.groupDomain);
+                    
+                    // the group module refers to these as privileges, when in fact
+                    // they are global rights
+                    //
+                    for (var r = 0; r < RIGHTS.length; r++) {
+                        $('#' + RIGHTS[r].htmlid).prop("checked", false);
+                    }
+                    
+                    var rights = data.privilege.split(/\s+/);
+                    for (var i = 0; i < rights.length; i++) {
+                        for (var r = 0; r < RIGHTS.length; r++) {
+                            if (rights[i] == RIGHTS[r].cisflag) $("#" + RIGHTS[r].htmlid).prop("checked", true);
+                        }
+                    }
+                } // setDialogData()
+                
+                // creates a JSON artifact for sending with AJAX queries. Jackson on the server side is very particular
+                // about the format of JSON objects: double quoted attributes AND values.
+                //
+                function createJSON() {
+
+                    var numRights = 0;
+                    var rights = "";
+                    for (var r = 0; r < RIGHTS.length; r++) {
+                        if ($("#" + RIGHTS[r].htmlid).prop("checked")) {
+                            numRights++;
+                            
+                            if (numRights > 1) rights += " ";
+                            
+                            rights += RIGHTS[r].cisflag;
+                        }
+                    }
+                    
+                    var data = {
+                        "operation": operation.val(),
+                        "origId": origId.val(),
+                        "id": id.val(),
+                        "groupName": groupName.val(),
+                        "groupDomain": groupDomain.val(),
+                        "privilege": rights
+                    };
+                    
+                    return JSON.stringify (data);
+                }
+                
+            }); // $(document).ready()
+            
+        </script>
+<!-- InstanceEndEditable -->
+    </head>
+<!-- InstanceBeginEditable name="bodytag" -->
+    <body class="page">
+<!-- InstanceEndEditable -->
+        <div class="header">
+            <div class="logo" onClick="javascript:location='index.html'"><img src="images/cisco_logo.png"/></div>
+            <div class="app_title" onClick="javascript:location='index.html'">Promotion &amp; Deployment Tool</div>
+        </div>
+        <div class="nav_container">
+            <div class="nav_tab_container"><!-- divs are floated right so listed in reverse order -->
+                <div class="nav_tab_spacer"></div>
+                <div id="nav_tab_execute" class="nav_tab" onClick="javascript:location='execute.html'">
+                    <div class="nav_tab_left"></div>
+                    <div class="nav_tab_center">EXECUTE</div>
+                    <div class="nav_tab_right"></div>
+                </div>
+                <div id="nav_tab_modules" class="nav_tab" onClick="javascript:location='modules.html'">
+                    <div class="nav_tab_left"></div>
+                    <div class="nav_tab_center">MODULES</div>
+                    <div class="nav_tab_right"></div>
+                </div>
+                <div id="nav_tab_plans" class="nav_tab" onClick="javascript:location='dep_plans.html'">
+                    <div class="nav_tab_left"></div>
+                    <div class="nav_tab_center">PLANS</div>
+                    <div class="nav_tab_right"></div>
+                </div>
+                <div id="nav_tab_configuration" class="nav_tab" onClick="javascript:location='config_preferences.html'">
+                    <div class="nav_tab_left"></div>
+                    <div class="nav_tab_center">CONFIGURATION</div>
+                    <div class="nav_tab_right"></div>
+                </div>
+            </div>
+            <div class="nav_base"></div>
+            <div class="nav_submenu_container">
+                <div class="nav_submenu_items">
+<!-- InstanceBeginEditable name="nav_submenu" -->
+                    <div id="nav_submenu_archive"          class="nav_submenu_item">Archive</div>
+                    <div id="nav_submenu_data_source"      class="nav_submenu_item">Data&nbsp;Source</div>
+                    <div id="nav_submenu_group"            class="nav_submenu_item">Group</div>
+                    <div id="nav_submenu_privilege"        class="nav_submenu_item">Privilege</div>
+                    <div id="nav_submenu_rebind"           class="nav_submenu_item">Rebind</div>
+                    <div id="nav_submenu_regression"       class="nav_submenu_item">Regression</div>
+                    <div id="nav_submenu_resource"         class="nav_submenu_item">Resource</div>
+                    <div id="nav_submenu_resource_cache"   class="nav_submenu_item" style="clear: left;">Resource Cache</div>
+                    <div id="nav_submenu_server_attribute" class="nav_submenu_item">Server&nbsp;Attribute</div>
+                    <div id="nav_submenu_server_manager"   class="nav_submenu_item">Server&nbsp;Manager</div>
+                    <div id="nav_submenu_trigger"          class="nav_submenu_item">Trigger</div>
+                    <div id="nav_submenu_user"             class="nav_submenu_item">User</div>
+                    <div id="nav_submenu_vcs"              class="nav_submenu_item">VCS</div>
+<!-- InstanceEndEditable -->
+                </div>
+                <div class="nav_submenu_right"><img src="images/nav_submenu_right.png"/></div>
+            </div>
+        </div>
+        <div class="page_content">
+            <div class="page_title_container">
+                <div class="page_title">
+<!-- InstanceBeginEditable name="page_title" -->
+                    GROUP MODULE: <span id="module_path"></span>
+<!-- InstanceEndEditable -->
+                </div>
+                <div class="page_description">
+<!-- InstanceBeginEditable name="page_description" -->
+                    <div class="collapsable"><!-- used with the setCollapsable() function above -->
+                        <div class="collapsable-content">
+                            Group Module entries describe a group and its global rights settings. These are used
+                            by the deployment plan to create, update, or remove groups.
+                        </div>
+                    </div>
+<!-- InstanceEndEditable -->
+                </div>
+            </div>
+<!-- InstanceBeginEditable name="content" -->
+            <div class="table_container">
+                <table id="list"></table> <!-- table generated and populated by jqGrid in header -->
+                <div id="pager"></div> 
+            </div>
+            <div id="addEditDialog" title="Add Group" class="dialog">
+                <p class="dialogMsg"></p>
+                <form id="addEditForm">
+                    <fieldset>
+                    <input type="hidden" name="operation" id="operation" />
+                    <input type="hidden" name="origId" id="origId" />
+                    <table cellpadding="0" cellspacing="0">
+                        <tbody>
+                            <tr>
+                                <td><label for="id" class="dialog_label">Group ID</label></td>
+                                <td><input type="text" name="id" id="id" class="text ui-widget-content ui-corner-all" /></td>
+                            </tr>
+                            <tr>
+                                <td><label for="groupName" class="dialog_label">Group Name</label></td>
+                                <td><input type="text" name="groupName" id="groupName" class="text ui-widget-content ui-corner-all" /></td>
+                            </tr>
+                            <tr>
+                                <td><label for="groupDomain" class="dialog_label">Domain Name</label></td>
+                                <td><input type="text" name="groupDomain" id="groupDomain" class="text ui-widget-content ui-corner-all" /></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <p/>
+                    <table cellpadding="0" cellspacing="5">
+                        <tbody>
+                            <tr>
+                                <td></td>
+                                <td>Granted</td>
+                                <td></td>
+                                <td>Read</td>
+                                <td>Modify</td>
+                            </tr>
+                            <tr>
+                                <td><label for="at" class="dialog_label">Access Tools</label></td>
+                                <td><input type="checkbox" name="at" id="at" class="dialog_cb"/></td>
+                                <td><label for="rac" class="dialog_label">All Config</label></td>
+                                <td><input type="checkbox" name="rac" id="rac" class="dialog_cb"/></td>
+                                <td><input type="checkbox" name="mac" id="mac" class="dialog_cb"/></td>
+                            </tr>
+                            <tr>
+                                <td><label for="ur" class="dialog_label">Unlock Resource</label></td>
+                                <td><input type="checkbox" name="ur" id="ur" class="dialog_cb"/></td>
+                                <td><label for="rar" class="dialog_label">All Resources</label></td>
+                                <td><input type="checkbox" name="rar" id="rar" class="dialog_cb"/></td>
+                                <td><input type="checkbox" name="mar" id="mar" class="dialog_cb"/></td>
+                            </tr>
+                            <tr>
+                                <td></td>
+                                <td></td>
+                                <td><label for="ras" class="dialog_label">All Status</label></td>
+                                <td><input type="checkbox" name="ras" id="ras" class="dialog_cb"/></td>
+                                <td><input type="checkbox" name="mas" id="mas" class="dialog_cb"/></td>
+                            </tr>
+                            <tr>
+                                <td></td>
+                                <td></td>
+                                <td><label for="rau" class="dialog_label">All Users</label></td>
+                                <td><input type="checkbox" name="rau" id="rau" class="dialog_cb"/></td>
+                                <td><input type="checkbox" name="mau" id="mau" class="dialog_cb"/></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    </fieldset>
+                </form>
+            </div>
+            <div id="generateDialog" title="Auto-Generate Groups" class="dialog">
+                <form id="generateForm">
+                    <fieldset>
+                    <input type="hidden" name="operation" id="operation" />
+                    <input type="hidden" name="origId" id="origId" />
+                    <table cellpadding="0" cellspacing="0">
+                        <tbody>
+                            <tr>
+                                <td><label for="profile_list" class="dialog_label">Configuration Profile</label></td>
+                                <td><select id="profile_list">&nbsp;&nbsp;</select><a href="/pdtoolgui/config_dep_conf_files.html"><img src="images/edit.gif" border="0" alt="edit_profiles"/></a></td>
+                            </tr>
+                            <tr>
+                                <td><label for="server_list" class="dialog_label">Server ID</label></td>
+                                <td><select id="server_list">&nbsp;&nbsp;</select><a href="/pdtoolgui/config_servers.html"><img src="images/edit.gif" border="0" alt="edit_servers"/></a></td>
+                            </tr>
+                            <tr>
+                                <td><label for="domain" class="dialog_label">Groups Domain</label></td>
+                                <td><input type="text" name="domain" id="domain" class="text ui-widget-content ui-corner-all" /></td>
+                                <td></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    </fieldset>
+                </form>
+                <p id="genDialogMsg"></p>
+            </div>
+            <div id="alertDialog" title="Alert" class="dialog">
+                <p id="alertDialogMessage"></p>
+            </div>
+            <div id="confirmDialog" title="Confirm" class="dialog">
+                <p id="confirmDialogMessage"></p>
+            </div>
+<!-- InstanceEndEditable -->
+        </div>
+    </body>
+<!-- InstanceEnd --></html>

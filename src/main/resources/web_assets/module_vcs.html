@@ -1,0 +1,1273 @@
+<!DOCTYPE html>
+<html><!-- InstanceBegin template="/Templates/pdtoolgui.dwt" codeOutsideHTMLIsLocked="false" -->
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<!-- InstanceBeginEditable name="doctitle" -->
+        <title>PDTool: Modules - VCS</title>
+<!-- InstanceEndEditable -->
+        <link rel="stylesheet" type="text/css" href="css/styles.css">
+        <link rel="stylesheet" type="text/css" href="css/smoothness/jquery-ui-1.10.2.custom.css" />
+        <link rel="stylesheet" type="text/css" href="css/ui.jqgrid.css" />
+        <script type="text/javascript" src="js/jquery-1.9.1.js"></script>
+        <script type="text/javascript" src="js/jquery-ui-1.10.2.custom.js"></script>
+        <script type="text/javascript" src="js/i18n/grid.locale-en.js"></script>
+        <script type="text/javascript" src="js/jquery.jqGrid.src.js"></script>
+        <script type="text/javascript" src="js/jquery-queryParser.min.js"></script>
+        <script type="text/javascript" src="js/pdtoolgui.js"></script>
+        <script type="text/javascript" src="js/pdtoolgui_docs_en.js"></script>
+<!-- InstanceBeginEditable name="head" -->
+        <script language="javascript">
+        
+            // set an event handler to fire when the page's DOM is complete (not necessarily when all the images or CSS finish loading.)
+            // this is similar to the <body> tag's "onload" attribute. however, "onload" waits until all the other resources (CSS,
+            // images, etc.) are done loading, too. this way the construction of the table can start a bit sooner.
+            //
+            $(document).ready (function() { 
+
+                // check access status and forward to incex.html if access is denied.
+                //
+                $.getJSON (
+                    "/security?rnd=" + myRand(), // base URL
+                    null,                       // argument
+                    function(data) {            // callback function to parse data
+                        if (data.status == "error") {
+                            location = "/pdtoolgui/index.html?denied=true&rnd=" + myRand();
+                        }
+                    }
+                );
+
+                // update the navigation tabs by highlighting the correct tab
+                //
+                setActiveNavTab('nav_tab_modules'); 
+                
+                createAlertDialog();
+                createConfirmDialog();
+
+                // parse this page's URL query parameters
+                //
+                var queryParams = $.parseQuery(location.search);
+                
+                // set the module path at the top of the page so the user knows what file he/she is working on.
+                // URL decode the string and HTML-escape any special characters.
+                //
+                $("#module_path").html (decodeURIComponent(queryParams.path.replace(/\+/g, " ")).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\s/g, "&nbsp;"));
+                
+                // set the active submenu item and set click event handlers on all submenu items
+                //
+                $("#nav_submenu_archive")         .click(function() {location='modules_archive.html'});
+                $("#nav_submenu_data_source")     .click(function() {location='modules_data_source.html'});
+                $("#nav_submenu_group")           .click(function() {location='modules_group.html'});
+                $("#nav_submenu_privilege")       .click(function() {location='modules_privilege.html'});
+                $("#nav_submenu_rebind")          .click(function() {location='modules_rebind.html'});
+                $("#nav_submenu_regression")      .click(function() {location='modules_regression.html'});
+                $("#nav_submenu_resource")        .click(function() {location='modules_resource.html'});
+                $("#nav_submenu_resource_cache")  .click(function() {location='modules_resource_cache.html'});
+                $("#nav_submenu_server_attribute").click(function() {location='modules_server_attribute.html'});
+                $("#nav_submenu_server_manager")  .click(function() {location='modules_server_manager.html'});
+                $("#nav_submenu_trigger")         .click(function() {location='modules_trigger.html'});
+                $("#nav_submenu_user")            .click(function() {location='modules_user.html'});
+                $("#nav_submenu_vcs")             .click(function() {location='modules_vcs.html'}).addClass("nav_submenu_item_active");
+
+                // enable the more/less functions of the page description
+                //
+                //setCollapsable();
+
+                // enable tooltips over editor fields
+                //
+                setTooltips (TOOLTIPS["module_vcs"]);
+
+                // load the user's preferences.
+                //
+                var prefs;
+                $.getJSON (
+                    "/prefs?rnd=" + myRand(), // base URL
+                    null,                                         // argument
+                    function(data) {prefs = data;}                // callback function
+                );
+
+                // build the main table and populate with a REST/JSON call
+                //
+                list = $("#list")
+                    .jqGrid({
+                        url:'/vcs_module/' + encodeURIComponent (queryParams.path),
+                        datatype: 'json',
+                        mtype: 'GET',
+                        autoencode: true,
+                        colNames:['VCS ID','Type', 'Connection / Resource Type', 'Repository URL / Resource Path'],
+                        colModel :[ 
+                            {name:'id', index:'id', width:100, classes:"idGridCell"},
+                            {name:'type', index:'type', width:100},
+                            {name:'conResType', index:'conResType', width:150},
+                            {name:'urlType', index:'urlType', width:500}
+                        ],
+                        pager: '#pager',
+                        height: "auto",
+                        autowidth: true,
+                        rowNum:10,
+                        rowList:[10,20,50],
+                        recordtext: "VCS Records {0} - {1} of {2}",
+                        sortname: 'id',
+                        sortorder: 'asc',
+                        viewrecords: true,
+                        gridview: true,
+                        multiselect: true,
+
+                        // add a "before select row" event handler that blocks checking of the row's checkbox when the "id"
+                        // column is clicked, but opens the editor for the id instead. depends on the "idGridCell" class being
+                        // added to the column definition of the "id" column.
+                        //
+                        beforeSelectRow: function (rowid, e) {
+                            if ($(e.target).hasClass("idGridCell")) {
+                                
+                                $.getJSON (
+                                    "/vcs/" + encodeURIComponent (queryParams.path) + "?id=" + encodeURIComponent (rowid) + "&rnd=" + myRand(), // base URL
+                                    null,                                    // argument
+                                    setDialogData                            // callback function to parse data
+                                );
+        
+                                operation.val("edit");
+                                $("#tabs").tabs({ active: 0 });
+                                $("#addEditDialog").dialog ({title: "Edit VCS Record"});
+                                $("#addEditDialog").dialog ("open");
+                                return false;
+                            } else {
+                                return true;
+                            }
+                        }
+                    }) // .jqGrid()
+                    
+                    .navGrid( // normally sets up buttons at bottom of grid, but we get rid of them so we can reorder the buttons below
+                        '#pager', 
+                        {
+                            edit: false,
+                            add: false,
+                            del: false,
+                            search: true,
+                            searchtitle: "Search for VCS Elements"
+                        },  // nav
+                        {}, // edit
+                        {}, // add
+                        {}, // del
+                        {
+                            closeAfterSearch: true,
+                            closeAfterReset: true,
+                            closeOnEscape: true,
+                            resize: false,
+                            searchOnEnter: true
+                        }, // search
+                        {
+                            caption: "my view caption"
+                        }   // view
+                    )  // .navGrid()
+                    
+                    // set up custom buttons in the order we want. load them in reverse order so they can be placed in front of the search and refresh buttons.
+                    //
+                    .navButtonAdd(
+                        '#pager',
+                        {
+                            caption: "",
+                            buttonicon: "ui-icon-trash",
+                            onClickButton: function (jqEvent) { 
+                                var selList = list.getGridParam('selarrrow'); // list of selected rows
+
+                                if (selList.length == 0) {
+                                    myAlert ("Please select at least one VCS element to delete.");
+                                    return false;
+                                }
+
+                                var args = "";
+                                var confirmList = "";
+                                for (var i = 0; i < selList.length; i++) {
+                                    if (i > 0) args += ",";
+                                    args += selList[i];
+    
+                                    if (i > 0) confirmList += "<br/>";
+                                    confirmList += decodeURIComponent (selList[i].replace (/\+/, " "));
+                                }
+                                
+                                myConfirm (
+                                    "Do you want to delete the following VCS element(s)?<br/><br/>" + confirmList, 
+                                    function() {
+                                        $.ajax({  
+                                            type: "DELETE",
+                                            contentType: 'application/json',
+                                            url: "/vcs/" + encodeURIComponent (queryParams.path) + "?ids=" + encodeURIComponent (args) + "&rnd=" + myRand(), // base URL
+                                            dataType: "json",
+                                            success: function (data) {
+                                                processAjaxResult (
+                                                    data, 
+                                                    {
+                                                        useDialog:false, 
+                                                        reloadGrid:true
+                                                    }
+                                                );
+                                            },
+                                            // this should only happen when things get seriously wrong on the server
+                                            //
+                                            error: function(jqXHR, textStatus, errorThrown) {
+                                                myAlert ("textStatus = " + textStatus + "<br/>errorThrown = " + errorThrown);
+                                            }
+                                        }); 
+                                    }
+                                );
+                            },
+                            title: "Delete VCS Element",
+                            position: "first"
+                        }
+                    )  // .navGrid()
+                    
+                    .navButtonAdd(
+                        '#pager',
+                        {
+                            caption: "",
+                            buttonicon: "ui-icon-copy",
+                            onClickButton: function (jqEvent) { 
+                                var selList = list.getGridParam('selarrrow'); // list of selected rows
+
+                                if (selList.length == 0) {
+                                    myAlert ("Please select at least one VCS element to copy.");
+                                    return false;
+                                }
+
+                                var args = "";
+                                var confirmList = "";
+                                for (var i = 0; i < selList.length; i++) {
+                                    if (i > 0) args += ",";
+                                    args += selList[i];
+    
+                                    if (i > 0) confirmList += "<br/>";
+                                    confirmList += decodeURIComponent (selList[i]);
+                                }
+                                
+                                myConfirm (
+                                    "Do you want to copy the following VCS element(s)?<br/><br/>" + confirmList, 
+                                    function() {
+                                        $.ajax({  
+                                            type: "POST",
+                                            contentType: 'application/json',
+                                            url: "/vcs/" + encodeURIComponent (queryParams.path) + "?ids=" + encodeURIComponent (args) + "&rnd=" + myRand(), // base URL
+                                            dataType: "json",
+                                            data: null,
+                                            success: function (data) {
+                                                processAjaxResult (
+                                                    data, 
+                                                    {
+                                                        useDialog:false, 
+                                                        reloadGrid:true
+                                                    }
+                                                );
+                                            },
+                                            // this should only happen when things get seriously wrong on the server
+                                            //
+                                            error: function(jqXHR, textStatus, errorThrown) {
+                                                myAlert ("textStatus = " + textStatus + "<br/>errorThrown = " + errorThrown);
+                                            }
+                                        }); 
+                                    }
+                                );
+                            },
+                            title: "Copy VCS Element",
+                            position: "first"
+                        }
+                    )  // .navGrid()
+                    
+                    .navButtonAdd(
+                        '#pager',
+                        {
+                            caption: "",
+                            buttonicon: "ui-icon-pencil",
+                            onClickButton: function() {
+                                var selList = list.getGridParam('selarrrow');
+
+                                if (selList.length > 1) {
+                                    myAlert ("Cannot edit more than one item at a time.");
+                                    return false;
+                                } else if (selList.length == 0) {
+                                    myAlert ("Please select a VCS element to edit.");
+                                    return false;
+                                }
+
+                                $.getJSON (
+                                    "/vcs/" + encodeURIComponent (queryParams.path) + "?id=" + encodeURIComponent (selList[0]) + "&rnd=" + myRand(), // base URL
+                                    null,                                         // argument
+                                    setDialogData                                 // callback function to parse data
+                                );
+
+                                operation.val("edit");
+                                $("#addEditDialog").dialog ({title: "Edit VCS Element"});
+                                $("#addEditDialog").dialog ("open");
+                            },
+                            title: "Edit VCS Element",
+                            position: "first"
+                        }
+                    )  // .navGrid()
+                    
+                    .navButtonAdd(
+                        '#pager',
+                        {
+                            caption: "",
+                            buttonicon: "ui-icon-plus",
+                            onClickButton: function() {
+                                operation.val("add");
+                                setDialogData({ // reset the form values to the defaults.
+                                    "id": "",
+                                    "origId": "",
+                                    "type": 0,
+                                    "vcsType": 1,
+                                    "vcsHome": "",
+                                    "vcsCommand": "",
+                                    "vcsExecFullPath": false,
+                                    "vcsOptions": "",
+                                    "vcsWorkspaceInitNewOptions": "",
+                                    "vcsWorkspaceInitLinkOptions": "",
+                                    "vcsWorkspaceInitGetOptions": "",
+                                    "vcsCheckinOptions": "",
+                                    "vcsCheckinOptionsRequired": "",
+                                    "vcsCheckoutOptions": "",
+                                    "vcsCheckoutOptionsRequired": "",
+                                    "vcsRepositoryUrl": "",
+                                    "vcsProjectRoot": "cis_objects",
+                                    "vcsWorkspaceHome": "$PROJECT_HOME",
+                                    "vcsWorkspaceName": "$VCS_TYPE$_wworkspace",
+                                    "vcsWorkspaceDir": "$VCS_WORKSPACE_HOME/$VCS_WORKSPACE_NAME",
+                                    "vcsTempDir": "$VCS_WORKSPACE_HOME/$VCS_TYPE$_temp",
+                                    "vcsUsername": "",
+                                    "vcsPassword": "",
+                                    "vcsIgnoreMessages": "",
+                                    "vcsMessagePrepend": "",
+                                    "svnEditor": "",
+                                    "svnEnv": "",
+                                    "p4Editor": "",
+                                    "p4Client": "",
+                                    "p4Port": "",
+                                    "p4User": "",
+                                    "p4Passwd": "",
+                                    "p4Env": "",
+                                    "p4DelLinkOptions": "",
+                                    "cvsRoot": "",
+                                    "cvsRsh": "",
+                                    "cvsEnv": "",
+                                    "tfsEditor": "",
+                                    "tfsEnv": "",
+                                    "tfsCheckinOptions": "",
+                                    "tfsServerUrl": "",
+                                    "envVars": null,
+                                    "resourcePath": "",
+                                    "resourceType": "",
+                                    "vcsLabel": "",
+                                    "revision": "",
+                                    "message": ""
+                                });
+                                $("#addEditDialog").dialog ({title: "Add VCS Element"});
+                                $("#addEditDialog").dialog ("open");
+                                id.focus();
+                            },
+                            title: "Add New VCS Element",
+                            position: "first"
+                        }
+                    )  // .navGrid()
+                    
+                    .navButtonAdd(
+                        '#pager',
+                        {
+                            caption: "",
+                            buttonicon: "ui-icon-gear",
+                            onClickButton: function() {
+                            
+                                $("#profile_list").children().remove();
+                                
+                                setConfigProfileSelectData('#profile_list', prefs.defaultProfile);
+
+                                $("#server_list").children().remove();
+                                
+                                setServerSelectData ("#server_list", prefs.defaultServer);
+                                
+                                $("#vcsConnectionId").children().remove();
+                                
+                                setVCSIdSelectData ("#vcsConnectionId", queryParams.path, null);
+                                
+                                $("#generateDialog").dialog ("open");
+                            },
+                            title: "Auto-Generate VCS Elements",
+                            position: "first"
+                        }
+                    ); // .navGrid()
+
+
+                $(window).bind('resize', function() {
+                    list.setGridWidth($(window).width() - 60); // 30 pixels of padding on either side of the jqGrid.
+                }).trigger('resize');
+
+                // set up the add/edit dialog
+                //
+                var operation = $("#operation"),
+                    origId = $("#origId"),
+                    id = $("#id"),
+
+                    vcsHome = $('#vcsHome'),
+                    vcsCommand = $('#vcsCommand'),
+                    vcsOptions = $('#vcsOptions'),
+                    vcsWorkspaceInitNewOptions = $('#vcsWorkspaceInitNewOptions'),
+                    vcsWorkspaceInitLinkOptions = $('#vcsWorkspaceInitLinkOptions'),
+                    vcsWorkspaceInitGetOptions = $('#vcsWorkspaceInitGetOptions'),
+                    vcsCheckinOptions = $('#vcsCheckinOptions'),
+                    vcsCheckinOptionsRequired = $('#vcsCheckinOptionsRequired'),
+                    vcsCheckoutOptions = $('#vcsCheckoutOptions'),
+                    vcsCheckoutOptionsRequired = $('#vcsCheckoutOptionsRequired'),
+                    vcsRepositoryUrl = $('#vcsRepositoryUrl'),
+                    vcsProjectRoot = $('#vcsProjectRoot'),
+                    vcsWorkspaceHome = $('#vcsWorkspaceHome'),
+                    vcsWorkspaceName = $('#vcsWorkspaceName'),
+                    vcsWorkspaceDir = $('#vcsWorkspaceDir'),
+                    vcsTempDir = $('#vcsTempDir'),
+                    vcsUsername = $('#vcsUsername'),
+                    vcsPassword = $('#vcsPassword'),
+                    vcsIgnoreMessages = $('#vcsIgnoreMessages'),
+                    vcsMessagePrepend = $('#vcsMessagePrepend'),
+                    svnEditor = $('#svnEditor'),
+                    svnEnv = $('#svnEnv'),
+                    p4Editor = $('#p4Editor'),
+                    p4Client = $('#p4Client'),
+                    p4Port = $('#p4Port'),
+                    p4User = $('#p4User'),
+                    p4Passwd = $('#p4Passwd'),
+                    p4Env = $('#p4Env'),
+                    p4DelLinkOptions = $('#p4DelLinkOptions'),
+                    cvsRoot = $('#cvsRoot'),
+                    cvsRsh = $('#cvsRsh'),
+                    cvsEnv = $('#cvsEnv'),
+                    tfsEditor = $('#tfsEditor'),
+                    tfsEnv = $('#tfsEnv'),
+                    tfsCheckinOptions = $('#tfsCheckinOptions'),
+                    tfsServerUrl = $('#tfsServerUrl'),
+
+                    resourcePath = $('#tfsServerUrl'),
+                    resourceType = $('#tfsServerUrl'),
+                    vcsLabel = $('#tfsServerUrl'),
+                    revision = $('#tfsServerUrl'),
+                    message = $('#tfsServerUrl'),
+
+                    profile_list = $("#profile_list"),
+                    server_list = $("#server_list"),
+                    vcsConnectionId = $("#vcsConnectionId"),
+                    startPath = $("#startPath"),
+                    allFields = $([]).add (operation).add (origId).add (id)
+                                     .add (vcsHome).add (vcsCommand).add (vcsOptions).add (vcsWorkspaceInitNewOptions)
+                                     .add (vcsWorkspaceInitLinkOptions).add (vcsWorkspaceInitGetOptions).add (vcsCheckinOptions)
+                                     .add (vcsCheckinOptionsRequired).add (vcsCheckoutOptions).add (vcsCheckoutOptionsRequired)
+                                     .add (vcsRepositoryUrl).add (vcsProjectRoot).add (vcsWorkspaceHome).add (vcsWorkspaceName)
+                                     .add (vcsWorkspaceDir).add (vcsTempDir).add (vcsUsername).add (vcsPassword).add (vcsIgnoreMessages)
+                                     .add (vcsMessagePrepend).add (svnEditor).add (svnEnv).add (p4Editor).add (p4Client)
+                                     .add (p4Port).add (p4User).add (p4Passwd).add (p4Env).add (p4DelLinkOptions).add (cvsRoot)
+                                     .add (cvsRsh).add (cvsEnv).add (tfsEditor).add (tfsEnv).add (tfsCheckinOptions)
+                                     .add (tfsServerUrl).add (resourcePath).add (resourceType).add (vcsLabel)
+                                     .add (revision).add (message).add (profile_list).add (server_list).add (vcsConnectionId)
+                                     .add (startPath);
+
+                var customRowCount = 0;
+
+                // create an array containing the table rows for each vcs type. this is used for showing and hiding
+                // the appropriate rows when the vcs type radio is changed.
+                //
+                var vcsRows = [null, $(".svn_row"), $(".p4_row"), $(".cvs_row"), $(".tfs_row"), $(".tfs_row"), $(".tfs_row"), $(".tfs_row")];
+                
+                $("#type").buttonset();
+                //$("#vcsType").buttonset();
+                $("#vcsExecFullPath").buttonset();
+                
+                // put a click event handler on the type radio that hides/shows the appropriate type table rows. use the
+                // same function to update the type rows as the AJAX callback does.
+                //
+                $('#type input:radio').change(setTypeFields);
+
+                // put a click event handler on the vcs type radio that hides/shows the appropriate vcs table rows. use the
+                // same function to update the vcs rows as the AJAX callback does.
+                //
+                $('#vcsType').change (setVCSFields);
+                //$('#vcsType input:radio').change(setVCSFields);
+
+                // set up the add new custom variable button in the custom variables tab. use the same click event handler code
+                // as the AJAX callback does.
+                //
+                $("#custom_add")
+                    .button()
+                    .click(addCustomVarRow);
+                
+                setVcsResourceTypeSelectData ("#resourceType", false);
+
+                // hides or shows the appropriate vcs record settings based on the type radio button setting.
+                //
+                function setTypeFields() {
+                    var selectedVal = $("#type input:radio:checked").val();
+
+                    $(".conn_row, .res_row").hide();
+                    
+                    if (selectedVal == 0) {
+                        addEditDialog.dialog({width: 950});
+                        $(".conn_row").filter(":not(.svn_row, .p4_row, .cvs_row, .tfs_row)").show();
+                        setVCSFields();
+                    } else {
+                        addEditDialog.dialog({width: 750});
+                        $(".res_row").show();
+                    }
+                }
+                
+                // hides or shows the appropriate vcs specific settings based on the vcs type radio button setting.
+                //
+                function setVCSFields() {
+                    //var selectedVal = $("#vcsType input:radio:checked").val();
+                    var selectedVal = $("#vcsType").val();
+
+                    $(".svn_row, .p4_row, .cvs_row, .tfs_row").hide();
+
+                    if (selectedVal !== undefined)
+                        vcsRows[selectedVal].show();
+                }
+                
+                // creates a row containing the form elements for a custom variable in the custom variables tab.
+                //
+                function addCustomVarRow() {
+                    // add the html code before the "add new custom variable" button container row.
+                    //
+                    $('#custom_add_row').before (function() {
+                                                     return '<tr id="custom_variable_row_' + customRowCount + '" class="dynamic_row">\n' +
+                                                            '    <td><input type="text" name="custom_name_' + customRowCount + '" id="custom_name_' + customRowCount + '" class="text ui-widget-content ui-corner-all dynamic_row_name" /></td>\n' +
+                                                            '    <td><input type="text" name="custom_value_' + customRowCount + '" id="custom_value_' + customRowCount + '" size="60" class="text ui-widget-content ui-corner-all dynamic_row_value" /></td>\n' +
+                                                            '    <td><div id="custom_row_' + customRowCount + '_del" title="Delete custom variable" >Delete custom variable</div></td>\n' +
+                                                            '</tr>\n';
+                                                 });
+
+                    // add a click event handler to the delete button to delete the custom variable when clicked.
+                    //
+                    $("#custom_row_" + customRowCount + "_del")
+                        .button({
+                            icons: {
+                                primary: "ui-icon-trash"
+                            },
+                            text: false
+                        })
+                        .data('rownum', customRowCount)
+                        .click(function() {
+                            $('#custom_variable_row_' + $(this).data('rownum')).remove();
+                            if ($('.dynamic_row').length == 0) {
+                                addCustomVarRow();
+                            }
+                        });
+
+                    customRowCount++;
+                    
+                    return false;
+                }
+                
+                dialogMsg = $(".dialogMsg");
+
+                addEditDialog = $("#addEditDialog").dialog ({
+                    autoOpen: false,
+                    //height: 300,
+                    width: 950,
+                    modal: true,
+                    buttons: [ // declaring buttons this way lets us assign ID's to the buttons so they can be interacted with later.
+                        {
+                            id: "aeOkButton",
+                            text: "OK",
+                            click: function() {
+                                var actionType = (operation.val() == "add") ? "POST" : "PUT";
+                                var errMsg = "";
+                                
+                                allFields.removeClass ("ui-state-error");
+                                clearAEDialogMessage();
+                                $("#aeOkButton").button ("disable");
+                                
+                                var ajaxOpts = {  
+                                    type: actionType,
+                                    contentType: 'application/json',
+                                    url: "/vcs/" + encodeURIComponent (queryParams.path) + "?rnd=" + myRand(),
+                                    dataType: "json",
+                                    data: createJSON(),  
+                                    success: function (data) {
+                                        processAjaxResult (
+                                            data, 
+                                            {
+                                                useDialog:true, 
+                                                reloadGrid:true
+                                            }
+                                        );
+                                        $("#aeOkButton").button ("enable");
+                                    },
+                                    // this should only happen when things go seriously wrong on the server
+                                    //
+                                    error: function (jqXHR, textStatus, errorThrown) {
+                                        myAlert ("textStatus = " + textStatus + "<br>errorThrown = " + errorThrown);
+                                        $("#aeOkButton").button ("enable");
+                                    }
+                                }
+
+                                $.ajax(ajaxOpts);
+                            }
+                        }, {
+                            id: "aeCancelButton",
+                            text: "Cancel",
+                            click: function() {
+                                $(this).dialog ("close");
+                                $("#aeOkButton").button ("enable");
+                            }
+                        }
+                    ],
+                    // this is an event handler for when the dialog box closes (it can be closed in a number of ways.)
+                    // basically any error classes get cleared from the form elements and the message <div> is cleared.
+                    //
+                    close: function() {
+                        allFields.val ("").removeClass ("ui-state-error");
+                        clearAEDialogMessage();
+                        $("#aeOkButton").button ("enable");
+                    },
+                    // add a custom class to the OK button so that it can be addressed for disabling/enabling later
+                    //
+                    create: function () {
+                        $(this).closest(".ui-dialog")
+                            .find(".ui-button:first") // the first button
+                            .addClass("aeOkButton");
+                    }
+                }); // #addEditDialog
+                
+                // set up generate VCS records dialog
+                //
+                genDialogMsg = $("#genDialogMsg");
+                generateDialog = $("#generateDialog").dialog ({
+                    autoOpen: false,
+                    //height: 300,
+                    width: 500,
+                    modal: true,
+                    buttons: [ // declaring buttons this way lets us assign ID's to the buttons so they can be interacted with later.
+                        {
+                            id: "genOkButton",
+                            text: "OK",
+                            click: function() {
+                                var errMsg = "";
+                                var profilePath = $("#profile_list").val();
+                                var serverId = $("#server_list").val();
+                                var vcsConnectionId = $("#vcsConnectionId").val();
+                                var startPath = $("#startPath").val();
+                                
+                                if (profilePath == null || profilePath.length == 0) {
+                                    errMsg += "Please choose a configuration profile.<br/>";
+                                    $("#profile_list").addClass ("ui-state-error");
+                                } 
+                                if (serverId == null || serverId.length == 0) {
+                                    errMsg += "Please choose a server.<br/>";
+                                    $("#server_list").addClass ("ui-state-error");
+                                } 
+                                if (vcsConnectionId == null || vcsConnectionId.length == 0) {
+                                    errMsg += "Please choose a VCS connection.<br/>";
+                                    $("#vcsConnectionId").addClass ("ui-state-error");
+                                } 
+                                if (startPath == null || startPath.length == 0) {
+                                    errMsg += "Please enter a starting path.<br/>";
+                                    $("#startPath").addClass ("ui-state-error");
+                                }
+                                if (errMsg.length > 0) {
+                                    myAlert (errMsg);
+                                    return false;
+                                }
+                                
+                                allFields.removeClass ("ui-state-error");
+                                updateGenDialogMessage('Gathering VCS records ... <img src="images/spinner.gif" class="textAlignImg"/>');
+                                
+                                $("#genOkButton").button ("disable");
+                                
+                                var ajaxOpts = {  
+                                    type: "POST",
+                                    contentType: 'application/json',
+                                    url: "/vcs_module/" + encodeURIComponent (queryParams.path) + "?profilePath=" + encodeURIComponent (profilePath) + "&serverId=" + encodeURIComponent (serverId) + "&vcsConnectionId=" + encodeURIComponent (vcsConnectionId) + "&startPath=" + encodeURIComponent (startPath) + "&rnd=" + myRand(),
+                                    dataType: "json",
+                                    data: createJSON(),  
+                                    success: function (data) {
+                                        processGenerateResult(
+                                            data, 
+                                            {
+                                                useDialog:true, 
+                                                reloadGrid:true
+                                            }
+                                        );
+                                        $("#genOkButton").button ("enable");
+                                    },
+                                    // this should only happen when things go seriously wrong on the server
+                                    //
+                                    error: function (jqXHR, textStatus, errorThrown) {
+                                        myAlert ("textStatus = " + textStatus + "<br>errorThrown = " + errorThrown);
+                                        clearGenDialogMessage();
+                                        $("#genOkButton").button ("enable");
+                                    }
+                                }
+
+                                $.ajax(ajaxOpts);
+                            }
+                        }, {
+                            id: "genCancelButton",
+                            text: "Cancel",
+                            click: function() {
+                                $(this).dialog ("close");
+                                $("#genOkButton").button ("enable");
+                          
+                            }
+                        }
+                    ],
+                    // this is an event handler for when the dialog box closes (it can be closed in a number of ways.)
+                    // basically the OK button is re-enabled and the message <div> is cleared.
+                    //
+                    close: function() { 
+                        allFields.removeClass ("ui-state-error");
+                        clearGenDialogMessage();
+                        $("#genOkButton").button ("enable");
+                    },
+                    // add a custom class to the OK button so that it can be addressed for disabling/enabling later
+                    //
+                    create: function () {
+                        $(this).closest(".ui-dialog")
+                            .find(".ui-button:first") // the first button
+                            .addClass("genOkButton");
+                    }
+                }); // #generateDialog
+                
+                // sets the form values of the dialog box from a data object (typically returned from an AJAX call.)
+                //
+                function setDialogData (data) {
+                    $('#id').val (data.id);
+                    $('#origId').val (data.id);
+
+                    $('#type_' + data.type).prop ("checked", "checked");
+                    $('#type').buttonset("refresh");
+                    setTypeFields();
+
+                    $("#vcsType").val (data.vcsType);
+                    //$('#vcsType_' + data.vcsType).prop ("checked", "checked");
+                    //$("#vcsType").buttonset("refresh");
+                    if (data.type == 0)
+                        setVCSFields();
+
+                    $('#vcsHome').val (data.vcsHome);
+                    $('#vcsCommand').val (data.vcsCommand);
+                    $('#vcsExecFullPath_' + data.vcsExecFullPath).prop ("checked", "checked");
+                    $("#vcsExecFullPath").buttonset("refresh");
+                    $('#vcsOptions').val (data.vcsOptions);
+                    $('#vcsWorkspaceInitNewOptions').val (data.vcsWorkspaceInitNewOptions);
+                    $('#vcsWorkspaceInitLinkOptions').val (data.vcsWorkspaceInitLinkOptions);
+                    $('#vcsWorkspaceInitGetOptions').val (data.vcsWorkspaceInitGetOptions);
+
+                    // TFS_CHECKIN_OPTIONS is deprecated. Use its value for VCS_CHECKIN_OPTIONS
+                    // if VCS_TYPE is a version of TFS and VCS_CHECKIN_OPTIONS is otherwise unset.)
+                    //
+                    if (data.vcsType == VCS_TYPE_TFS2005 ||
+                        data.vcsType == VCS_TYPE_TFS2010 ||
+                        data.vcsType == VCS_TYPE_TFS2012 ||
+                        data.vcsType == VCS_TYPE_TFS2013
+                       ) {
+                        if (data.vcsCheckinOptions !== undefined && data.vcsCheckinOptions.length > 0) {
+                            $('#vcsCheckinOptions').val (data.vcsCheckinOptions);
+                        } else {
+                            $('#vcsCheckinOptions').val (data.tfsCheckinOptions);
+                        }
+                    } else {
+                        $('#vcsCheckinOptions').val (data.vcsCheckinOptions);
+                    }
+
+                    $('#vcsCheckinOptionsRequired').val (data.vcsCheckinOptionsRequired);
+                    $('#vcsCheckoutOptions').val (data.vcsCheckoutOptions);
+                    $('#vcsCheckoutOptionsRequired').val (data.vcsCheckoutOptionsRequired);
+                    $('#vcsRepositoryUrl').val (data.vcsRepositoryUrl);
+                    $('#vcsProjectRoot').val (data.vcsProjectRoot);
+                    $('#vcsWorkspaceHome').val (data.vcsWorkspaceHome);
+                    $('#vcsWorkspaceName').val (data.vcsWorkspaceName);
+                    $('#vcsWorkspaceDir').val (data.vcsWorkspaceDir);
+                    $('#vcsTempDir').val (data.vcsTempDir);
+                    $('#vcsUsername').val (data.vcsUsername);
+                    $('#vcsPassword').val (data.vcsPassword);
+                    $('#vcsIgnoreMessages').val (data.vcsIgnoreMessages);
+                    $('#vcsMessagePrepend').val (data.vcsMessagePrepend);
+                    $('#svnEditor').val (data.svnEditor);
+                    $('#svnEnv').val (data.svnEnv);
+                    $('#p4Editor').val (data.p4Editor);
+                    $('#p4Client').val (data.p4Client);
+                    $('#p4Port').val (data.p4Port);
+                    $('#p4User').val (data.p4User);
+                    $('#p4Passwd').val (data.p4Passwd);
+                    $('#p4Env').val (data.p4Env);
+                    $('#p4DelLinkOptions').val (data.p4DelLinkOptions);
+                    $('#cvsRoot').val (data.cvsRoot);
+                    $('#cvsRsh').val (data.cvsRsh);
+                    $('#cvsEnv').val (data.cvsEnv);
+                    $('#tfsEditor').val (data.tfsEditor);
+                    $('#tfsEnv').val (data.tfsEnv);
+                    $('#tfsCheckinOptions').val (data.tfsCheckinOptions);
+                    $('#tfsServerUrl').val (data.tfsServerUrl);
+                    $('#resourcePath').val (data.resourcePath);
+                    $('#resourceType').val (data.resourceType);
+                    $('#vcsLabel').val (data.vcsLabel);
+                    $('#revision').val (data.revision);
+                    $('#message').val (data.message);
+                    
+                    $('.dynamic_row').remove();
+                    customRowCount = 0;
+                    
+                    if (data.envVars != null && data.envVars.length > 0) {
+                        for (var i = 0; i < data.envVars.length; i++) {
+                            addCustomVarRow();
+                            
+                            $('#custom_name_' + i).val(data.envVars[i].variable);
+                            $('#custom_value_' + i).val(data.envVars[i].value);
+                        }
+                    } else {
+                        addCustomVarRow();
+                    }
+
+                } // setDialogData()
+                
+                // creates a JSON artifact for sending with AJAX queries. Jackson on the server side is very particular
+                // about the format of JSON objects: double quoted attributes AND values.
+                //
+                function createJSON() {
+                    var typeVal = $('#type input:radio:checked').val();
+                    
+                    var data = {
+                        "operation":  operation.val(),
+                        "origId":  origId.val(),
+                        "id":  id.val(),
+                        "type": typeVal
+                    };
+                    
+                    if (typeVal == 0) {
+                        var envVars = new Array();
+                        for (var i = 0; i < customRowCount; i++) {                        
+                            // make sure the row hasn't been deleted by the user and that the variable name is filled in
+                            //
+                            if ($("#custom_variable_row_" + i).length > 0 && $('#custom_name_' + i).val().length > 0) {
+                                envVars.push({
+                                    "variable": $('#custom_name_' + i).val(),
+                                    "value": $('#custom_value_' + i).val()
+                                });
+                            }
+                        }
+                    
+                        //data["vcsType"] = $('#vcsType input:radio:checked').val();
+                        data["vcsType"] = $('#vcsType').val();
+                        data["vcsHome"] = $('#vcsHome').val();
+                        data["vcsCommand"] = $('#vcsCommand').val();
+                        data["vcsExecFullPath"] = $('#vcsExecFullPath input:radio:checked').val();
+                        data["vcsOptions"] = $('#vcsOptions').val();
+                        data["vcsWorkspaceInitNewOptions"] = $('#vcsWorkspaceInitNewOptions').val();
+                        data["vcsWorkspaceInitLinkOptions"] = $('#vcsWorkspaceInitLinkOptions').val();
+                        data["vcsWorkspaceInitGetOptions"] = $('#vcsWorkspaceInitGetOptions').val();
+                        data["vcsCheckinOptions"] = $('#vcsCheckinOptions').val();
+                        data["vcsCheckinOptionsRequired"] = $('#vcsCheckinOptionsRequired').val();
+                        data["vcsCheckoutOptions"] = $('#vcsCheckoutOptions').val();
+                        data["vcsCheckoutOptionsRequired"] = $('#vcsCheckoutOptionsRequired').val();
+                        data["vcsRepositoryUrl"] = $('#vcsRepositoryUrl').val();
+                        data["vcsProjectRoot"] = $('#vcsProjectRoot').val();
+                        data["vcsWorkspaceHome"] = $('#vcsWorkspaceHome').val();
+                        data["vcsWorkspaceName"] = $('#vcsWorkspaceName').val();
+                        data["vcsWorkspaceDir"] = $('#vcsWorkspaceDir').val();
+                        data["vcsTempDir"] = $('#vcsTempDir').val();
+                        data["vcsUsername"] = $('#vcsUsername').val();
+                        data["vcsPassword"] = $('#vcsPassword').val();
+                        data["vcsIgnoreMessages"] = $('#vcsIgnoreMessages').val();
+                        data["vcsMessagePrepend"] = $('#vcsMessagePrepend').val();
+
+                        switch (data.vcsType * 1) {
+                            case VCS_TYPE_SVN:
+                                data["svnEditor"] = $('#svnEditor').val();
+                                data["svnEnv"] = $('#svnEnv').val();
+                                break;
+                            
+                            case VCS_TYPE_P4:
+                                data["p4Editor"] = $('#p4Editor').val();
+                                data["p4Client"] = $('#p4Client').val();
+                                data["p4Port"] = $('#p4Port').val();
+                                data["p4User"] = $('#p4User').val();
+                                data["p4Passwd"] = $('#p4Passwd').val();
+                                data["p4Env"] = $('#p4Env').val();
+                                data["p4DelLinkOptions"] = $('#p4DelLinkOptions').val();
+                                break;
+                            
+                            case VCS_TYPE_CVS:
+                                data["cvsRoot"] = $('#cvsRoot').val();
+                                data["cvsRsh"] = $('#cvsRsh').val();
+                                data["cvsEnv"] = $('#cvsEnv').val();
+                                break;
+                            
+                            case VCS_TYPE_TFS2005:
+                            case VCS_TYPE_TFS2010:
+                            case VCS_TYPE_TFS2012:
+                                data["tfsEditor"] = $('#tfsEditor').val();
+                                data["tfsEnv"] = $('#tfsEnv').val();
+                                data["tfsCheckinOptions"] = $('#tfsCheckinOptions').val();
+                                data["tfsServerUrl"] = $('#tfsServerUrl').val();
+                                break;
+                        }
+
+                        data["envVars"] = envVars;
+
+                    } else {
+                        data["resourcePath"] = $('#resourcePath').val();
+                        data["resourceType"] = $('#resourceType').val();
+                        data["vcsLabel"] = $('#vcsLabel').val();
+                        data["revision"] = $('#revision').val();
+                        data["message"] = $('#message').val();
+                    }
+                    return JSON.stringify (data);
+                }
+                
+            }); // $(document).ready()
+            
+        </script>
+<!-- InstanceEndEditable -->
+    </head>
+<!-- InstanceBeginEditable name="bodytag" -->
+    <body class="page">
+<!-- InstanceEndEditable -->
+        <div class="header">
+            <div class="logo" onClick="javascript:location='index.html'"><img src="images/cisco_logo.png"/></div>
+            <div class="app_title" onClick="javascript:location='index.html'">Promotion &amp; Deployment Tool</div>
+        </div>
+        <div class="nav_container">
+            <div class="nav_tab_container"><!-- divs are floated right so listed in reverse order -->
+                <div class="nav_tab_spacer"></div>
+                <div id="nav_tab_execute" class="nav_tab" onClick="javascript:location='execute.html'">
+                    <div class="nav_tab_left"></div>
+                    <div class="nav_tab_center">EXECUTE</div>
+                    <div class="nav_tab_right"></div>
+                </div>
+                <div id="nav_tab_modules" class="nav_tab" onClick="javascript:location='modules.html'">
+                    <div class="nav_tab_left"></div>
+                    <div class="nav_tab_center">MODULES</div>
+                    <div class="nav_tab_right"></div>
+                </div>
+                <div id="nav_tab_plans" class="nav_tab" onClick="javascript:location='dep_plans.html'">
+                    <div class="nav_tab_left"></div>
+                    <div class="nav_tab_center">PLANS</div>
+                    <div class="nav_tab_right"></div>
+                </div>
+                <div id="nav_tab_configuration" class="nav_tab" onClick="javascript:location='config_preferences.html'">
+                    <div class="nav_tab_left"></div>
+                    <div class="nav_tab_center">CONFIGURATION</div>
+                    <div class="nav_tab_right"></div>
+                </div>
+            </div>
+            <div class="nav_base"></div>
+            <div class="nav_submenu_container">
+                <div class="nav_submenu_items">
+<!-- InstanceBeginEditable name="nav_submenu" -->
+                    <div id="nav_submenu_archive"          class="nav_submenu_item">Archive</div>
+                    <div id="nav_submenu_data_source"      class="nav_submenu_item">Data&nbsp;Source</div>
+                    <div id="nav_submenu_group"            class="nav_submenu_item">Group</div>
+                    <div id="nav_submenu_privilege"        class="nav_submenu_item">Privilege</div>
+                    <div id="nav_submenu_rebind"           class="nav_submenu_item">Rebind</div>
+                    <div id="nav_submenu_regression"       class="nav_submenu_item">Regression</div>
+                    <div id="nav_submenu_resource"         class="nav_submenu_item">Resource</div>
+                    <div id="nav_submenu_resource_cache"   class="nav_submenu_item" style="clear: left;">Resource Cache</div>
+                    <div id="nav_submenu_server_attribute" class="nav_submenu_item">Server&nbsp;Attribute</div>
+                    <div id="nav_submenu_server_manager"   class="nav_submenu_item">Server&nbsp;Manager</div>
+                    <div id="nav_submenu_trigger"          class="nav_submenu_item">Trigger</div>
+                    <div id="nav_submenu_user"             class="nav_submenu_item">User</div>
+                    <div id="nav_submenu_vcs"              class="nav_submenu_item">VCS</div>
+<!-- InstanceEndEditable -->
+                </div>
+                <div class="nav_submenu_right"><img src="images/nav_submenu_right.png"/></div>
+            </div>
+        </div>
+        <div class="page_content">
+            <div class="page_title_container">
+                <div class="page_title">
+<!-- InstanceBeginEditable name="page_title" -->
+                    VCS MODULE: <span id="module_path"></span>
+<!-- InstanceEndEditable -->
+                </div>
+                <div class="page_description">
+<!-- InstanceBeginEditable name="page_description" -->
+                    <div class="collapsable"><!-- used with the setCollapsable() function above -->
+                        <div class="collapsable-content">
+                            Each VCS module entry describes either a connection to a VCS server or a resource that
+                            will either be checked in or out of a VCS server.
+                        </div>
+                    </div>
+<!-- InstanceEndEditable -->
+                </div>
+            </div>
+<!-- InstanceBeginEditable name="content" -->
+            <div class="table_container">
+                <table id="list"></table> <!-- table generated and populated by jqGrid in header -->
+                <div id="pager"></div> 
+            </div>
+            <div id="addEditDialog" title="Add VCS Record" class="dialog">
+                <p class="dialogMsg"></p>
+                <form id="addEditForm">
+                    <input type="hidden" name="operation" id="operation" />
+                    <input type="hidden" name="origId" id="origId" />
+                    <fieldset>
+                        <table cellpadding="0" cellspacing="0" border="0">
+                            <tbody>
+                                <tr>
+                                    <td><label for="id" class="tabs_form_label">VCS Record ID</label></td>
+                                    <td><input type="text" name="id" id="id" class="text ui-widget-content ui-corner-all" /></td>
+                                </tr>
+                                <tr>
+                                    <td><label for="type" class="tabs_form_label">Record Type</label></td>
+                                    <td>
+                                        <div id="type">
+                                            <input type="radio" name="type" id="type_0" value="0" /><label for="type_0">Connection</label>
+                                            <input type="radio" name="type" id="type_1" value="1" /><label for="type_1">Resource</label>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr class="conn_row">
+                                    <td><label for="vcsType" class="tabs_form_label">VCS Type</label></td>
+                                    <td>
+                                        <!--div id="vcsType">
+                                            <input type="radio" name="vcsType" id="vcsType_1" value="1" /><label for="vcsType_1">SVN</label>
+                                            <input type="radio" name="vcsType" id="vcsType_2" value="2" /><label for="vcsType_2">Perforce</label>
+                                            <input type="radio" name="vcsType" id="vcsType_3" value="3" /><label for="vcsType_3">CVS</label>
+                                            <input type="radio" name="vcsType" id="vcsType_4" value="4" /><label for="vcsType_4">TFS 2005</label>
+                                            <input type="radio" name="vcsType" id="vcsType_5" value="5" /><label for="vcsType_5">TFS 2010</label>
+                                            <input type="radio" name="vcsType" id="vcsType_6" value="6" /><label for="vcsType_6">TFS 2012</label>
+                                        </div-->
+                                        <select id="vcsType" name="vcsType">
+                                            <option value="1">SVN</option>
+                                            <option value="2">Perforce</option>
+                                            <option value="3">CVS</option>
+                                            <option value="4">TFS 2005</option>
+                                            <option value="5">TFS 2010</option>
+                                            <option value="6">TFS 2012</option>
+                                            <option value="7">TFS 2013</option>
+                                        </select>
+                                    </td>
+                                </tr>
+                                <tr class="conn_row">
+                                    <td><label for="vcsHome" class="tabs_form_label">VCS Home</label></td>
+                                    <td><input type="text" name="vcsHome" id="vcsHome" size="60" class="text ui-widget-content ui-corner-all" /></td>
+                                </tr>
+                                <tr class="conn_row">
+                                    <td><label for="vcsCommand" class="tabs_form_label">VCS Command</label></td>
+                                    <td><input type="text" name="vcsCommand" id="vcsCommand" class="text ui-widget-content ui-corner-all" /></td>
+                                </tr>
+                                <tr class="conn_row">
+                                    <td><label for="vcsExecFullPath" class="tabs_form_label">Execute VCS Command With Full Path</label></td>
+                                    <td>
+                                        <div id="vcsExecFullPath">
+                                            <input type="radio" name="vcsExecFullPath" id="vcsExecFullPath_true" value="true" /><label for="vcsExecFullPath_true">True</label>
+                                            <input type="radio" name="vcsExecFullPath" id="vcsExecFullPath_false" value="false" /><label for="vcsExecFullPath_false">False</label>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr class="conn_row">
+                                    <td><label for="vcsOptions" class="tabs_form_label">VCS Command Options</label></td>
+                                    <td><input type="text" name="vcsOptions" id="vcsOptions" size="60" class="text ui-widget-content ui-corner-all" /></td>
+                                </tr>
+                                <tr class="conn_row">
+                                    <td><label for="vcsWorkspaceInitNewOptions" class="tabs_form_label">VCS Workspace Init New Options</label></td>
+                                    <td><input type="text" name="vcsWorkspaceInitNewOptions" id="vcsWorkspaceInitNewOptions" size="60" class="text ui-widget-content ui-corner-all" /></td>
+                                </tr>
+                                <tr class="conn_row">
+                                    <td><label for="vcsWorkspaceInitLinkOptions" class="tabs_form_label">VCS Workspace Init Link Options</label></td>
+                                    <td><input type="text" name="vcsWorkspaceInitLinkOptions" id="vcsWorkspaceInitLinkOptions" size="60" class="text ui-widget-content ui-corner-all" /></td>
+                                </tr>
+                                <tr class="conn_row">
+                                    <td><label for="vcsWorkspaceInitGetOptions" class="tabs_form_label">VCS Workspace Init Get Options</label></td>
+                                    <td><input type="text" name="vcsWorkspaceInitGetOptions" id="vcsWorkspaceInitGetOptions" size="60" class="text ui-widget-content ui-corner-all" /></td>
+                                </tr>
+                                <tr class="conn_row">
+                                    <td><label for="vcsCheckinOptions" class="tabs_form_label">VCS Checkin Options</label></td>
+                                    <td><input type="text" name="vcsCheckinOptions" id="vcsCheckinOptions" size="60" class="text ui-widget-content ui-corner-all" /></td>
+                                </tr>
+                                <tr class="conn_row">
+                                    <td><label for="vcsCheckinOptionsRequired" class="tabs_form_label">VCS Required Checkin Options</label></td>
+                                    <td><input type="text" name="vcsCheckinOptionsRequired" id="vcsCheckinOptionsRequired" size="60" class="text ui-widget-content ui-corner-all" /></td>
+                                </tr>
+                                <tr class="conn_row">
+                                    <td><label for="vcsCheckoutOptions" class="tabs_form_label">VCS Checkout Options</label></td>
+                                    <td><input type="text" name="vcsCheckoutOptions" id="vcsCheckoutOptions" size="60" class="text ui-widget-content ui-corner-all" /></td>
+                                </tr>
+                                <tr class="conn_row">
+                                    <td><label for="vcsCheckoutOptionsRequired" class="tabs_form_label">VCS Required Checkout Options</label></td>
+                                    <td><input type="text" name="vcsCheckoutOptionsRequired" id="vcsCheckoutOptionsRequired" size="60" class="text ui-widget-content ui-corner-all" /></td>
+                                </tr>
+                                <tr class="conn_row">
+                                    <td><label for="vcsRepositoryUrl" class="tabs_form_label">Repository URL</label></td>
+                                    <td><input type="text" name="vcsRepositoryUrl" id="vcsRepositoryUrl" size="60" class="text ui-widget-content ui-corner-all" /></td>
+                                </tr>
+                                <tr class="conn_row">
+                                    <td><label for="vcsProjectPoot" class="tabs_form_label">Project Root</label></td>
+                                    <td><input type="text" name="vcsProjectRoot" id="vcsProjectRoot" class="text ui-widget-content ui-corner-all" /></td>
+                                </tr>
+                                <tr class="conn_row">
+                                    <td><label for="vcsWorkspaceHome" class="tabs_form_label">Workspace Home</label></td>
+                                    <td><input type="text" name="vcsWorkspaceHome" id="vcsWorkspaceHome" size="60" class="text ui-widget-content ui-corner-all" /></td>
+                                </tr>
+                                <tr class="conn_row">
+                                    <td><label for="vcsWorkspaceName" class="tabs_form_label">Workspace Name</label></td>
+                                    <td><input type="text" name="vcsWorkspaceName" id="vcsWorkspaceName" size="60" class="text ui-widget-content ui-corner-all" /></td>
+                                </tr>
+                                <tr class="conn_row">
+                                    <td><label for="vcsWorkspaceDir" class="tabs_form_label">Workspace Directory</label></td>
+                                    <td><input type="text" name="vcsWorkspaceDir" id="vcsWorkspaceDir" size="60" class="text ui-widget-content ui-corner-all" /></td>
+                                </tr>
+                                <tr class="conn_row">
+                                    <td><label for="vcsTempDir" class="tabs_form_label">Temporary Directory</label></td>
+                                    <td><input type="text" name="vcsTempDir" id="vcsTempDir" size="60" class="text ui-widget-content ui-corner-all" /></td>
+                                </tr>
+                                <tr class="conn_row">
+                                    <td><label for="vcsUsername" class="tabs_form_label">VCS User Name</label></td>
+                                    <td><input type="text" name="vcsUsername" id="vcsUsername" class="text ui-widget-content ui-corner-all" /></td>
+                                </tr>
+                                <tr class="conn_row">
+                                    <td><label for="vcsPassword" class="tabs_form_label">VCS Password</label></td>
+                                    <td><input type="password" name="vcsPassword" id="vcsPassword" class="text ui-widget-content ui-corner-all" /></td>
+                                </tr>
+                                <tr class="conn_row">
+                                    <td><label for="vcsIgnoreMessages" class="tabs_form_label">Messages To Ignore</label></td>
+                                    <td><input type="text" name="vcsIgnoreMessages" id="vcsIgnoreMessages" size="60" class="text ui-widget-content ui-corner-all" /></td>
+                                </tr>
+                                <tr class="conn_row">
+                                    <td><label for="vcsMessagePrepend" class="tabs_form_label">Prepend Message</label></td>
+                                    <td><input type="text" name="vcsMessagePrepend" id="vcsMessagePrepend" size="60" class="text ui-widget-content ui-corner-all" /></td>
+                                </tr>
+                                <tr class="conn_row svn_row">
+                                    <td><label for="svnEditor" class="tabs_form_label">SVN Editor</label></td>
+                                    <td><input type="text" name="svnEditor" id="svnEditor" class="text ui-widget-content ui-corner-all" /></td>
+                                </tr>
+                                <tr class="conn_row svn_row">
+                                    <td><label for="svnEnv" class="tabs_form_label">SVN Environment Variables</label></td>
+                                    <td><input type="text" name="svnEnv" id="svnEnv" size="60" class="text ui-widget-content ui-corner-all" /></td>
+                                </tr>
+                                <tr class="conn_row p4_row">
+                                    <td><label for="p4Editor" class="tabs_form_label">Perforce Editor</label></td>
+                                    <td><input type="text" name="p4Editor" id="p4Editor" class="text ui-widget-content ui-corner-all" /></td>
+                                </tr>
+                                <tr class="conn_row p4_row">
+                                    <td><label for="p4Client" class="tabs_form_label">Perforce Client</label></td>
+                                    <td><input type="text" name="p4Client" id="p4Client" size="60" class="text ui-widget-content ui-corner-all" /></td>
+                                </tr>
+                                <tr class="conn_row p4_row">
+                                    <td><label for="p4Port" class="tabs_form_label">Perforce Port</label></td>
+                                    <td><input type="text" name="p4Port" id="p4Port" size="60" class="text ui-widget-content ui-corner-all" /></td>
+                                </tr>
+                                <tr class="conn_row p4_row">
+                                    <td><label for="p4User" class="tabs_form_label">Perforce User Name</label></td>
+                                    <td><input type="text" name="p4User" id="p4User" class="text ui-widget-content ui-corner-all" /></td>
+                                </tr>
+                                <tr class="conn_row p4_row">
+                                    <td><label for="p4Passwd" class="tabs_form_label">Perforce Password</label></td>
+                                    <td><input type="password" name="p4Passwd" id="p4Passwd" class="text ui-widget-content ui-corner-all" /></td>
+                                </tr>
+                                <tr class="conn_row p4_row">
+                                    <td><label for="p4Env" class="tabs_form_label">Perforce Environment Variables</label></td>
+                                    <td><input type="text" name="p4Env" id="p4Env" size="60" class="text ui-widget-content ui-corner-all" /></td>
+                                </tr>
+                                <tr class="conn_row p4_row">
+                                    <td><label for="p4DelLinkOptions" class="tabs_form_label">Perforce Delete Link Options</label></td>
+                                    <td><input type="text" name="p4DelLinkOptions" id="p4DelLinkOptions" class="text ui-widget-content ui-corner-all" /></td>
+                                </tr>
+                                <tr class="conn_row cvs_row">
+                                    <td><label for="cvsRoot" class="tabs_form_label">CVS Root</label></td>
+                                    <td><input type="text" name="cvsRoot" id="cvsRoot" size="60" class="text ui-widget-content ui-corner-all" /></td>
+                                </tr>
+                                <tr class="conn_row cvs_row">
+                                    <td><label for="cvsRsh" class="tabs_form_label">CVS RSH Command</label></td>
+                                    <td><input type="text" name="cvsRsh" id="cvsRsh" class="text ui-widget-content ui-corner-all" /></td>
+                                </tr>
+                                <tr class="conn_row cvs_row">
+                                    <td><label for="cvs_env" class="tabs_form_label">CVS Envrionment Variables</label></td>
+                                    <td><input type="text" name="cvs_env" id="cvs_env" size="60" class="text ui-widget-content ui-corner-all" /></td>
+                                </tr>
+                                <tr class="conn_row tfs_row">
+                                    <td><label for="tfsEditor" class="tabs_form_label">TFS Editor</label></td>
+                                    <td><input type="text" name="tfsEditor" id="tfsEditor" class="text ui-widget-content ui-corner-all" /></td>
+                                </tr>
+                                <tr class="conn_row tfs_row">
+                                    <td><label for="tfsEnv" class="tabs_form_label">TFS Environment Variables</label></td>
+                                    <td><input type="text" name="tfsEnv" id="tfsEnv" size="60" class="text ui-widget-content ui-corner-all" /></td>
+                                </tr>
+                                <tr class="conn_row tfs_row">
+                                    <td><label for="tfsCheckinOptions" class="tabs_form_label">TFS Check In Options</label></td>
+                                    <td><input type="text" name="tfsCheckinOptions" id="tfsCheckinOptions" class="text ui-widget-content ui-corner-all" /></td>
+                                </tr>
+                                <tr class="conn_row tfs_row">
+                                    <td><label for="tfsServerUrl" class="tabs_form_label">TFS Server URL</label></td>
+                                    <td><input type="text" name="tfsServerUrl" id="tfsServerUrl" class="text ui-widget-content ui-corner-all" /></td>
+                                </tr>
+                                <tr class="res_row">
+                                    <td><label for="resourcePath" class="tabs_form_label">Resource Path</label></td>
+                                    <td><input type="text" name="resourcePath" id="resourcePath" size="60" class="text ui-widget-content ui-corner-all" /></td>
+                                </tr>
+                                <tr class="res_row">
+                                    <td><label for="resourceType" class="tabs_form_label">Resource Type</label></td>
+                                    <td><select name="resourceType" id="resourceType"></select></td>
+                                </tr>
+                                <tr class="res_row">
+                                    <td><label for="vcsLabel" class="dialog_label">VCS Label</label></td>
+                                    <td><input type="text" name="vcsLabel" id="vcsLabel" class="text ui-widget-content ui-corner-all" /></td>
+                                </tr>
+                                <tr class="res_row">
+                                    <td><label for="revision" class="dialog_label">Revision</label></td>
+                                    <td><input type="text" name="revision" id="revision" class="text ui-widget-content ui-corner-all" /></td>
+                                </tr>
+                                <tr class="res_row">
+                                    <td><label for="message" class="tabs_form_label">Message</label></td>
+                                    <td><input type="text" name="message" id="message" size="60" class="text ui-widget-content ui-corner-all" /></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <hr class="conn_row"/>
+                        <p class="conn_row">Custom Variables</p>
+                        <table cellpadding="0" cellspacing="0" border="0" class="conn_row">
+                            <tbody>
+                                <tr>
+                                    <td><label for="cust_name" class="tabs_form_label">Variable Name</label></td>
+                                    <td><label for="cust_value" class="tabs_form_label">Value</label></td>
+                                    <td></td>
+                                </tr>
+                                <tr id="custom_add_row">
+                                    <td colspan="3"><div id="custom_add" title="Add custom variable" >Add Custom Variable</div></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </fieldset>
+                </form>
+            </div>
+            <div id="generateDialog" title="Auto-Generate VCS Records" class="dialog">
+                <form id="generateForm">
+                    <fieldset>
+                    <input type="hidden" name="operation" id="operation" />
+                    <input type="hidden" name="origId" id="origId" />
+                    <table cellpadding="0" cellspacing="0">
+                        <tbody>
+                            <tr>
+                                <td><label for="profile_list" class="dialog_label">Configuration Profile</label></td>
+                                <td><select id="profile_list"></select>&nbsp;&nbsp;<a href="/pdtoolgui/config_dep_conf_files.html"><img src="images/edit.gif" border="0" alt="edit_profiles"/></a></td>
+                            </tr>
+                            <tr>
+                                <td><label for="server_list" class="dialog_label">Server ID</label></td>
+                                <td><select id="server_list"></select>&nbsp;&nbsp;<a href="/pdtoolgui/config_servers.html"><img src="images/edit.gif" border="0" alt="edit_servers"/></a></td>
+                            </tr>
+                            <tr>
+                                <td><label for="vcsConnectionId" class="dialog_label">VCS Connection ID</label></td>
+                                <td><select id="vcsConnectionId"></select></td>
+                            </tr>
+                            <tr>
+                                <td><label for="startPath" class="dialog_label">Start Folder</label></td>
+                                <td><input type="text" name="startPath" id="startPath" class="text ui-widget-content ui-corner-all" /></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    </fieldset>
+                </form>
+                <p id="genDialogMsg"></p>
+            </div>
+            <div id="alertDialog" title="Alert" class="dialog">
+                <p id="alertDialogMessage"></p>
+            </div>
+            <div id="confirmDialog" title="Confirm" class="dialog">
+                <p id="confirmDialogMessage"></p>
+            </div>
+<!-- InstanceEndEditable -->
+        </div>
+    </body>
+<!-- InstanceEnd --></html>

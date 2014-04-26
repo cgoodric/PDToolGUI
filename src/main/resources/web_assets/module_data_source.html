@@ -1,0 +1,1231 @@
+<!DOCTYPE html>
+<html><!-- InstanceBegin template="/Templates/pdtoolgui.dwt" codeOutsideHTMLIsLocked="false" -->
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<!-- InstanceBeginEditable name="doctitle" -->
+        <title>PDTool: Modules - Data Source</title>
+<!-- InstanceEndEditable -->
+        <link rel="stylesheet" type="text/css" href="css/styles.css">
+        <link rel="stylesheet" type="text/css" href="css/smoothness/jquery-ui-1.10.2.custom.css" />
+        <link rel="stylesheet" type="text/css" href="css/ui.jqgrid.css" />
+        <script type="text/javascript" src="js/jquery-1.9.1.js"></script>
+        <script type="text/javascript" src="js/jquery-ui-1.10.2.custom.js"></script>
+        <script type="text/javascript" src="js/i18n/grid.locale-en.js"></script>
+        <script type="text/javascript" src="js/jquery.jqGrid.src.js"></script>
+        <script type="text/javascript" src="js/jquery-queryParser.min.js"></script>
+        <script type="text/javascript" src="js/pdtoolgui.js"></script>
+        <script type="text/javascript" src="js/pdtoolgui_docs_en.js"></script>
+<!-- InstanceBeginEditable name="head" -->
+        <script language="javascript">
+        
+            // set an event handler to fire when the page's DOM is complete (not necessarily when all the images or CSS finish loading.)
+            // this is similar to the <body> tag's "onload" attribute. however, "onload" waits until all the other resources (CSS,
+            // images, etc.) are done loading, too. this way the construction of the table can start a bit sooner.
+            //
+            $(document).ready (function() { 
+
+                // check access status and forward to incex.html if access is denied.
+                //
+                $.getJSON (
+                    "/security?rnd=" + myRand(), // base URL
+                    null,                       // argument
+                    function(data) {            // callback function to parse data
+                        if (data.status == "error") {
+                            location = "/pdtoolgui/index.html?denied=true&rnd=" + myRand();
+                        }
+                    }
+                );
+
+                // update the navigation tabs by highlighting the correct tab
+                //
+                setActiveNavTab('nav_tab_modules'); 
+                
+                createAlertDialog();
+                createConfirmDialog();
+
+                // parse this page's URL query parameters
+                //
+                var queryParams = $.parseQuery(location.search);
+
+                // set the module path at the top of the page so the user knows what file he/she is working on.
+                // URL decode the string and HTML-escape any special characters.
+                //
+                $("#module_path").html (decodeURIComponent(queryParams.path.replace(/\+/g, " ")).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\s/g, "&nbsp;"));
+                
+                // set the active submenu item and set click event handlers on all submenu items
+                //
+                $("#nav_submenu_archive")         .click(function() {location='modules_archive.html'});
+                $("#nav_submenu_data_source")     .click(function() {location='modules_data_source.html'}).addClass("nav_submenu_item_active");
+                $("#nav_submenu_group")           .click(function() {location='modules_group.html'});
+                $("#nav_submenu_privilege")       .click(function() {location='modules_privilege.html'});
+                $("#nav_submenu_rebind")          .click(function() {location='modules_rebind.html'});
+                $("#nav_submenu_regression")      .click(function() {location='modules_regression.html'});
+                $("#nav_submenu_resource")        .click(function() {location='modules_resource.html'});
+                $("#nav_submenu_resource_cache")  .click(function() {location='modules_resource_cache.html'});
+                $("#nav_submenu_server_attribute").click(function() {location='modules_server_attribute.html'});
+                $("#nav_submenu_server_manager")  .click(function() {location='modules_server_manager.html'});
+                $("#nav_submenu_trigger")         .click(function() {location='modules_trigger.html'});
+                $("#nav_submenu_user")            .click(function() {location='modules_user.html'});
+                $("#nav_submenu_vcs")             .click(function() {location='modules_vcs.html'});
+                
+                // enable the more/less functions of the page description
+                //
+                //setCollapsable();
+
+                // enable tooltips over editor fields
+                //
+                setTooltips (TOOLTIPS["module_data_source"]);
+
+                // load the user's preferences.
+                //
+                var prefs;
+                $.getJSON (
+                    "/prefs?rnd=" + myRand(), // base URL
+                    null,                                         // argument
+                    function(data) {prefs = data;}                // callback function
+                );
+
+                // build the main table and populate with a REST/JSON call
+                //
+                list = $("#list")
+                    .jqGrid({
+                        url:'/data_source_module/' + encodeURIComponent (queryParams.path),
+                        datatype: 'json',
+                        mtype: 'GET',
+                        autoencode: true,
+                        colNames:['Data Source ID','Resource Path',  'Data Source Type'],
+                        colModel :[ 
+                            {name:'id', index:'id', width:100, classes:"idGridCell"},
+                            {name:'resourcePath', index:'resourcePath', width:500},
+                            {name:'type', index:'type', width:100}
+                        ],
+                        pager: '#pager',
+                        height: "auto",
+                        autowidth: true,
+                        rowNum:10,
+                        rowList:[10,20,50],
+                        recordtext: "Data Sources {0} - {1} of {2}",
+                        sortname: 'id',
+                        sortorder: 'asc',
+                        viewrecords: true,
+                        gridview: true,
+                        multiselect: true,
+
+                        // add a "before select row" event handler that blocks checking of the row's checkbox when the "id"
+                        // column is clicked, but opens the editor for the id instead. depends on the "idGridCell" class being
+                        // added to the column definition of the "id" column.
+                        //
+                        beforeSelectRow: function (rowid, e) {
+                            if ($(e.target).hasClass("idGridCell")) {
+                                
+                                $.getJSON (
+                                    "/data_source/" + encodeURIComponent (queryParams.path) + "?id=" + encodeURIComponent (rowid) + "&rnd=" + myRand(), // base URL
+                                    null,                                    // argument
+                                    setDialogData                            // callback function to parse data
+                                );
+        
+                                operation.val("edit");
+                                $("#addEditDialog").dialog ({title: "Edit Data Source"});
+                                $("#addEditDialog").dialog ("open");
+                                return false;
+                            } else {
+                                return true;
+                            }
+                        }
+                    }) // .jqGrid()
+                    
+                    .navGrid( // normally sets up buttons at bottom of grid, but we get rid of them so we can reorder the buttons below
+                        '#pager', 
+                        {
+                            edit: false,
+                            add: false,
+                            del: false,
+                            search: true,
+                            searchtitle: "Search for Data Source Elements"
+                        },  // nav
+                        {}, // edit
+                        {}, // add
+                        {}, // del
+                        {
+                            closeAfterSearch: true,
+                            closeAfterReset: true,
+                            closeOnEscape: true,
+                            resize: false,
+                            searchOnEnter: true
+                        }, // search
+                        {
+                            caption: "my view caption"
+                        }   // view
+                    )  // .navGrid()
+                    
+                    // set up custom buttons in the order we want. load them in reverse order so they can be placed in front of the search and refresh buttons.
+                    //
+                    .navButtonAdd(
+                        '#pager',
+                        {
+                            caption: "",
+                            buttonicon: "ui-icon-trash",
+                            onClickButton: function (jqEvent) { 
+                                var selList = list.getGridParam('selarrrow'); // list of selected rows
+
+                                if (selList.length == 0) {
+                                    myAlert ("Please select at least one data source element to delete.");
+                                    return false;
+                                }
+
+                                var args = "";
+                                var confirmList = "";
+                                for (var i = 0; i < selList.length; i++) {
+                                    if (i > 0) args += ",";
+                                    args += selList[i];
+    
+                                    if (i > 0) confirmList += "<br/>";
+                                    confirmList += decodeURIComponent (selList[i].replace (/\+/, " "));
+                                }
+                                
+                                myConfirm (
+                                    "Do you want to delete the following data source element(s)?<br/><br/>" + confirmList, 
+                                    function() {
+                                        $.ajax({  
+                                            type: "DELETE",
+                                            contentType: 'application/json',
+                                            url: "/data_source/" + encodeURIComponent (queryParams.path) + "?ids=" + encodeURIComponent (args) + "&rnd=" + myRand(), // base URL
+                                            dataType: "json",
+                                            success: function (data) {
+                                                processAjaxResult (
+                                                    data, 
+                                                    {
+                                                        useDialog:false, 
+                                                        reloadGrid:true
+                                                    }
+                                                );
+                                            },
+                                            // this should only happen when things get seriously wrong on the server
+                                            //
+                                            error: function(jqXHR, textStatus, errorThrown) {
+                                                myAlert ("textStatus = " + textStatus + "<br/>errorThrown = " + errorThrown);
+                                            }
+                                        }); 
+                                    }
+                                );
+                            },
+                            title: "Delete Data Source Element",
+                            position: "first"
+                        }
+                    )  // .navGrid()
+                    
+                    .navButtonAdd(
+                        '#pager',
+                        {
+                            caption: "",
+                            buttonicon: "ui-icon-copy",
+                            onClickButton: function (jqEvent) { 
+                                var selList = list.getGridParam('selarrrow'); // list of selected rows
+
+                                if (selList.length == 0) {
+                                    myAlert ("Please select at least one data source element to copy.");
+                                    return false;
+                                }
+
+                                var args = "";
+                                var confirmList = "";
+                                for (var i = 0; i < selList.length; i++) {
+                                    if (i > 0) args += ",";
+                                    args += selList[i];
+    
+                                    if (i > 0) confirmList += "<br/>";
+                                    confirmList += decodeURIComponent (selList[i]);
+                                }
+                                
+                                myConfirm (
+                                    "Do you want to copy the following data source element(s)?<br/><br/>" + confirmList, 
+                                    function() {
+                                        $.ajax({  
+                                            type: "POST",
+                                            contentType: 'application/json',
+                                            url: "/data_source/" + encodeURIComponent (queryParams.path) + "?ids=" + encodeURIComponent (args) + "&rnd=" + myRand(), // base URL
+                                            dataType: "json",
+                                            data: null,
+                                            success: function (data) {
+                                                processAjaxResult (
+                                                    data, 
+                                                    {
+                                                        useDialog:false, 
+                                                        reloadGrid:true
+                                                    }
+                                                );
+                                            },
+                                            // this should only happen when things get seriously wrong on the server
+                                            //
+                                            error: function(jqXHR, textStatus, errorThrown) {
+                                                myAlert ("textStatus = " + textStatus + "<br/>errorThrown = " + errorThrown);
+                                            }
+                                        }); 
+                                    }
+                                );
+                            },
+                            title: "Copy Data Source Element",
+                            position: "first"
+                        }
+                    )  // .navGrid()
+                    
+                    .navButtonAdd(
+                        '#pager',
+                        {
+                            caption: "",
+                            buttonicon: "ui-icon-pencil",
+                            onClickButton: function() {
+                                var selList = list.getGridParam('selarrrow');
+
+                                if (selList.length > 1) {
+                                    myAlert ("Cannot edit more than one item at a time.");
+                                    return false;
+                                } else if (selList.length == 0) {
+                                    myAlert ("Please select a data source element to edit.");
+                                    return false;
+                                }
+
+                                $.getJSON (
+                                    "/data_source/" + encodeURIComponent (queryParams.path) + "?id=" + encodeURIComponent (selList[0]), // base URL
+                                    null,                                         // argument
+                                    setDialogData                                 // callback function to parse data
+                                );
+
+                                operation.val("edit");
+                                $("#addEditDialog").dialog ({title: "Edit Data Source Element"});
+                                $("#addEditDialog").dialog ("open");
+                            },
+                            title: "Edit Data Source Element",
+                            position: "first"
+                        }
+                    )  // .navGrid()
+                    
+                    .navButtonAdd(
+                        '#pager',
+                        {
+                            caption: "",
+                            buttonicon: "ui-icon-plus",
+                            onClickButton: function() {
+                                operation.val("add");
+
+                                setDialogData({ // reset the form values to the defaults.
+                                    id: "",
+                                    origId: "",
+                                    type: DS_TYPE_GENERIC,
+                                    resourcePath: "",
+                                    resourceType: "DATA_SOURCE",
+                                    subtype: "",
+                                    dataSourceType: "",
+                                    hostname: "",
+                                    port: "",
+                                    databaseName: "",
+                                    login: "",
+                                    encryptedPassword: "",
+                                    valQuery: "",
+                                    reportDetail: "",
+                                    genericAttributes: [],
+                                    plans:[]
+                                });
+                                
+                                $("#addEditDialog").dialog ({title: "Add Data Source"});
+                                $("#addEditDialog").dialog ("open");
+                                id.focus();
+
+                            },
+                            title: "Add New Data Source Element",
+                            position: "first"
+                        }
+                    )  // .navGrid()
+                    
+                    .navButtonAdd(
+                        '#pager',
+                        {
+                            caption: "",
+                            buttonicon: "ui-icon-gear",
+                            onClickButton: function() {
+                            
+                                $("#profile_list").children().remove();
+                                
+                                setConfigProfileSelectData('#profile_list', prefs.defaultProfile);
+
+                                $("#server_list").children().remove();
+                                
+                                setServerSelectData ("#server_list", prefs.defaultServer);
+                                
+                                $("#generateDialog").dialog ("open");
+                            },
+                            title: "Auto-Generate Data Source Elements",
+                            position: "first"
+                        }
+                    ); // .navGrid()
+
+
+                $(window).bind('resize', function() {
+                    list.setGridWidth($(window).width() - 60); // 30 pixels of padding on either side of the jqGrid.
+                }).trigger('resize');
+                
+                // set up the add/edit dialog
+                //
+                var operation = $("#operation"),
+                    origId = $("#origId"),
+                    id = $("#id"),
+                    resourcePath = $("#resourcePath"),
+                    resourceType = $("#resourceType"),
+                    subtype = $("#subtype"),
+                    dataSourceType = $("#dataSourceType"),
+                    hostname = $("#hostname"),
+                    port = $("#port"),
+                    databaseName = $("#databaseName"),
+                    login = $("#login"),
+                    encryptedPassword = $("#encryptedPassword"),
+                    valQuery = $("#valQuery"),
+                    reportDetail = $("#reportDetail"),
+                    profile_list = $("#profile_list"),
+                    server_list = $("#server_list"),
+                    startPath = $("#startPath"),
+                    allFields = $([]).add (operation).add (origId).add (id).add (resourcePath).add (resourceType).add (subtype).add (dataSourceType)
+                                     .add (hostname).add (port).add (databaseName).add (login).add (encryptedPassword).add (valQuery).add (reportDetail)
+                                     .add (profile_list).add (server_list).add (startPath);
+
+                // populate the top level resource type select input in the add/edit dialog
+                // set it to "DATA_SOURCE" and disable it since we're supposed to be talking
+                // about data sources here.
+                //
+                setResourceTypeSelectData ("#resourceType", false);
+                resourceType
+                    .val ("DATA_SOURCE")
+                    .prop ("disabled", true);
+                
+                // populate the top level resource sub-type select input in the add/edit dialog
+                // with DATA_SOURCE subtypes.
+                //
+                setResourceSubTypeSelectData ("#subtype", "DATA_SOURCE", false);
+
+                $("#type").buttonset();
+                $("#updateAllIntrospectedResources").buttonset();
+                $("#failFast").buttonset();
+                $("#commitOnFailure").buttonset();
+                $("#autoRollback").buttonset();
+                $("#scanForNewResourcesToAutoAdd").buttonset();
+
+                // put a spinner widget on the port number field
+                //
+                $("#port").spinner ({min: 0});
+
+                // put a change event handler on the type radio that hides/shows the appropriate table rows.
+                //
+                $('#type input:radio').change (setDSFields);
+
+                // put a change event handler on the ds type select list to update the data source type attribute list
+                //
+                $('#dataSourceType').change (function() {
+                    // capture the current dialog data. (createJSON() returns a string so eval() is used to turn it into an object.)
+                    //
+                    var data = eval("(" + createJSON() + ')');
+
+                    // reset the data source attribute definitions and reload the generic attributes.
+                    //
+                    setDSAttributes (dataSourceType.val(), data.genericAttributes);
+                });
+
+
+                dialogMsg = $(".dialogMsg");
+
+                addEditDialog = $("#addEditDialog").dialog ({
+                    autoOpen: false,
+                    //height: 300,
+                    width: 950,
+                    modal: true,
+                    buttons: [ // declaring buttons this way lets us assign ID's to the buttons so they can be interacted with later.
+                        {
+                            id: "aeOkButton",
+                            text: "OK",
+                            click: function() {
+                                var actionType = (operation.val() == "add") ? "POST" : "PUT";
+                                var errMsg = "";
+                                
+                                allFields.removeClass ("ui-state-error");
+                                clearAEDialogMessage();
+                                $("#aeOkButton").button ("disable");
+                                
+                                var ajaxOpts = {  
+                                    type: actionType,
+                                    contentType: 'application/json',
+                                    url: "/data_source/" + encodeURIComponent (queryParams.path) + "?rnd=" + myRand(),
+                                    dataType: "json",
+                                    data: createJSON(),  
+                                    success: function (data) {
+                                        processAjaxResult (
+                                            data, 
+                                            {
+                                                useDialog:true, 
+                                                reloadGrid:true
+                                            }
+                                        );
+                                        $("#aeOkButton").button ("enable");
+                                    },
+                                    // this should only happen when things go seriously wrong on the server
+                                    //
+                                    error: function (jqXHR, textStatus, errorThrown) {
+                                        myAlert ("textStatus = " + textStatus + "<br>errorThrown = " + errorThrown);
+                                        $("#aeOkButton").button ("enable");
+                                    }
+                                }
+
+                                $.ajax(ajaxOpts);
+                            }
+                        }, {
+                            id: "aeCancelButton",
+                            text: "Cancel",
+                            click: function() {
+                                $(this).dialog ("close");
+                                $("#aeOkButton").button ("enable");
+                            }
+                        }
+                    ],
+                    // this is an event handler for when the dialog box closes (it can be closed in a number of ways.)
+                    // basically any error classes get cleared from the form elements and the message <div> is cleared.
+                    //
+                    close: function() {
+                        allFields.val ("").removeClass ("ui-state-error");
+                        clearAEDialogMessage();
+                        $("#aeOkButton").button ("enable");
+                    },
+                    // add a custom class to the OK button so that it can be addressed for disabling/enabling later
+                    //
+                    create: function () {
+                        $(this).closest(".ui-dialog")
+                            .find(".ui-button:first") // the first button
+                            .addClass("aeOkButton");
+                    }
+                }); // #addEditDialog
+                
+                // set up generate data sources dialog
+                //
+                genDialogMsg = $("#genDialogMsg");
+                generateDialog = $("#generateDialog").dialog ({
+                    autoOpen: false,
+                    //height: 300,
+                    width: 500,
+                    modal: true,
+                    buttons: [ // declaring buttons this way lets us assign ID's to the buttons so they can be interacted with later.
+                        {
+                            id: "genOkButton",
+                            text: "OK",
+                            click: function() {
+                                var errMsg = "";
+                                var profilePath = $("#profile_list").val();
+                                var serverId = $("#server_list").val();
+                                var startPath = $("#startPath").val();
+                                
+                                if (profilePath == null || profilePath.length == 0) {
+                                    errMsg += "Please choose a configuration profile.<br/>";
+                                    $("#profile_list").addClass ("ui-state-error");
+                                } 
+                                if (serverId == null || serverId.length == 0) {
+                                    errMsg += "Please choose a server.<br/>";
+                                    $("#server_list").addClass ("ui-state-error");
+                                } 
+                                if (startPath == null || startPath.length == 0) {
+                                    errMsg += "Please enter a starting path.<br/>";
+                                    $("#startPath").addClass ("ui-state-error");
+                                }
+                                if (errMsg.length > 0) {
+                                    myAlert (errMsg);
+                                    return false;
+                                }
+                                
+                                allFields.removeClass ("ui-state-error");
+                                updateGenDialogMessage('Gathering data sources ... <img src="images/spinner.gif" class="textAlignImg"/>');
+                                
+                                $("#genOkButton").button ("disable");
+                                
+                                var data = createJSON();
+
+                                var ajaxOpts = {  
+                                    type: "POST",
+                                    contentType: 'application/json',
+                                    url: "/data_source_module/" + encodeURIComponent (queryParams.path) + "?profilePath=" + encodeURIComponent (profilePath) + "&serverId=" + encodeURIComponent (serverId) + "&startPath=" + encodeURIComponent (startPath) + "&rnd=" + myRand(),
+                                    dataType: "json",
+                                    data: data,  
+                                    success: function (data) {
+                                        processGenerateResult(
+                                            data, 
+                                            {
+                                                useDialog:true, 
+                                                reloadGrid:true
+                                            }
+                                        );
+                                        $("#genOkButton").button ("enable");
+                                    },
+                                    // this should only happen when things go seriously wrong on the server
+                                    //
+                                    error: function (jqXHR, textStatus, errorThrown) {
+                                        myAlert ("textStatus = " + textStatus + "<br>errorThrown = " + errorThrown);
+                                        clearGenDialogMessage();
+                                        $("#genOkButton").button ("enable");
+                                    }
+                                }
+
+                                $.ajax(ajaxOpts);
+                            }
+                        }, {
+                            id: "genCancelButton",
+                            text: "Cancel",
+                            click: function() {
+                                $(this).dialog ("close");
+                                $("#genOkButton").button ("enable");
+                          
+                            }
+                        }
+                    ],
+                    // this is an event handler for when the dialog box closes (it can be closed in a number of ways.)
+                    // basically the OK button is re-enabled and the message <div> is cleared.
+                    //
+                    close: function() { 
+                        allFields.removeClass ("ui-state-error");
+                        clearGenDialogMessage();
+                        $("#genOkButton").button ("enable");
+                    },
+                    // add a custom class to the OK button so that it can be addressed for disabling/enabling later
+                    //
+                    create: function () {
+                        $(this).closest(".ui-dialog")
+                            .find(".ui-button:first") // the first button
+                            .addClass("genOkButton");
+                    }
+                }); // #generateDialog
+                
+                // sets the form values of the dialog box from a data object (typically returned from an AJAX call.)
+                //
+                function setDialogData (data) {
+                    id.val (data.id);
+                    origId.val (data.id);
+                    resourcePath.val (data.resourcePath);
+                    resourceType.val ("DATA_SOURCE");
+                    subtype.val ((data.subtype !== undefined && data.subtype != null && data.subtype != "undefined") ? data.subtype.toUpperCase() : "");
+                    hostname.val (data.hostname);
+                    port.val (data.port);
+                    databaseName.val (data.databaseName);
+                    login.val (data.login);
+                    encryptedPassword.val (data.encryptedPassword);
+                    valQuery.val (data.valQuery);
+                    reportDetail.val ((data.reportDetail !== undefined && data.reportDetail != null) ? data.reportDetail.toUpperCase() : "");
+                    
+                    $('#type_' + data.type).prop ("checked", "checked");
+                    $("#type").buttonset("refresh");
+
+                    // show the appropriate fields based on generic, relational, or introspect data source.
+                    //
+                    setDSFields();
+                    
+                    // remove any attribute and introspection plan rows
+                    //
+                    $('#addEditForm .dynamic_row').remove();
+                    attributesRowCount = 0;
+                    planEntriesRowCount = 0;
+                    
+                    // populate the data source types select list and set the value.
+                    //
+                    setDataSourceTypeSelectData ("#dataSourceType", (data.dataSourceType !== undefined && data.dataSourceType != null) ? data.dataSourceType : "");
+                    
+                    // update the global data source attributes list and populate the generic attributes
+                    // after the attributes list is loaded.
+                    //
+                    setDSAttributes (data.dataSourceType, data.genericAttributes);
+
+                    //setGenericAttributes (data.genericAttributes);
+
+                    // populate the introspection plan steps
+                    //
+                    if (data.plans == null || data.plans.length == 0) {
+                        data.plans = [{
+                            updateAllIntrospectedResources: "false",
+                            failFast: "false",
+                            commitOnFailure: "false",
+                            autoRollback: "false",
+                            scanForNewResourcesToAutoAdd: "false",
+                            planEntries: null
+                        }];
+                    }
+
+                    $('#updateAllIntrospectedResources_' + data.plans[0].updateAllIntrospectedResources).prop ("checked", "checked");
+                    $("#updateAllIntrospectedResources").buttonset("refresh");
+
+                    $('#failFast_' + data.plans[0].failFast).prop ("checked", "checked");
+                    $("#failFast").buttonset("refresh");
+
+                    $('#commitOnFailure_' + data.plans[0].commitOnFailure).prop ("checked", "checked");
+                    $("#commitOnFailure").buttonset("refresh");
+
+                    $('#autoRollback_' + data.plans[0].autoRollback).prop ("checked", "checked");
+                    $("#autoRollback").buttonset("refresh");
+
+                    $('#scanForNewResourcesToAutoAdd_' + data.plans[0].scanForNewResourcesToAutoAdd).prop ("checked", "checked");
+                    $("#scanForNewResourcesToAutoAdd").buttonset("refresh");
+                    
+                    if (data.plans[0].planEntries != null && data.plans[0].planEntries.length > 0) {
+                        for (var i = 0; i < data.plans[0].planEntries.length; i++) {
+                            var pe = data.plans[0].planEntries[i];
+
+                            if (pe.resourcePath == null || pe.resourcePath.length == 0)
+                                continue;
+    
+                            addPlanEntriesRow();
+                            
+                            var rownum = planEntriesRowCount - 1;
+                        
+                            $('#pe_resourcePath_' + rownum).val(pe.resourcePath);
+                            $('#pe_resourceType_' + rownum).val(pe.resourceType);
+                            $('#pe_subtype_' + rownum).val(pe.subtype);
+                            $('#pe_action_' + rownum).val(pe.action);
+                            
+                            setResourceSubTypeSelectData ("#pe_subtype_" + rownum, ((pe.resourceType != "") ? pe.resourceType : "none"), true);
+                            
+                        }
+                    } else {
+                        // add a blank row if there are no introspection plan entry elements.
+                        //
+                        addPlanEntriesRow();
+                    }
+                    
+                } // setDialogData()
+                
+                // creates a JSON artifact for sending with AJAX queries. Jackson on the server side is very particular
+                // about the format of JSON objects: double quoted attributes AND values.
+                //
+                function createJSON() {
+                    var attributes = new Array();
+                    for (var i = 0; i < attributesRowCount; i++) {
+                        
+                        // make sure the row hasn't been deleted by the user
+                        //
+                        if ($("#attributes_row_" + i).length > 0 && $('#attr_name_' + i).val().length > 0) {
+                            var attr = {
+                                "name": $('#attr_name_' + i).val(),
+                                "type": $('#attr_type_' + i).val()
+                            };
+                            
+                            var type = $('#attr_type_' + i).val();
+                            if (type.match (/_ARRAY$/)) {
+                                attr["valueArray"] = attrArrays[i];
+                            } else if (type == "LIST") {
+                                attr["valueList"] = attrLists[i];
+                            } else if (type == "MAP") {
+                                attr["valueMap"] = attrMaps[i];
+                            } else if (type == "PASSWORD_STRING") {
+                                attr["value"] = $('#attr_value_' + i + '_pass').val();
+                            } else if (type == "BOOLEAN") {
+                                attr["value"] = $('#attr_value_' + i + '_bool input:radio:checked').val();
+                            } else {
+                                attr["value"] = $('#attr_value_' + i + '_text').val();
+                            }
+                            
+                            attributes.push (attr);
+                        }
+                    }
+                    
+                    var plans = new Array();
+                    var planEntries = new Array();
+
+                    for (var i = 0; i < planEntriesRowCount; i++) {
+                        
+                        // make sure the row hasn't been deleted by the user and that the resource path is filled in
+                        //
+                        if ($("#plan_entries_row_" + i).length > 0 && $('#pe_resourcePath_' + i).val().length > 0) {
+                            planEntries.push({
+                                "resourcePath": $('#pe_resourcePath_' + i).val(),
+                                "resourceType": $('#pe_resourceType_' + i).val(),
+                                "subtype": $('#pe_subtype_' + i).val(),
+                                "action": $('#pe_action_' + i).val()
+                            });
+                        }
+                    }
+                    
+                    plans.push({
+                        "updateAllIntrospectedResources": $('#updateAllIntrospectedResources input:radio:checked').val(),
+                        "failFast": $('#failFast input:radio:checked').val(),
+                        "commitOnFailure": $('#commitOnFailure input:radio:checked').val(),
+                        "autoRollback": $('#autoRollback input:radio:checked').val(),
+                        "scanForNewResourcesToAutoAdd": $('#scanForNewResourcesToAutoAdd input:radio:checked').val(),
+                        "planEntries": planEntries
+                    });
+                    
+                    var data = {
+                        "operation" : operation.val(),
+                        "origId" : origId.val(),
+                        "id" : id.val(),
+                        "type" : $('#type input:radio:checked').val(),
+                        "resourcePath" : resourcePath.val(),
+                        "resourceType" : resourceType.val(),
+                        "subtype" : subtype.val(),
+                        "dataSourceType" : dataSourceType.val(),
+                        "hostname" : hostname.val(),
+                        "port" : port.val(),
+                        "databaseName" : databaseName.val(),
+                        "login" : login.val(),
+                        "encryptedPassword" : encryptedPassword.val(),
+                        "valQuery" : valQuery.val(),
+                        "reportDetail" : reportDetail.val(),
+                        "genericAttributes" : attributes,
+                        "plans" : plans
+                    };
+                    
+                    return JSON.stringify (data);
+                }
+                
+                var planEntriesRowCount = 0;
+
+                // set up the add group button in the add/edit. use the same click event handler code
+                // as the AJAX callback does.
+                //
+                $("#plan_entries_add")
+                    .button()
+                    .click(addPlanEntriesRow);
+                
+                // creates a row containing the form elements for an attribute entry in the add/edit dialog.
+                //
+                function addPlanEntriesRow() {
+                    // add the html code before the "add new attribute" button container row.
+                    //
+                    $('#plan_entries_add_row').before (function() {
+                         return '<tr id="plan_entries_row_' + planEntriesRowCount + '" class="plan_entries_row dynamic_row">\n' +
+                                '    <td><input type="text" name="pe_resourcePath_' + planEntriesRowCount + '" id="pe_resourcePath_' + planEntriesRowCount + '" class="text ui-widget-content ui-corner-all dynamic_row_value" /></td>\n' +
+                                '    <td>\n' +
+                                '        <select name="pe_resourceType_' + planEntriesRowCount + '" id="pe_resourceType_' + planEntriesRowCount + '" class="dynamic_row_value">\n' +
+                                '        </select>\n' +
+                                '    </td>\n' +
+                                '    <td>\n' +
+                                '        <select name="pe_subtype_' + planEntriesRowCount + '" id="pe_subtype_' + planEntriesRowCount + '" class="dynamic_row_value">\n' +
+                                '        </select>\n' +
+                                '    </td>\n' +
+                                '    <td>\n' +
+                                '        <select name="pe_action_' + planEntriesRowCount + '" id="pe_action_' + planEntriesRowCount + '" class="dynamic_row_value">\n' +
+                                '            <option value="ADD_OR_UPDATE">Add/Update</option>\n' +
+                                '            <option value="ADD_OR_UPDATE_RECURSIVELY">Add/Update Recursively</option>\n' +
+                                '            <option value="REMOVE">Remove</option>\n' +
+                                '        </select>\n' +
+                                '    </td>\n' +
+                                '    <td><div id="plan_entries_row_' + planEntriesRowCount + '_del" title="Delete Plan Entry" >Delete Plan Entry</div></td>\n' +
+                                '</tr>\n';
+                    });
+                    
+                    // populate the resource type select list
+                    //
+                    setResourceTypeSelectData ("#pe_resourceType_" + planEntriesRowCount, true);
+                    setResourceSubTypeSelectData ("#pe_subtype_" + planEntriesRowCount, "none", true);
+                    
+                    $("#pe_resourceType_" + planEntriesRowCount)
+                        .data ('rownum', planEntriesRowCount) // attach the row number as a bit of data that the click handler can reference.
+                        .change (function() {
+                            var rownum = $(this).data ('rownum');
+                            var typeSelect = "#pe_resourceType_" + rownum;
+                            var subTypeSelect = "#pe_subtype_" + rownum;
+                            var resType = ($(typeSelect).val() != "") ? $(typeSelect).val() : "none";
+                            setResourceSubTypeSelectData (subTypeSelect, resType, true);
+                        });
+
+                    // add a click event handler to the delete button to delete the group when clicked.
+                    //
+                    $("#plan_entries_row_" + planEntriesRowCount + "_del")
+                        .button({
+                            icons: {
+                                primary: "ui-icon-trash"
+                            },
+                            text: false
+                        })
+                        .data ('rownum', planEntriesRowCount)
+                        .click(function() {
+                            $('#plan_entries_row_' + $(this).data ('rownum')).remove();
+                            if ($('.plan_entries_row').length == 0) {
+                                addPlanEntriesRow();
+                            }
+                        });
+
+                    planEntriesRowCount++;
+                    
+                    return false;
+                }
+                
+                // set up the add attribute button in the add/edit dialog. use the same click event handler code
+                // as the AJAX callback does.
+                //
+                $("#attributes_add")
+                    .button()
+                    .click(addAttributesRow);
+                
+
+                // create the attribute value map dialog
+                //
+                var attrArrayDialog = createAttributeArrayDialog("#attrArrayDialog");
+
+                // create the attribute value map dialog
+                //
+                var attrListDialog = createAttributeListDialog("#attrListDialog");
+
+                // create the attribute value map dialog
+                //
+                var attrMapDialog = createAttributeMapDialog("#attrMapDialog");
+
+                // set up the add array button in the array attribute dialog. use the same click event handler code
+                // as the AJAX callback does.
+                //
+                $("#array_add")
+                    .button()
+                    .click(addArraysRow);
+
+                // set up the add list button in the list attribute dialog. use the same click event handler code
+                // as the AJAX callback does.
+                //
+                $("#list_add")
+                    .button()
+                    .click(addListsRow);
+
+                // set up the add map button in the map attribute dialog. use the same click event handler code
+                // as the AJAX callback does.
+                //
+                $("#map_add")
+                    .button()
+                    .click(addMapsRow);
+
+            }); // $(document).ready()
+            
+                
+        </script>
+<!-- InstanceEndEditable -->
+    </head>
+<!-- InstanceBeginEditable name="bodytag" -->
+    <body class="page">
+<!-- InstanceEndEditable -->
+        <div class="header">
+            <div class="logo" onClick="javascript:location='index.html'"><img src="images/cisco_logo.png"/></div>
+            <div class="app_title" onClick="javascript:location='index.html'">Promotion &amp; Deployment Tool</div>
+        </div>
+        <div class="nav_container">
+            <div class="nav_tab_container"><!-- divs are floated right so listed in reverse order -->
+                <div class="nav_tab_spacer"></div>
+                <div id="nav_tab_execute" class="nav_tab" onClick="javascript:location='execute.html'">
+                    <div class="nav_tab_left"></div>
+                    <div class="nav_tab_center">EXECUTE</div>
+                    <div class="nav_tab_right"></div>
+                </div>
+                <div id="nav_tab_modules" class="nav_tab" onClick="javascript:location='modules.html'">
+                    <div class="nav_tab_left"></div>
+                    <div class="nav_tab_center">MODULES</div>
+                    <div class="nav_tab_right"></div>
+                </div>
+                <div id="nav_tab_plans" class="nav_tab" onClick="javascript:location='dep_plans.html'">
+                    <div class="nav_tab_left"></div>
+                    <div class="nav_tab_center">PLANS</div>
+                    <div class="nav_tab_right"></div>
+                </div>
+                <div id="nav_tab_configuration" class="nav_tab" onClick="javascript:location='config_preferences.html'">
+                    <div class="nav_tab_left"></div>
+                    <div class="nav_tab_center">CONFIGURATION</div>
+                    <div class="nav_tab_right"></div>
+                </div>
+            </div>
+            <div class="nav_base"></div>
+            <div class="nav_submenu_container">
+                <div class="nav_submenu_items">
+<!-- InstanceBeginEditable name="nav_submenu" -->
+                    <div id="nav_submenu_archive"          class="nav_submenu_item">Archive</div>
+                    <div id="nav_submenu_data_source"      class="nav_submenu_item">Data&nbsp;Source</div>
+                    <div id="nav_submenu_group"            class="nav_submenu_item">Group</div>
+                    <div id="nav_submenu_privilege"        class="nav_submenu_item">Privilege</div>
+                    <div id="nav_submenu_rebind"           class="nav_submenu_item">Rebind</div>
+                    <div id="nav_submenu_regression"       class="nav_submenu_item">Regression</div>
+                    <div id="nav_submenu_resource"         class="nav_submenu_item">Resource</div>
+                    <div id="nav_submenu_resource_cache"   class="nav_submenu_item" style="clear: left;">Resource Cache</div>
+                    <div id="nav_submenu_server_attribute" class="nav_submenu_item">Server&nbsp;Attribute</div>
+                    <div id="nav_submenu_server_manager"   class="nav_submenu_item">Server&nbsp;Manager</div>
+                    <div id="nav_submenu_trigger"          class="nav_submenu_item">Trigger</div>
+                    <div id="nav_submenu_user"             class="nav_submenu_item">User</div>
+                    <div id="nav_submenu_vcs"              class="nav_submenu_item">VCS</div>
+<!-- InstanceEndEditable -->
+                </div>
+                <div class="nav_submenu_right"><img src="images/nav_submenu_right.png"/></div>
+            </div>
+        </div>
+        <div class="page_content">
+            <div class="page_title_container">
+                <div class="page_title">
+<!-- InstanceBeginEditable name="page_title" -->
+                    DATA SOURCE MODULE: <span id="module_path"></span>
+<!-- InstanceEndEditable -->
+                </div>
+                <div class="page_description">
+<!-- InstanceBeginEditable name="page_description" -->
+                    <div class="collapsable"><!-- used with the setCollapsable() function above -->
+                        <div class="collapsable-content">
+                            Data source module entries are used to update the attributes of a particular relational
+                            or generic data source or to perform introspection operations on a data source where 
+                            data source resources are added and/or removed.
+                        </div>
+                    </div>
+<!-- InstanceEndEditable -->
+                </div>
+            </div>
+<!-- InstanceBeginEditable name="content" -->
+            <div class="table_container">
+                <table id="list"></table> <!-- table generated and populated by jqGrid in header -->
+                <div id="pager"></div> 
+            </div>
+            <div id="addEditDialog" title="Add Data Source" class="dialog">
+                <p class="dialogMsg"></p>
+                <form id="addEditForm">
+                    <fieldset>
+                    <input type="hidden" name="operation" id="operation" />
+                    <input type="hidden" name="origId" id="origId" />
+                    <table cellpadding="0" cellspacing="0">
+                        <tbody>
+                            <tr>
+                                <td><label for="id" class="dialog_label">Data Source ID</label></td>
+                                <td><input type="text" name="id" id="id" class="text ui-widget-content ui-corner-all" /></td>
+                            </tr>
+                            <tr>
+                                <td><label for="type" class="tabs_form_label">Type</label></td>
+                                <td>
+                                    <div id="type">
+                                        <input type="radio" name="type" id="type_0" value="0" /><label for="type_0">Generic</label>
+                                        <input type="radio" name="type" id="type_1" value="1" /><label for="type_1">Relational</label>
+                                        <input type="radio" name="type" id="type_2" value="2" /><label for="type_2">Introspect</label>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><label for="resourcePath" class="dialog_label">Resource Path</label></td>
+                                <td><input type="text" name="resourcePath" id="resourcePath" size="60" class="text ui-widget-content ui-corner-all" /></td>
+                            </tr>
+                            <tr class="relational_input generic_input">
+                                <td><label for="resourceType" class="dialog_label">Resource Type</label></td>
+                                <td><select name="resourceType" id="resourceType"></select></td>
+                            </tr>
+                            <tr class="relational_input generic_input">
+                                <td><label for="subtype" class="dialog_label">Resource Sub-Type</label></td>
+                                <td><select name="subtype" id="subtype"></select></td>
+                            </tr>
+                            <tr class="relational_input generic_input">
+                                <td><label for="dataSourceType" class="dialog_label">Data Source Type</label></td>
+                                <td><select name="dataSourceType" id="dataSourceType" ></select></td>
+                            </tr>
+                            <tr class="relational_input">
+                                <td><label for="hostname" class="dialog_label">Host Name</label></td>
+                                <td><input type="text" name="hostname" id="hostname" class="text ui-widget-content ui-corner-all" /></td>
+                            </tr>
+                            <tr class="relational_input">
+                                <td><label for="port" class="dialog_label">Port</label></td>
+                                <td><input type="text" name="port" id="port" size="6" class="text ui-widget-content ui-corner-all" /></td>
+                            </tr>
+                            <tr class="relational_input">
+                                <td><label for="databaseName" class="dialog_label">Database Name</label></td>
+                                <td><input type="text" name="databaseName" id="databaseName" class="text ui-widget-content ui-corner-all" /></td>
+                            </tr>
+                            <tr class="relational_input">
+                                <td><label for="login" class="dialog_label">Login</label></td>
+                                <td><input type="text" name="login" id="login" class="text ui-widget-content ui-corner-all" /></td>
+                            </tr>
+                            <tr class="relational_input">
+                                <td><label for="encryptedPassword" class="dialog_label">Password</label></td>
+                                <td><input type="password" name="encryptedPassword" id="encryptedPassword" class="text ui-widget-content ui-corner-all" /></td>
+                            </tr>
+                            <tr class="relational_input">
+                                <td><label for="valQuery" class="dialog_label">Validation Query</label></td>
+                                <td><input type="text" name="valQuery" id="valQuery" size="80" class="text ui-widget-content ui-corner-all" /></td>
+                            </tr>
+                            <tr class="introspect_input">
+                                <td><label for="reportDetail" class="tabs_form_label">Report Detail Level</label></td>
+                                <td>
+                                    <select id="reportDetail" name="reportDetail">
+                                        <option value="">(Choose Report Detail...)</option>
+                                        <option value="SUMMARY">Summary</option>
+                                        <option value="SIMPLE">Simple</option>
+                                        <option value="SIMPLE_COMPRESSED">Simple (Compressed)</option>
+                                        <option value="FULL">Full</option>
+                                    </select>
+                                </td>
+                            </tr>
+                            <tr class="introspect_input">
+                                <td><label for="updateAllIntrospectedResources" class="tabs_form_label">Update All Introspected Resources?</label></td>
+                                <td>
+                                    <div id="updateAllIntrospectedResources">
+                                        <input type="radio" name="updateAllIntrospectedResources" id="updateAllIntrospectedResources_true" value="true" /><label for="updateAllIntrospectedResources_true">True</label>
+                                        <input type="radio" name="updateAllIntrospectedResources" id="updateAllIntrospectedResources_false" value="false" /><label for="updateAllIntrospectedResources_false">False</label>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr class="introspect_input">
+                                <td><label for="failFast" class="tabs_form_label">Fail Fast?</label></td>
+                                <td>
+                                    <div id="failFast">
+                                        <input type="radio" name="failFast" id="failFast_true" value="true" /><label for="failFast_true">True</label>
+                                        <input type="radio" name="failFast" id="failFast_false" value="false" /><label for="failFast_false">False</label>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr class="introspect_input">
+                                <td><label for="commitOnFailure" class="tabs_form_label">Commit On Failure?</label></td>
+                                <td>
+                                    <div id="commitOnFailure">
+                                        <input type="radio" name="commitOnFailure" id="commitOnFailure_true" value="true" /><label for="commitOnFailure_true">True</label>
+                                        <input type="radio" name="commitOnFailure" id="commitOnFailure_false" value="false" /><label for="commitOnFailure_false">False</label>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr class="introspect_input">
+                                <td><label for="autoRollback" class="tabs_form_label">Auto Rollback?</label></td>
+                                <td>
+                                    <div id="autoRollback">
+                                        <input type="radio" name="autoRollback" id="autoRollback_true" value="true" /><label for="autoRollback_true">True</label>
+                                        <input type="radio" name="autoRollback" id="autoRollback_false" value="false" /><label for="autoRollback_false">False</label>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr class="introspect_input">
+                                <td><label for="scanForNewResourcesToAutoAdd" class="tabs_form_label">Scan For New Resources To Auto-Add?</label></td>
+                                <td>
+                                    <div id="scanForNewResourcesToAutoAdd">
+                                        <input type="radio" name="scanForNewResourcesToAutoAdd" id="scanForNewResourcesToAutoAdd_true" value="true" /><label for="scanForNewResourcesToAutoAdd_true">True</label>
+                                        <input type="radio" name="scanForNewResourcesToAutoAdd" id="scanForNewResourcesToAutoAdd_false" value="false" /><label for="scanForNewResourcesToAutoAdd_false">False</label>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <hr class="introspect_input" />
+                    <table cellpadding="0" cellspacing="0" class="introspect_input">
+                        <tbody>
+                            <tr>
+                                <td colspan="3">Introspection Plan</td>
+                            </tr>
+                            <tr>
+                                <td><label for="int_res_path" class="tabs_form_label">Resource Path</label></td>
+                                <td><label for="int_res_type" class="tabs_form_label">Type</label></td>
+                                <td><label for="int_res_subtype" class="tabs_form_label">Subtype</label></td>
+                                <td><label for="int_res_action" class="tabs_form_label">Action</label></td>
+                                <td></td>
+                            </tr>
+                            <tr id="plan_entries_add_row">
+                                <td colspan="3"><div id="plan_entries_add">Add Plan Entries</div></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <table cellpadding="0" cellspacing="0" id="attributes_list" class="relational_input generic_input" >
+                        <tbody>
+                            <tr>
+                                <td colspan="4">
+                                    <hr/>
+                                    Attributes
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><label for="attr_name" class="tabs_form_label">Name</label></td>
+                                <td><label for="attr_type" class="tabs_form_label">Type</label></td>
+                                <td><label for="attr_value" class="tabs_form_label">Value</label></td>
+                                <td></td>
+                            </tr>
+                            <tr id="attributes_add_row">
+                                <td colspan="4"><div id="attributes_add">Add Attribute</div></td>
+                            </tr>
+                            <tr>
+                                <td colspan="4"><span id="custom_warning" class="note">* NOTE: "Custom" attributes are displayed when either the data source type (above) hasn't been set or to signify attributes that don't match existing, user-modifiable, and/or visible attributes in the <a href="config_preferences.html" style="text-decoration: underline">default server</a>'s repository. These may or may not be quietly ignored when deployed to the target server.</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    </fieldset>
+                </form>
+            </div>
+            <div id="generateDialog" title="Auto-Generate Data Sources" class="dialog">
+                <form id="generateForm">
+                    <fieldset>
+                    <input type="hidden" name="operation" id="operation" />
+                    <input type="hidden" name="origId" id="origId" />
+                    <table cellpadding="0" cellspacing="0">
+                        <tbody>
+                            <tr>
+                                <td><label for="profile_list" class="dialog_label">Configuration Profile</label></td>
+                                <td><select id="profile_list"></select>&nbsp;&nbsp;<a href="/pdtoolgui/config_dep_conf_files.html"><img src="images/edit.gif" border="0" alt="edit_profiles"/></a></td>
+                            </tr>
+                            <tr>
+                                <td><label for="server_list" class="dialog_label">Server ID</label></td>
+                                <td><select id="server_list"></select>&nbsp;&nbsp;<a href="/pdtoolgui/config_servers.html"><img src="images/edit.gif" border="0" alt="edit_servers"/></a></td>
+                            </tr>
+                            <tr>
+                                <td><label for="startPath" class="dialog_label">Starting Folder</label></td>
+                                <td><input type="text" name="startPath" id="startPath" class="text ui-widget-content ui-corner-all" /></td>
+                                <td></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    </fieldset>
+                </form>
+                <p id="genDialogMsg"></p>
+            </div>
+            <div id="attrArrayDialog" title="Array Attribute" class="dialog">
+                <form id="attrArrayForm">
+                    <fieldset>
+                    <input type="hidden" name="aaAttrRowId" id="aaAttrRowId" />
+                    <input type="hidden" name="attrArrayType" id="attrArrayType" />
+                    <table cellpadding="0" cellspacing="0">
+                        <tbody>
+                            <tr>
+                                <td><label class="tabs_form_label">Value</label></td>
+                                <td></td>
+                            </tr>
+                            <tr id="arrays_add_row">
+                                <td colspan="3"><div id="array_add">Add Value</div></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    </fieldset>
+                </form>
+            </div>
+            <div id="attrListDialog" title="List Attribute" class="dialog">
+                <form id="attrListForm">
+                    <fieldset>
+                    <input type="hidden" name="alAttrRowId" id="alAttrRowId" />
+                    <table cellpadding="0" cellspacing="0">
+                        <tbody>
+                            <tr>
+                                <td><label class="tabs_form_label">Type</label></td>
+                                <td><label class="tabs_form_label">Value</label></td>
+                                <td></td>
+                            </tr>
+                            <tr id="lists_add_row">
+                                <td colspan="3"><div id="list_add">Add Value</div></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    </fieldset>
+                </form>
+            </div>
+            <div id="attrMapDialog" title="Map Attribute" class="dialog">
+                <form id="attrMapForm">
+                    <fieldset>
+                    <input type="hidden" name="amAttrRowId" id="amAttrRowId" />
+                    <table cellpadding="0" cellspacing="0">
+                        <tbody>
+                            <tr>
+                                <td><label class="tabs_form_label">Key</label></td>
+                                <td><label class="tabs_form_label">Value Type</label></td>
+                                <td><label class="tabs_form_label">Value</label></td>
+                                <td></td>
+                            </tr>
+                            <tr id="maps_add_row">
+                                <td colspan="3"><div id="map_add">Add Value</div></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    </fieldset>
+                </form>
+            </div>
+            <div id="alertDialog" title="Alert" class="dialog">
+                <p id="alertDialogMessage"></p>
+            </div>
+            <div id="confirmDialog" title="Confirm" class="dialog">
+                <p id="confirmDialogMessage"></p>
+            </div>
+<!-- InstanceEndEditable -->
+        </div>
+    </body>
+<!-- InstanceEnd --></html>

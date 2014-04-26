@@ -1,0 +1,1088 @@
+<!DOCTYPE html>
+<html><!-- InstanceBegin template="/Templates/pdtoolgui.dwt" codeOutsideHTMLIsLocked="false" -->
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<!-- InstanceBeginEditable name="doctitle" -->
+        <title>PDTool: Modules - Privilege</title>
+<!-- InstanceEndEditable -->
+        <link rel="stylesheet" type="text/css" href="css/styles.css">
+        <link rel="stylesheet" type="text/css" href="css/smoothness/jquery-ui-1.10.2.custom.css" />
+        <link rel="stylesheet" type="text/css" href="css/ui.jqgrid.css" />
+        <script type="text/javascript" src="js/jquery-1.9.1.js"></script>
+        <script type="text/javascript" src="js/jquery-ui-1.10.2.custom.js"></script>
+        <script type="text/javascript" src="js/i18n/grid.locale-en.js"></script>
+        <script type="text/javascript" src="js/jquery.jqGrid.src.js"></script>
+        <script type="text/javascript" src="js/jquery-queryParser.min.js"></script>
+        <script type="text/javascript" src="js/pdtoolgui.js"></script>
+        <script type="text/javascript" src="js/pdtoolgui_docs_en.js"></script>
+<!-- InstanceBeginEditable name="head" -->
+        <script language="javascript">
+        
+            // set an event handler to fire when the page's DOM is complete (not necessarily when all the images or CSS finish loading.)
+            // this is similar to the <body> tag's "onload" attribute. however, "onload" waits until all the other resources (CSS,
+            // images, etc.) are done loading, too. this way the construction of the table can start a bit sooner.
+            //
+            $(document).ready (function() { 
+
+                // check access status and forward to incex.html if access is denied.
+                //
+                $.getJSON (
+                    "/security?rnd=" + myRand(), // base URL
+                    null,                       // argument
+                    function(data) {            // callback function to parse data
+                        if (data.status == "error") {
+                            location = "/pdtoolgui/index.html?denied=true&rnd=" + myRand();
+                        }
+                    }
+                );
+
+                // update the navigation tabs by highlighting the correct tab
+                //
+                setActiveNavTab('nav_tab_modules'); 
+                
+                createAlertDialog();
+                createConfirmDialog();
+
+                // parse this page's URL query parameters
+                //
+                var queryParams = $.parseQuery(location.search);
+
+                // set the module path at the top of the page so the user knows what file he/she is working on.
+                // URL decode the string and HTML-escape any special characters.
+                //
+                $("#module_path").html (decodeURIComponent(queryParams.path.replace(/\+/g, " ")).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\s/g, "&nbsp;"));
+                
+                // set the active submenu item and set click event handlers on all submenu items
+                //
+                $("#nav_submenu_archive")         .click(function() {location='modules_archive.html'});
+                $("#nav_submenu_data_source")     .click(function() {location='modules_data_source.html'});
+                $("#nav_submenu_group")           .click(function() {location='modules_group.html'});
+                $("#nav_submenu_privilege")       .click(function() {location='modules_privilege.html'}).addClass("nav_submenu_item_active");
+                $("#nav_submenu_rebind")          .click(function() {location='modules_rebind.html'});
+                $("#nav_submenu_regression")      .click(function() {location='modules_regression.html'});
+                $("#nav_submenu_resource")        .click(function() {location='modules_resource.html'});
+                $("#nav_submenu_resource_cache")  .click(function() {location='modules_resource_cache.html'});
+                $("#nav_submenu_server_attribute").click(function() {location='modules_server_attribute.html'});
+                $("#nav_submenu_server_manager")  .click(function() {location='modules_server_manager.html'});
+                $("#nav_submenu_trigger")         .click(function() {location='modules_trigger.html'});
+                $("#nav_submenu_user")            .click(function() {location='modules_user.html'});
+                $("#nav_submenu_vcs")             .click(function() {location='modules_vcs.html'});
+
+                // enable the more/less functions of the page description
+                //
+                //setCollapsable();
+
+                // enable tooltips over editor fields
+                //
+                setTooltips (TOOLTIPS["module_privilege"]);
+
+                // load the user's preferences.
+                //
+                var prefs;
+                $.getJSON (
+                    "/prefs?rnd=" + myRand(), // base URL
+                    null,                                         // argument
+                    function(data) {prefs = data;}                // callback function
+                );
+
+                // build the main table and populate with a REST/JSON call
+                //
+                list = $("#list")
+                    .jqGrid({
+                        url:'/privilege_module/' + encodeURIComponent (queryParams.path),
+                        datatype: 'json',
+                        mtype: 'GET',
+                        autoencode: true,
+                        colNames:['Privilege ID','Resource Path',  'Type', 'Recurse', 'Mode'],
+                        colModel :[ 
+                            {name:'id', index:'id', width:100, classes:"idGridCell"},
+                            {name:'resourcePath', index:'resourcePath', width:400},
+                            {name:'resourceType', index:'resourceType', width:100},
+                            {name:'recurse', index:'recurse', width:50, fixed:true, align:'center', editable: true, edittype: 'checkbox', editoptions: {value: "true:false"},formatter: "checkbox", formatoptions: {disabled: true}},
+                            {name:'mode', index:'mode', width:100}
+                        ],
+                        pager: '#pager',
+                        height: "auto",
+                        autowidth: true,
+                        rowNum:10,
+                        rowList:[10,20,50],
+                        recordtext: "Privileges {0} - {1} of {2}",
+                        sortname: 'id',
+                        sortorder: 'asc',
+                        viewrecords: true,
+                        gridview: true,
+                        multiselect: true,
+
+                        // add a "before select row" event handler that blocks checking of the row's checkbox when the "id"
+                        // column is clicked, but opens the editor for the id instead. depends on the "idGridCell" class being
+                        // added to the column definition of the "id" column.
+                        //
+                        beforeSelectRow: function (rowid, e) {
+                            if ($(e.target).hasClass("idGridCell")) {
+                                
+                                $.getJSON (
+                                    "/privilege/" + encodeURIComponent (queryParams.path) + "?id=" + encodeURIComponent (rowid) + "&rnd=" + myRand(), // base URL
+                                    null,                                    // argument
+                                    setDialogData                            // callback function to parse data
+                                );
+        
+                                operation.val("edit");
+                                $("#tabs").tabs({ active: 0 });
+                                $("#addEditDialog").dialog ({title: "Edit Privilege"});
+                                $("#addEditDialog").dialog ("open");
+                                return false;
+                            } else {
+                                return true;
+                            }
+                        }
+                    }) // .jqGrid()
+                    
+                    .navGrid( // normally sets up buttons at bottom of grid, but we get rid of them so we can reorder the buttons below
+                        '#pager', 
+                        {
+                            edit: false,
+                            add: false,
+                            del: false,
+                            search: true,
+                            searchtitle: "Search for Privilege Elements"
+                        },  // nav
+                        {}, // edit
+                        {}, // add
+                        {}, // del
+                        {
+                            closeAfterSearch: true,
+                            closeAfterReset: true,
+                            closeOnEscape: true,
+                            resize: false,
+                            searchOnEnter: true
+                        }, // search
+                        {
+                            caption: "my view caption"
+                        }   // view
+                    )  // .navGrid()
+                    
+                    // set up custom buttons in the order we want. load them in reverse order so they can be placed in front of the search and refresh buttons.
+                    //
+                    .navButtonAdd(
+                        '#pager',
+                        {
+                            caption: "",
+                            buttonicon: "ui-icon-trash",
+                            onClickButton: function (jqEvent) { 
+                                var selList = list.getGridParam('selarrrow'); // list of selected rows
+
+                                if (selList.length == 0) {
+                                    myAlert ("Please select at least one privilege element to delete.");
+                                    return false;
+                                }
+
+                                var args = "";
+                                var confirmList = "";
+                                for (var i = 0; i < selList.length; i++) {
+                                    if (i > 0) args += ",";
+                                    args += selList[i];
+    
+                                    if (i > 0) confirmList += "<br/>";
+                                    confirmList += decodeURIComponent (selList[i].replace (/\+/, " "));
+                                }
+                                
+                                myConfirm (
+                                    "Do you want to delete the following privilege element(s)?<br/><br/>" + confirmList, 
+                                    function() {
+                                        $.ajax({  
+                                            type: "DELETE",
+                                            contentType: 'application/json',
+                                            url: "/privilege/" + encodeURIComponent (queryParams.path) + "?ids=" + encodeURIComponent (args) + "&rnd=" + myRand(), // base URL
+                                            dataType: "json",
+                                            success: function (data) {
+                                                processAjaxResult (
+                                                    data, 
+                                                    {
+                                                        useDialog:false, 
+                                                        reloadGrid:true
+                                                    }
+                                                );
+                                            },
+                                            // this should only happen when things get seriously wrong on the server
+                                            //
+                                            error: function(jqXHR, textStatus, errorThrown) {
+                                                myAlert ("textStatus = " + textStatus + "<br/>errorThrown = " + errorThrown);
+                                            }
+                                        }); 
+                                    }
+                                );
+                            },
+                            title: "Delete Privilege Element",
+                            position: "first"
+                        }
+                    )  // .navGrid()
+                    
+                    .navButtonAdd(
+                        '#pager',
+                        {
+                            caption: "",
+                            buttonicon: "ui-icon-copy",
+                            onClickButton: function (jqEvent) { 
+                                var selList = list.getGridParam('selarrrow'); // list of selected rows
+
+                                if (selList.length == 0) {
+                                    myAlert ("Please select at least one privilege element to copy.");
+                                    return false;
+                                }
+
+                                var args = "";
+                                var confirmList = "";
+                                for (var i = 0; i < selList.length; i++) {
+                                    if (i > 0) args += ",";
+                                    args += selList[i];
+    
+                                    if (i > 0) confirmList += "<br/>";
+                                    confirmList += decodeURIComponent (selList[i]);
+                                }
+                                
+                                myConfirm (
+                                    "Do you want to copy the following privilege element(s)?<br/><br/>" + confirmList, 
+                                    function() {
+                                        $.ajax({  
+                                            type: "POST",
+                                            contentType: 'application/json',
+                                            url: "/privilege/" + encodeURIComponent (queryParams.path) + "?ids=" + encodeURIComponent (args) + "&rnd=" + myRand(), // base URL
+                                            dataType: "json",
+                                            data: null,
+                                            success: function (data) {
+                                                processAjaxResult (
+                                                    data, 
+                                                    {
+                                                        useDialog:false, 
+                                                        reloadGrid:true
+                                                    }
+                                                );
+                                            },
+                                            // this should only happen when things get seriously wrong on the server
+                                            //
+                                            error: function(jqXHR, textStatus, errorThrown) {
+                                                myAlert ("textStatus = " + textStatus + "<br/>errorThrown = " + errorThrown);
+                                            }
+                                        }); 
+                                    }
+                                );
+                            },
+                            title: "Copy Privilege Element",
+                            position: "first"
+                        }
+                    )  // .navGrid()
+                    
+                    .navButtonAdd(
+                        '#pager',
+                        {
+                            caption: "",
+                            buttonicon: "ui-icon-pencil",
+                            onClickButton: function() {
+                                var selList = list.getGridParam('selarrrow');
+
+                                if (selList.length > 1) {
+                                    myAlert ("Cannot edit more than one item at a time.");
+                                    return false;
+                                } else if (selList.length == 0) {
+                                    myAlert ("Please select a privilege element to edit.");
+                                    return false;
+                                }
+
+                                $.getJSON (
+                                    "/privilege/" + encodeURIComponent (queryParams.path) + "?id=" + encodeURIComponent (selList[0]) + "&rnd=" + myRand(), // base URL
+                                    null,                                         // argument
+                                    setDialogData                                 // callback function to parse data
+                                );
+
+                                operation.val("edit");
+                                $("#addEditDialog").dialog ({title: "Edit Privilege Element"});
+                                $("#addEditDialog").dialog ("open");
+                            },
+                            title: "Edit Privilege Element",
+                            position: "first"
+                        }
+                    )  // .navGrid()
+                    
+                    .navButtonAdd(
+                        '#pager',
+                        {
+                            caption: "",
+                            buttonicon: "ui-icon-plus",
+                            onClickButton: function() {
+                                operation.val("add");
+                                setDialogData({ // reset the form values to the defaults.
+                                    id: "",
+                                    origId: "",
+                                    resourcePath: "",
+                                    resourceType: "",
+                                    recurse: "false",
+                                    mode: "",
+                                    privileges: []
+                                });
+                                $('#recurse_false').prop ("checked", "checked");
+                                $("#recurse").buttonset("refresh");
+
+                                $('#addEditForm .dynamic_row').remove();
+                                privilegesRowCount = 0;
+                                addPrivilegesRow();
+
+                                $("#addEditDialog").dialog ({title: "Add Privilege"});
+                                $("#addEditDialog").dialog ("open");
+                                id.focus();
+                            },
+                            title: "Add New Privilege Element",
+                            position: "first"
+                        }
+                    )  // .navGrid()
+                    
+                    .navButtonAdd(
+                        '#pager',
+                        {
+                            caption: "",
+                            buttonicon: "ui-icon-gear",
+                            onClickButton: function() {
+                            
+                                $("#profile_list").children().remove();
+                                
+                                setConfigProfileSelectData('#profile_list', prefs.defaultProfile);
+
+                                $("#server_list").children().remove();
+                                
+                                setServerSelectData ("#server_list", prefs.defaultServer);
+                                
+                                $("#generateDialog").dialog ("open");
+                            },
+                            title: "Auto-Generate Privilege Elements",
+                            position: "first"
+                        }
+                    ); // .navGrid()
+
+
+                $(window).bind('resize', function() {
+                    list.setGridWidth($(window).width() - 60); // 30 pixels of padding on either side of the jqGrid.
+                }).trigger('resize');
+
+                // set up the add/edit dialog
+                //
+                var operation = $("#operation"),
+                    origId = $("#origId"),
+                    id = $("#id"),
+                    resourcePath = $("#resourcePath"),
+                    resourceType = $("#resourceType"),
+                    mode = $("#mode"),
+                    name = $("#name"),
+                    nameType = $("#nameType"),
+                    domain = $("#domain"),
+                    privileges = $("#privileges"),
+                    combinedPrivileges = $("#combinedPrivileges"),
+                    inheritedPrivileges = $("#inheritedPrivileges"),
+                    profile_list = $("#profile_list"),
+                    server_list = $("#server_list"),
+                    startPath = $("#startPath"),
+                    filter = $("#filter"),
+                    options = $("#options"),
+                    domainList = $("#domainList"),
+                    allFields = $([]).add (operation).add (origId).add (id).add (resourcePath).add (resourceType).add (mode)
+                                     .add (name).add (nameType).add (domain).add (privileges).add (combinedPrivileges).add (inheritedPrivileges)
+                                     .add (profile_list).add (server_list).add (startPath).add (filter).add (options).add (domainList);
+
+                $("#recurse").buttonset();
+                $("#updateDependenciesRecursively").buttonset();
+
+                dialogMsg = $(".dialogMsg");
+
+                addEditDialog = $("#addEditDialog").dialog ({
+                    autoOpen: false,
+                    //height: 300,
+                    width: 800,
+                    modal: true,
+                    buttons: [ // declaring buttons this way lets us assign ID's to the buttons so they can be interacted with later.
+                        {
+                            id: "aeOkButton",
+                            text: "OK",
+                            click: function() {
+                                var actionType = (operation.val() == "add") ? "POST" : "PUT";
+                                var errMsg = "";
+                                
+                                allFields.removeClass ("ui-state-error");
+                                clearAEDialogMessage();
+                                $("#aeOkButton").button ("disable");
+                                
+                                var ajaxOpts = {  
+                                    type: actionType,
+                                    contentType: 'application/json',
+                                    url: "/privilege/" + encodeURIComponent (queryParams.path) + "?rnd=" + myRand(),
+                                    dataType: "json",
+                                    data: createJSON(),  
+                                    success: function (data) {
+                                        processAjaxResult (
+                                            data, 
+                                            {
+                                                useDialog:true, 
+                                                reloadGrid:true
+                                            }
+                                        );
+                                        $("#aeOkButton").button ("enable");
+                                    },
+                                    // this should only happen when things go seriously wrong on the server
+                                    //
+                                    error: function (jqXHR, textStatus, errorThrown) {
+                                        myAlert ("textStatus = " + textStatus + "<br>errorThrown = " + errorThrown);
+                                        $("#aeOkButton").button ("enable");
+                                    }
+                                }
+
+                                $.ajax(ajaxOpts);
+                            }
+                        }, {
+                            id: "aeCancelButton",
+                            text: "Cancel",
+                            click: function() {
+                                $(this).dialog ("close");
+                                $("#aeOkButton").button ("enable");
+                            }
+                        }
+                    ],
+                    // this is an event handler for when the dialog box closes (it can be closed in a number of ways.)
+                    // basically any error classes get cleared from the form elements and the message <div> is cleared.
+                    //
+                    close: function() {
+                        allFields.val ("").removeClass ("ui-state-error");
+                        clearAEDialogMessage();
+                        $("#aeOkButton").button ("enable");
+                    },
+                    // add a custom class to the OK button so that it can be addressed for disabling/enabling later
+                    //
+                    create: function () {
+                        $(this).closest(".ui-dialog")
+                            .find(".ui-button:first") // the first button
+                            .addClass("aeOkButton");
+                    }
+                }); // #addEditDialog
+                
+                // set up generate privileges dialog
+                //
+                genDialogMsg = $("#genDialogMsg");
+                generateDialog = $("#generateDialog").dialog ({
+                    autoOpen: false,
+                    //height: 300,
+                    width: 800,
+                    modal: true,
+                    buttons: [ // declaring buttons this way lets us assign ID's to the buttons so they can be interacted with later.
+                        {
+                            id: "genOkButton",
+                            text: "OK",
+                            click: function() {
+                                var errMsg = "";
+                                var profilePath = $("#profile_list").val();
+                                var serverId = $("#server_list").val();
+                                var startPath = $("#startPath").val();
+                                var filter = $("#filter").val().join();
+                                var options = $("#options").val().join();
+                                var domainList = $("#domainList").val();
+                                
+                                if (profilePath == null || profilePath.length == 0) {
+                                    errMsg += "Please choose a configuration profile.<br/>";
+                                    $("#profile_list").addClass ("ui-state-error");
+                                } 
+                                if (serverId == null || serverId.length == 0) {
+                                    errMsg += "Please choose a server.<br/>";
+                                    $("#server_list").addClass ("ui-state-error");
+                                } 
+                                if (startPath == null || startPath.length == 0) {
+                                    errMsg += "Please enter a starting path.<br/>";
+                                    $("#startPath").addClass ("ui-state-error");
+                                }
+                                if (errMsg.length > 0) {
+                                    myAlert (errMsg);
+                                    return false;
+                                }
+                                
+                                allFields.removeClass ("ui-state-error");
+                                updateGenDialogMessage('Gathering privileges ... <img src="images/spinner.gif" class="textAlignImg"/>');
+                                
+                                $("#genOkButton").button ("disable");
+                                
+                                var ajaxOpts = {  
+                                    type: "POST",
+                                    contentType: 'application/json',
+                                    url: "/privilege_module/" + encodeURIComponent (queryParams.path) + "?profilePath=" + encodeURIComponent (profilePath) + "&serverId=" + encodeURIComponent (serverId) + 
+                                         "&startPath=" + encodeURIComponent (startPath) + "&filter=" + encodeURIComponent (filter) + "&options=" + encodeURIComponent (options) + "&domainList=" + encodeURIComponent (domainList) + "&rnd=" + myRand(),
+                                    dataType: "json",
+                                    //data: createJSON(),  
+                                    success: function (data) {
+                                        processGenerateResult(
+                                            data, 
+                                            {
+                                                useDialog:true, 
+                                                reloadGrid:true
+                                            }
+                                        );
+                                        $("#genOkButton").button ("enable");
+                                    },
+                                    // this should only happen when things go seriously wrong on the server
+                                    //
+                                    error: function (jqXHR, textStatus, errorThrown) {
+                                        myAlert ("textStatus = " + textStatus + "<br>errorThrown = " + errorThrown);
+                                        clearGenDialogMessage();
+                                        $("#genOkButton").button ("enable");
+                                    }
+                                }
+
+                                $.ajax(ajaxOpts);
+                            }
+                        }, {
+                            id: "genCancelButton",
+                            text: "Cancel",
+                            click: function() {
+                                $(this).dialog ("close");
+                                $("#genOkButton").button ("enable");
+                          
+                            }
+                        }
+                    ],
+                    // this is an event handler for when the dialog box closes (it can be closed in a number of ways.)
+                    // basically the OK button is re-enabled and the message <div> is cleared.
+                    //
+                    close: function() { 
+                        allFields.removeClass ("ui-state-error");
+                        clearGenDialogMessage();
+                        $("#genOkButton").button ("enable");
+                    },
+                    // add a custom class to the OK button so that it can be addressed for disabling/enabling later
+                    //
+                    create: function () {
+                        $(this).closest(".ui-dialog")
+                            .find(".ui-button:first") // the first button
+                            .addClass("genOkButton");
+                    }
+                }); // #generateDialog
+                
+                // set up set privileges dialog
+                //
+                var privsDialog = $("#privsDialog").dialog ({
+                    autoOpen: false,
+                    //height: 300,
+                    width: 900,
+                    modal: true,
+                    buttons: [ // declaring buttons this way lets us assign ID's to the buttons so they can be interacted with later.
+                        {
+                            id: "privsOkButton",
+                            text: "OK",
+                            click: function() {
+                                var privs = "", cPrivs = "", iPrivs = "";
+                                var pAdded, cpAdded, ipAdded = false;
+                                var privRowId = $("#privRowId").val();
+                                
+                                for (var p = 0; p < PRIVILEGES.length; p++) {
+                                    var pId = "#" + PRIVILEGES[p].htmlid;
+                                    var cId = "#" + PRIVILEGES[p].chtmlid;
+                                    var iId = "#" + PRIVILEGES[p].ihtmlid;
+                                    
+                                    if ($(pId).prop("checked")) {
+                                        if (pAdded)
+                                            privs += " ";
+                                        
+                                        privs += PRIVILEGES[p].cisflag;
+                                        pAdded = true;
+                                    }
+                                    
+                                    if ($(cId).prop("checked")) {
+                                        if (cpAdded)
+                                            cPrivs += " ";
+                                        
+                                        cPrivs += PRIVILEGES[p].cisflag;
+                                        cpAdded = true;
+                                    }
+                                    
+                                    if ($(iId).prop("checked")) {
+                                        if (ipAdded)
+                                            iPrivs += " ";
+                                        
+                                        iPrivs += PRIVILEGES[p].cisflag;
+                                        ipAdded = true;
+                                    }
+                                }
+
+                                $('#privileges_' + privRowId).val (privs);
+                                $('#combinedPrivileges_' + privRowId).val (cPrivs);
+                                $('#inheritedPrivileges_' + privRowId).val (iPrivs);
+
+                                $(this).dialog ("close");                          
+                            }
+                        }, {
+                            id: "privsCancelButton",
+                            text: "Cancel",
+                            click: function() {
+                                $(this).dialog ("close");                          
+                            }
+                        }
+                    ]
+                }); // #privsDialog
+                
+                // sets the form values of the dialog box from a data object (typically returned from an AJAX call.)
+                //
+                function setDialogData (data) {
+                    id.val (data.id);
+                    origId.val (data.id);
+                    resourcePath.val (data.resourcePath);
+                    resourceType.val (data.resourceType);
+                    mode.val (data.mode);
+                    
+                    if (data.recurse == null || data.recurse == '')
+                        data.recurse = "false";
+
+                    $('#recurse_' + data.recurse).prop ("checked", "checked");
+                    $("#recurse").buttonset("refresh");
+
+                    $('#updateDependenciesRecursively_' + data.updateDependenciesRecursively).prop ("checked", "checked");
+                    $("#updateDependenciesRecursively").buttonset("refresh");
+
+                    // remove any privileges rows
+                    //
+                    $('#addEditForm .dynamic_row').remove();
+                    privilegesRowCount = 0;
+
+                    if (data.privileges != null && data.privileges.length > 0) {
+                        for (var i = 0; i < data.privileges.length; i++) {
+                            var p = data.privileges[i];
+
+                            if (p.domain == null || p.domain.length == 0)
+                                p.domain = 'composite';
+    
+                            if (p.name == null || p.name.length == 0)
+                                continue;
+    
+                            addPrivilegesRow();
+                            
+                            $('#name_' + (privilegesRowCount - 1)).val(p.name);
+                            $('#nameType_' + (privilegesRowCount - 1) + ' option[value=' + p.nameType + ']').attr ('selected','selected');
+                            $('#domain_' + (privilegesRowCount - 1)).val(p.domain);
+                            $('#privileges_' + (privilegesRowCount - 1)).val(p.privileges);
+                            $('#combinedPrivileges_' + (privilegesRowCount - 1)).val(p.combinedPrivileges);
+                            $('#inheritedPrivileges_' + (privilegesRowCount - 1)).val(p.inheritedPrivileges);
+                        }
+                    } else {
+                        // add a blank row if there are no resources elements.
+                        //
+                        addPrivilegesRow();
+                    }
+                    
+                } // setDialogData()
+                
+                // sets the privileges settings in the set privileges dialog
+                //
+                function setPrivsDialogData (privNum) {
+                    $("#privRowId").val(privNum);
+
+                    for (var p = 0; p < PRIVILEGES.length; p++) {
+                        $('#' + PRIVILEGES[p].htmlid).prop("checked", false);
+                        $('#' + PRIVILEGES[p].chtmlid).prop("checked", false);
+                        $('#' + PRIVILEGES[p].ihtmlid).prop("checked", false);
+                    }
+                    
+                    var privs = $('#privileges_' + privNum).val().split(/\s+/);
+                    for (var i = 0; i < privs.length; i++) {
+                        for (var p = 0; p < PRIVILEGES.length; p++) {
+                            if (privs[i] == PRIVILEGES[p].cisflag) $("#" + PRIVILEGES[p].htmlid).prop("checked", true);
+                        }
+                    }
+
+                    privs = $('#combinedPrivileges_' + privNum).val().split(/\s+/);
+                    for (var i = 0; i < privs.length; i++) {
+                        for (var p = 0; p < PRIVILEGES.length; p++) {
+                            if (privs[i] == PRIVILEGES[p].cisflag) $("#" + PRIVILEGES[p].chtmlid).prop("checked", true);
+                        }
+                    }
+
+                    privs = $('#inheritedPrivileges_' + privNum).val().split(/\s+/);
+                    for (var i = 0; i < privs.length; i++) {
+                        for (var p = 0; p < PRIVILEGES.length; p++) {
+                            if (privs[i] == PRIVILEGES[p].cisflag) $("#" + PRIVILEGES[p].ihtmlid).prop("checked", true);
+                        }
+                    }
+                } // setPrivsDialogData()
+                
+                // creates a JSON artifact for sending with AJAX queries. Jackson on the server side is very particular
+                // about the format of JSON objects: double quoted attributes AND values.
+                //
+                function createJSON() {
+                    var privileges = new Array();
+                    for (var i = 0; i < privilegesRowCount; i++) {
+                        
+                        // make sure the row hasn't been deleted by the user and that the name is filled in
+                        //
+                        if ($("#privileges_row_" + i).length > 0 && $('#name_' + i).val().length > 0) {
+                            privileges.push({
+                                "name": $('#name_' + i).val(),
+                                "nameType": $('#nameType_' + i).val(),
+                                "domain": $('#domain_' + i).val(),
+                                "privileges": $('#privileges_' + i).val(),
+                                "combinedPrivileges": $('#combinedPrivileges_' + i).val(),
+                                "inheritedPrivileges": $('#inheritedPrivileges_' + i).val()
+                            });
+                        }
+                    }
+
+                    var data = {
+                        "operation": operation.val(),
+                        "origId": origId.val(),
+                        "id": id.val(),
+                        "resourcePath": resourcePath.val(),
+                        "resourceType": resourceType.val(),
+                        "recurse": $('#recurse input:radio:checked').val(),
+                        "updateDependenciesRecursively": $('#updateDependenciesRecursively input:radio:checked').val(),
+                        "mode": mode.val(),
+                        "privileges": privileges
+                    };       
+                    
+                    return JSON.stringify (data);             
+                }
+                
+                var privilegesRowCount = 0;
+
+                // set up the add privilege button in the add/edit. use the same click event handler code
+                // as the AJAX callback does.
+                //
+                $("#privileges_add")
+                    .button()
+                    .click(addPrivilegesRow);
+                
+                // creates a row containing the form elements for a privilege entry in the add/edit dialog.
+                //
+                function addPrivilegesRow() {
+                    // add the html code before the "add new custom variable" button container row.
+                    //
+                    $('#privileges_add_row').before (function() {
+                         return '<tr id="privileges_row_' + privilegesRowCount + '" class="dynamic_row">\n' +
+                                '    <td><input type="text" name="name_' + privilegesRowCount + '" id="name_' + privilegesRowCount + '" class="text ui-widget-content ui-corner-all dynamic_row_value" /></td>\n' +
+                                '    <td><select id="nameType_' + privilegesRowCount + '" name="nameType_' + privilegesRowCount + '"><option value="USER">User</option><option value="GROUP">Group</option></select></td>\n' +
+                                '    <td><input type="text" name="domain_' + privilegesRowCount + '" id="domain_' + privilegesRowCount + '" class="text ui-widget-content ui-corner-all dynamic_row_value" /></td>\n' +
+                                '    <td>\n' +
+                                '        <input type="hidden" name="privileges_' + privilegesRowCount + '" id="privileges_' + privilegesRowCount + '" />\n' +
+                                '        <input type="hidden" name="combinedPrivileges_' + privilegesRowCount + '" id="combinedPrivileges_' + privilegesRowCount + '" />\n' +
+                                '        <input type="hidden" name="inheritedPrivileges_' + privilegesRowCount + '" id="inheritedPrivileges_' + privilegesRowCount + '" />\n' +
+                                '        <div id="privileges_row_' + privilegesRowCount + '_set_privs" title="Set Privileges" >Set Privileges</div>\n' +
+                                '    </td>\n' +
+                                '    <td><div id="privileges_row_' + privilegesRowCount + '_del" title="Delete Privilege" >Delete Privilege</div></td>\n' +
+                                '</tr>\n';
+                    });
+
+                    // add a click event handler to the set privileges button to open the set privileges dialog when clicked.
+                    //
+                    $("#privileges_row_" + privilegesRowCount + "_set_privs")
+                        .button({
+                            icons: {
+                                primary: "ui-icon-pencil"
+                            },
+                            text: false
+                        })
+                        .data ('rownum', privilegesRowCount)
+                        .click(function() {
+                            setPrivsDialogData($(this).data ('rownum'));
+                            privsDialog.dialog("open");
+                            return false;
+                        });
+
+                    // add a click event handler to the delete button to delete the privilege when clicked.
+                    //
+                    $("#privileges_row_" + privilegesRowCount + "_del")
+                        .button({
+                            icons: {
+                                primary: "ui-icon-trash"
+                            },
+                            text: false
+                        })
+                        .data ('rownum', privilegesRowCount)
+                        .click(function() {
+                            $('#privileges_row_' + $(this).data ('rownum')).remove();
+                            if ($('.dynamic_row').length == 0) {
+                                addPrivilegesRow();
+                            }
+                        });
+
+                    privilegesRowCount++;
+                    
+                    return false;
+                }
+                
+                // populate the resource type select list in the add/edit dialog
+                //
+                setResourceTypeSelectData ("#resourceType");
+
+            }); // $(document).ready()
+            
+        </script>
+<!-- InstanceEndEditable -->
+    </head>
+<!-- InstanceBeginEditable name="bodytag" -->
+    <body class="page">
+<!-- InstanceEndEditable -->
+        <div class="header">
+            <div class="logo" onClick="javascript:location='index.html'"><img src="images/cisco_logo.png"/></div>
+            <div class="app_title" onClick="javascript:location='index.html'">Promotion &amp; Deployment Tool</div>
+        </div>
+        <div class="nav_container">
+            <div class="nav_tab_container"><!-- divs are floated right so listed in reverse order -->
+                <div class="nav_tab_spacer"></div>
+                <div id="nav_tab_execute" class="nav_tab" onClick="javascript:location='execute.html'">
+                    <div class="nav_tab_left"></div>
+                    <div class="nav_tab_center">EXECUTE</div>
+                    <div class="nav_tab_right"></div>
+                </div>
+                <div id="nav_tab_modules" class="nav_tab" onClick="javascript:location='modules.html'">
+                    <div class="nav_tab_left"></div>
+                    <div class="nav_tab_center">MODULES</div>
+                    <div class="nav_tab_right"></div>
+                </div>
+                <div id="nav_tab_plans" class="nav_tab" onClick="javascript:location='dep_plans.html'">
+                    <div class="nav_tab_left"></div>
+                    <div class="nav_tab_center">PLANS</div>
+                    <div class="nav_tab_right"></div>
+                </div>
+                <div id="nav_tab_configuration" class="nav_tab" onClick="javascript:location='config_preferences.html'">
+                    <div class="nav_tab_left"></div>
+                    <div class="nav_tab_center">CONFIGURATION</div>
+                    <div class="nav_tab_right"></div>
+                </div>
+            </div>
+            <div class="nav_base"></div>
+            <div class="nav_submenu_container">
+                <div class="nav_submenu_items">
+<!-- InstanceBeginEditable name="nav_submenu" -->
+                    <div id="nav_submenu_archive"          class="nav_submenu_item">Archive</div>
+                    <div id="nav_submenu_data_source"      class="nav_submenu_item">Data&nbsp;Source</div>
+                    <div id="nav_submenu_group"            class="nav_submenu_item">Group</div>
+                    <div id="nav_submenu_privilege"        class="nav_submenu_item">Privilege</div>
+                    <div id="nav_submenu_rebind"           class="nav_submenu_item">Rebind</div>
+                    <div id="nav_submenu_regression"       class="nav_submenu_item">Regression</div>
+                    <div id="nav_submenu_resource"         class="nav_submenu_item">Resource</div>
+                    <div id="nav_submenu_resource_cache"   class="nav_submenu_item" style="clear: left;">Resource Cache</div>
+                    <div id="nav_submenu_server_attribute" class="nav_submenu_item">Server&nbsp;Attribute</div>
+                    <div id="nav_submenu_server_manager"   class="nav_submenu_item">Server&nbsp;Manager</div>
+                    <div id="nav_submenu_trigger"          class="nav_submenu_item">Trigger</div>
+                    <div id="nav_submenu_user"             class="nav_submenu_item">User</div>
+                    <div id="nav_submenu_vcs"              class="nav_submenu_item">VCS</div>
+<!-- InstanceEndEditable -->
+                </div>
+                <div class="nav_submenu_right"><img src="images/nav_submenu_right.png"/></div>
+            </div>
+        </div>
+        <div class="page_content">
+            <div class="page_title_container">
+                <div class="page_title">
+<!-- InstanceBeginEditable name="page_title" -->
+                    PRIVILEGE MODULE: <span id="module_path"></span>
+<!-- InstanceEndEditable -->
+                </div>
+                <div class="page_description">
+<!-- InstanceBeginEditable name="page_description" -->
+                    <div class="collapsable"><!-- used with the setCollapsable() function above -->
+                        <div class="collapsable-content">
+                            Privilege module entries are used to set the user and/or group privileges on a
+                            particular resource. 
+                        </div>
+                    </div>
+<!-- InstanceEndEditable -->
+                </div>
+            </div>
+<!-- InstanceBeginEditable name="content" -->
+            <div class="table_container">
+                <table id="list"></table> <!-- table generated and populated by jqGrid in header -->
+                <div id="pager"></div> 
+            </div>
+            <div id="addEditDialog" title="Add Privilege" class="dialog">
+                <p class="dialogMsg"></p>
+                <form id="addEditForm">
+                    <fieldset>
+                    <input type="hidden" name="operation" id="operation" />
+                    <input type="hidden" name="origId" id="origId" />
+                    <table cellpadding="0" cellspacing="0">
+                        <tbody>
+                            <tr>
+                                <td><label for="id" class="dialog_label">Privilege ID</label></td>
+                                <td><input type="text" name="id" id="id" class="text ui-widget-content ui-corner-all" /></td>
+                            </tr>
+                            <tr>
+                                <td><label for="resourcePath" class="dialog_label">Resource Path</label></td>
+                                <td><input type="text" name="resourcePath" id="resourcePath" size="60" class="text ui-widget-content ui-corner-all" /></td>
+                            </tr>
+                            <tr>
+                                <td><label for="resourceType" class="dialog_label">Resource Type</label></td>
+                                <td><select id="resourceType" name="resourceType"></select></td>
+                            </tr>
+                            <tr>
+                                <td><label for="recurse" class="tabs_form_label">Recurse Folders?</label></td>
+                                <td>
+                                    <div id="recurse">
+                                        <input type="radio" name="recurse" id="recurse_true" value="true" /><label for="recurse_true">True</label>
+                                        <input type="radio" name="recurse" id="recurse_false" value="false" /><label for="recurse_false">False</label>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><label for="updateDependenciesRecursively" class="tabs_form_label">Update Dependencies?</label></td>
+                                <td>
+                                    <div id="updateDependenciesRecursively">
+                                        <input type="radio" name="updateDependenciesRecursively" id="updateDependenciesRecursively_true" value="true" /><label for="updateDependenciesRecursively_true">True</label>
+                                        <input type="radio" name="updateDependenciesRecursively" id="updateDependenciesRecursively_false" value="false" /><label for="updateDependenciesRecursively_false">False</label>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><label for="mode" class="dialog_label">How To Apply?</label></td>
+                                <td>
+                                    <select id="mode" name="mode">
+                                        <option value="">(Set Mode ...)</option>
+                                        <option value="SET_EXACTLY">Set Exactly</option>
+                                        <option value="OVERWRITE_APPEND">Overwrite Append</option>
+                                    </select>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <hr/>
+                    <table cellpadding="0" cellspacing="0">
+                        <tbody>
+                            <tr>
+                                <td colspan="3">Privilege Settings</td>
+                            </tr>
+                            <tr>
+                                <td><label for="name" class="tabs_form_label">Name</label></td>
+                                <td><label for="name_type" class="tabs_form_label">Name Type</label></td>
+                                <td><label for="domain" class="tabs_form_label">Domain</label></td>
+                                <td><label for="set_privs" class="tabs_form_label">Set Privileges</label></td>
+                                <td></td>
+                            </tr>
+                            <tr id="privileges_add_row">
+                                <td colspan="3"><div id="privileges_add">Add Privilege</div></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    </fieldset>
+                </form>
+            </div>
+            <div id="generateDialog" title="Auto-Generate Privileges" class="dialog">
+                <form id="generateForm">
+                    <fieldset>
+                    <input type="hidden" name="operation" id="operation" />
+                    <input type="hidden" name="origId" id="origId" />
+                    <table cellpadding="0" cellspacing="0">
+                        <tbody>
+                            <tr>
+                                <td><label for="profile_list" class="dialog_label">Configuration Profile</label></td>
+                                <td><select id="profile_list">&nbsp;&nbsp;</select><a href="/pdtoolgui/config_dep_conf_files.html"><img src="images/edit.gif" border="0" alt="edit_profiles"/></a></td>
+                            </tr>
+                            <tr>
+                                <td><label for="server_list" class="dialog_label">Server ID</label></td>
+                                <td><select id="server_list">&nbsp;&nbsp;</select><a href="/pdtoolgui/config_servers.html"><img src="images/edit.gif" border="0" alt="Edit Server Profiles"/></a></td>
+                            </tr>
+                            <tr>
+                                <td><label for="startPath" class="dialog_label">Start Path</label></td>
+                                <td><input type="text" name="startPath" id="startPath" size="60" class="text ui-widget-content ui-corner-all" /></td>
+                            </tr>
+                            <tr>
+                                <td><label for="filter" class="dialog_label">Filter</label></td>
+                                <td>
+                                    <select name="filter" id="filter" size="4" multiple="true" > <!-- hard coded from PDTool documentation -->
+                                        <option value="ALL">All</option>
+                                        <option value="CONTAINER">Container</option>
+                                        <option value="DATA_SOURCE">Data Source</option>
+                                        <option value="DEFINITION_SET">Definition Set</option>
+                                        <option value="LINK">Link</option>
+                                        <option value="PROCEDURE">Procedure</option>
+                                        <option value="TABLE">Table</option>
+                                        <option value="TREE">Tree</option>
+                                        <option value="TRIGGER">Trigger</option>
+                                    </select>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><label for="options" class="dialog_label">Options</label></td>
+                                <td>
+                                    <select name="options" id="options" size="4" multiple="true" > <!-- hard coded from PDTool documentation -->
+                                        <option value="USER">User</option>
+                                        <option value="GROUP">Group</option>
+                                        <option value="SYSTEM">System</option>
+                                        <option value="NONSYSTEM">Non-System</option>
+                                        <option value="PARENT">Parent</option>
+                                        <option value="CHILD">Child</option>
+                                    </select>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><label for="domainList" class="dialog_label">Domain List</label></td>
+                                <td><input type="text" name="domainList" id="domainList" class="text ui-widget-content ui-corner-all" /></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    </fieldset>
+                </form>
+                <p id="genDialogMsg"></p>
+            </div>
+            <div id="privsDialog" title="Privilege Settings" class="dialog">
+                <form id="privsForm">
+                    <fieldset>
+                    <input type="hidden" name="privRowId" id="privRowId" />
+                    <table cellpadding="0" cellspacing="0">
+                        <tbody>
+                            <tr>
+                                <td></td>
+                                <td class="priv_tab_label"><label class="tabs_form_label">Read</label></td>
+                                <td class="priv_tab_label"><label class="tabs_form_label">Write</label></td>
+                                <td class="priv_tab_label"><label class="tabs_form_label">Select</label></td>
+                                <td class="priv_tab_label"><label class="tabs_form_label">Execute</label></td>
+                                <td class="priv_tab_label"><label class="tabs_form_label">Insert</label></td>
+                                <td class="priv_tab_label"><label class="tabs_form_label">Update</label></td>
+                                <td class="priv_tab_label"><label class="tabs_form_label">Delete</label></td>
+                                <td class="priv_tab_label"><label class="tabs_form_label">Grant</label></td>
+                            </tr>
+                            <tr>
+                                <td><label for="privileges" class="dialog_label">Assigned Privileges</label></td>
+                                <td><input type="checkbox" name="r" id="r" class="dialog_cb"/></td>
+                                <td><input type="checkbox" name="w" id="w" class="dialog_cb"/></td>
+                                <td><input type="checkbox" name="s" id="s" class="dialog_cb"/></td>
+                                <td><input type="checkbox" name="e" id="e" class="dialog_cb"/></td>
+                                <td><input type="checkbox" name="i" id="i" class="dialog_cb"/></td>
+                                <td><input type="checkbox" name="u" id="u" class="dialog_cb"/></td>
+                                <td><input type="checkbox" name="d" id="d" class="dialog_cb"/></td>
+                                <td><input type="checkbox" name="g" id="g" class="dialog_cb"/></td>
+                            </tr>
+                            <tr>
+                                <td><label for="combinedPrivileges" class="dialog_label">Combined Privileges</label></td>
+                                <td><input type="checkbox" name="cr" id="cr" class="dialog_cb" disabled="true"/></td>
+                                <td><input type="checkbox" name="cw" id="cw" class="dialog_cb" disabled="true"/></td>
+                                <td><input type="checkbox" name="cs" id="cs" class="dialog_cb" disabled="true"/></td>
+                                <td><input type="checkbox" name="ce" id="ce" class="dialog_cb" disabled="true"/></td>
+                                <td><input type="checkbox" name="ci" id="ci" class="dialog_cb" disabled="true"/></td>
+                                <td><input type="checkbox" name="cu" id="cu" class="dialog_cb" disabled="true"/></td>
+                                <td><input type="checkbox" name="cd" id="cd" class="dialog_cb" disabled="true"/></td>
+                                <td><input type="checkbox" name="cg" id="cg" class="dialog_cb" disabled="true"/></td>
+                            </tr>
+                            <tr>
+                                <td><label for="inheritedPrivileges" class="dialog_label">Inherited Privileges</label></td>
+                                <td><input type="checkbox" name="nr" id="nr" class="dialog_cb" disabled="true"/></td>
+                                <td><input type="checkbox" name="nw" id="nw" class="dialog_cb" disabled="true"/></td>
+                                <td><input type="checkbox" name="ns" id="ns" class="dialog_cb" disabled="true"/></td>
+                                <td><input type="checkbox" name="ne" id="ne" class="dialog_cb" disabled="true"/></td>
+                                <td><input type="checkbox" name="ni" id="ni" class="dialog_cb" disabled="true"/></td>
+                                <td><input type="checkbox" name="nu" id="nu" class="dialog_cb" disabled="true"/></td>
+                                <td><input type="checkbox" name="nd" id="nd" class="dialog_cb" disabled="true"/></td>
+                                <td><input type="checkbox" name="ng" id="ng" class="dialog_cb" disabled="true"/></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    </fieldset>
+                </form>
+                <p id="genDialogMsg"></p>
+            </div>
+            <div id="alertDialog" title="Alert" class="dialog">
+                <p id="alertDialogMessage"></p>
+            </div>
+            <div id="confirmDialog" title="Confirm" class="dialog">
+                <p id="confirmDialogMessage"></p>
+            </div>
+<!-- InstanceEndEditable -->
+        </div>
+    </body>
+<!-- InstanceEnd --></html>

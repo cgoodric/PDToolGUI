@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <link rel="stylesheet" type="text/css" href="css/styles.css">
+        <link rel="stylesheet" type="text/css" href="css/smoothness/jquery-ui-1.10.2.custom.css" />
+        <link rel="stylesheet" type="text/css" href="css/ui.jqgrid.css" />
+        <script type="text/javascript" src="js/jquery-1.9.1.js"></script>
+        <script type="text/javascript" src="js/jquery-ui-1.10.2.custom.js"></script>
+        <script type="text/javascript" src="js/i18n/grid.locale-en.js"></script>
+        <script type="text/javascript" src="js/jquery.jqGrid.src.js"></script>
+        <script type="text/javascript" src="js/jquery-queryParser.min.js"></script>
+        <script type="text/javascript" src="js/pdtoolgui.js"></script>
+        <script language="javascript">
+            $(document).ready (function() { 
+                var myId = "Text";
+                $("#myButton").button().click (function (event, ui) {
+                    var tmp = $("#my" + myId).val();
+                    //$('#myText').clone().attr ('type','text').insertAfter('#myText').prev().remove();
+                    $("#my" + myId).after (function(){return '<input type="text" id="my' + myId + '" name="my' + myId + '" size="60" />'; }).remove();
+                    $("#my" + myId).val (tmp);
+                });
+                
+                $("#myButton2").button().click (function (event, ui) {
+                    var tmp = $("#my" + myId).val();
+                    //$('#myText').clone().attr ('type','password').insertAfter('#myText').prev().remove();
+                    $("#my" + myId).after (function(){return '<input type="password" id="my' + myId + '" name="my' + myId + '" size="60" />'; }).remove();
+                    $("#my" + myId).val (tmp);
+                });
+                
+            });
+        </script>
+    </head>
+    <body>
+        <form>
+            <input type="text" id="myText" size="60" /><br/>
+            <div id="myButton">Set as text</div>
+            <div id="myButton2">Set as password</div>
+        </form>
+    </body>
+</html>

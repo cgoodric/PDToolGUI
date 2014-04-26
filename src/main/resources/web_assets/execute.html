@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html><!-- InstanceBegin template="/Templates/pdtoolgui.dwt" codeOutsideHTMLIsLocked="false" -->
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<!-- InstanceBeginEditable name="doctitle" -->
+        <title>PDTool: Execute Deployments</title>
+<!-- InstanceEndEditable -->
+        <link rel="stylesheet" type="text/css" href="css/styles.css">
+        <link rel="stylesheet" type="text/css" href="css/smoothness/jquery-ui-1.10.2.custom.css" />
+        <link rel="stylesheet" type="text/css" href="css/ui.jqgrid.css" />
+        <script type="text/javascript" src="js/jquery-1.9.1.js"></script>
+        <script type="text/javascript" src="js/jquery-ui-1.10.2.custom.js"></script>
+        <script type="text/javascript" src="js/i18n/grid.locale-en.js"></script>
+        <script type="text/javascript" src="js/jquery.jqGrid.src.js"></script>
+        <script type="text/javascript" src="js/jquery-queryParser.min.js"></script>
+        <script type="text/javascript" src="js/pdtoolgui.js"></script>
+        <script type="text/javascript" src="js/pdtoolgui_docs_en.js"></script>
+<!-- InstanceBeginEditable name="head" -->
+        <script language="javascript">
+        
+            // set an event handler to fire when the page's DOM is complete (not necessarily when all the images or CSS finish loading.)
+            // this is similar to the <body> tag's "onload" attribute. however, "onload" waits until all the other resources (CSS,
+            // images, etc.) are done loading, too. this way the construction of the table can start a bit sooner.
+            //
+            $(document).ready (function() { 
+
+                // check access status and forward to incex.html if access is denied.
+                //
+                $.getJSON (
+                    "/security?rnd=" + myRand(), // base URL
+                    null,                       // argument
+                    function(data) {            // callback function to parse data
+                        if (data.status == "error") {
+                            location = "/pdtoolgui/index.html?denied=true&rnd=" + myRand();
+                        }
+                    }
+                );
+
+                // update the navigation tabs by highlighting the correct tab
+                //
+                setActiveNavTab('nav_tab_execute'); 
+                
+                // set the active submenu item and set click event handlers on all submenu items
+                //
+                $("#nav_submenu_execute_deployments") .addClass("nav_submenu_item_active");
+                $("#nav_submenu_logs")                .click(function() {location='execute_logs.html'});
+                
+                // enable the more/less functions of the page description
+                //
+                //setCollapsable();
+                
+                // enable tooltips over editor fields
+                //
+                setTooltips (TOOLTIPS["execute"]);
+
+                // load the user's preferences.
+                //
+                var prefs;
+                $.getJSON (
+                    "/prefs?rnd=" + myRand(), // base URL
+                    null,                     // argument
+                    function(data) {          // callback function
+                        prefs = data;
+
+                        // populate the deployment config menu. cheating a little here in that we're using the same REST servlet that's used to populate
+                        // the table in the deployment config screen.
+                        // 
+                        setConfigProfileSelectData('#execute_using', prefs.defaultProfile);
+                    }
+                );
+
+                var lastLineNum = 0;
+                var logFilePath, myInt;
+
+                // build the main table and populate with a REST/JSON call
+                //
+                list = $("#list")
+                    .jqGrid({
+                        url:'/file_list',
+                        datatype: 'json',
+                        mtype: 'GET',
+                        postData: {fileType: FILE_TYPE_DEPLOY_PLAN},
+                        autoencode: true,
+                        colNames:['Deployment Plan Name', 'OS Path', 'Date Modified'],
+                        colModel :[ 
+                            {name:'name', index:'name', width:250}, 
+                            {path:'path', index:'path', width:500}, 
+                            {path:'dateModified', index:'dateModified', width:100}
+                        ],
+                        pager: '#pager',
+                        height: "auto",
+                        autowidth: true,
+                        rowNum:10,
+                        rowList:[10,20,50],
+                        recordtext: "Plans {0} - {1} of {2}",
+                        sortname: 'name',
+                        sortorder: 'asc',
+                        viewrecords: true,
+                        gridview: true,
+                        multiselect: false
+                    }) // .jqGrid()
+                    
+                    .navGrid( // sets up buttons at bottom of grid
+                        '#pager', 
+                        {
+                            edit: false,
+                            add: false,
+                            del: false,
+                            search: true,
+                            searchtitle: "Search for Deployment Profiles"
+                        },  // nav
+                        {}, // edit
+                        {}, // add
+                        {}, // del
+                        {
+                            closeAfterSearch: true,
+                            closeAfterReset: true,
+                            closeOnEscape: true,
+                            resize: false,
+                            searchOnEnter: true
+                        }, // search
+                        {}   // view
+                    )  // .navGrid()
+                    
+                    // re-open log dialog button
+                    //
+                    .navButtonAdd(
+                        '#pager',
+                        {
+                            caption: "",
+                            buttonicon: "ui-icon-script",
+                            onClickButton: function() {
+                                $("#logDialog").dialog ("open");
+                            },
+                            title: "Open Execution Log Dialog",
+                            position: "first"
+                        }
+                    )  // .navButtonAdd()
+                    
+                    // execute plan
+                    //
+                    .navButtonAdd(
+                        '#pager',
+                        {
+                            caption: "",
+                            buttonicon: "ui-icon-circle-triangle-e",
+                            onClickButton: function() {
+                                var dp = list.getGridParam('selrow');
+                                var dc = $('#execute_using').val();
+
+                                if (dp == null || dp.length == 0) {
+                                    myAlert ("Please select a plan to execute.");
+                                    return false;
+                                }
+                                
+                                if (dc == null || dc.length == 0) {
+                                    myAlert ("Please select a configuration profile to execute with.");
+                                    return false;
+                                }
+                                
+                                myConfirm (
+                                    "Do you want to deploy using plan " + dp + " using configuration " + dc + "?",
+                                    function() {
+                                        
+                                        // reset the log dialog metadata
+                                        //
+                                        lastLineNum = 0;
+                                        $("#logContent").html ("");
+                                        
+                                        $.ajax({  
+                                            type: "POST",
+                                            contentType: 'application/json',
+                                            url: "/execute/" + encodeURIComponent(dp) + "?confPath=" + encodeURIComponent(dc) + "&rnd=" + myRand(),
+                                            dataType: "json",
+                                            success: function (data) {
+                                                if (data.resultCode == 0) {
+                                                    logFilePath = data.logFilePath;
+                                                    
+                                                    // set an interval to poll the server for log messages
+                                                    //
+                                                    myInt = window.setInterval (
+                                                        intervalCallback,
+                                                        LOG_POLLING_INTERVAL
+                                                    );
+                                                } else {
+                                                    myAlert ("Launch of ExecutePDTool failed! Please see PDToolGUI log for more details.");
+                                                }
+                                            },
+                                            // this should only happen when things get seriously wrong on the server
+                                            //
+                                            error: function(jqXHR, textStatus, errorThrown) {
+                                                myAlert ("textStatus = " + textStatus + "<br/>errorThrown = " + errorThrown);
+                                            }
+                                        });
+                                        
+                                        $("#logDialog").dialog ("open");
+                                    }
+                                );
+
+                            },
+                            title: "Execute Deployment",
+                            position: "first"
+                        }
+                    ); // .navButtonAdd()
+
+                function intervalCallback() {
+                    //window.clearInterval (myInt);
+
+                    $.ajax({  
+                        type: "GET",
+                        contentType: 'application/json',
+                        url: "/log/" + encodeURIComponent (logFilePath) + "?startLine=" + lastLineNum + "&usePool=1&rnd=" + myRand(),
+                        dataType: "json",
+                        success: function (data) {
+                            
+                            // load up the log dialog with any new messages
+                            //
+                            for (var i = 0; i < data.messages.length; i++) {
+                                addMessageToLog (data.messages[i], true);
+                            }
+                            
+                            // reset the last line number for the next call to get additional log messages.
+                            //
+                            lastLineNum = data.lastLineNum;
+                            
+                            // stop polling if the server indicated the execution has completed.
+                            //
+                            if (data.executionCompleted || lastLineNum == -1) {
+                                var pollInterval
+                                if (lastLineNum == -1) {
+                                    //addMessageToLog ("Attempting to retrieve messages for non-existent log in pool: " + logFilePath, true);
+                                    addMessageToLog ("Log file not found: " + logFilePath, true);
+                                }
+
+                                window.clearInterval (myInt);
+                            //} else {
+                            //    myInt = window.setInterval (intervalCallback, LOG_POLLING_INTERVAL);
+                            }
+                        },
+                        // this should only happen when things get seriously wrong on the server
+                        //
+                        error: function(jqXHR, textStatus, errorThrown) {
+                            myAlert ("textStatus = " + textStatus + "<br/>errorThrown = " + errorThrown);
+                            window.clearInterval (myInt);
+                        }
+                    });
+                };
+
+                $(window).bind('resize', function() {
+                    list.setGridWidth($(window).width() - 60);
+                }).trigger('resize');
+
+                var logContent = $("#logContent");
+                var logDialog = $("#logDialog").dialog ({
+                    autoOpen: false,
+                    height: 600,
+                    width: 900,
+                    modal: true,
+                    buttons: [ // declaring buttons this way lets us assign ID's to the buttons so they can be interacted with later.
+                        {
+                            id: "logClearButton",
+                            text: "Clear",
+                            click: function() {
+                                $("#logContent").html ("");                          
+                            }
+                        },
+                        {
+                            id: "logCloseButton",
+                            text: "Close",
+                            click: function() {
+                                $(this).dialog ("close");                          
+                            }
+                        }
+                    ]
+                }); // #logDialog
+
+                createAlertDialog();
+                createConfirmDialog();
+                
+            }); // $(document).ready()
+            
+        </script>
+<!-- InstanceEndEditable -->
+    </head>
+<!-- InstanceBeginEditable name="bodytag" -->
+    <body class="page">
+<!-- InstanceEndEditable -->
+        <div class="header">
+            <div class="logo" onClick="javascript:location='index.html'"><img src="images/cisco_logo.png"/></div>
+            <div class="app_title" onClick="javascript:location='index.html'">Promotion &amp; Deployment Tool</div>
+        </div>
+        <div class="nav_container">
+            <div class="nav_tab_container"><!-- divs are floated right so listed in reverse order -->
+                <div class="nav_tab_spacer"></div>
+                <div id="nav_tab_execute" class="nav_tab" onClick="javascript:location='execute.html'">
+                    <div class="nav_tab_left"></div>
+                    <div class="nav_tab_center">EXECUTE</div>
+                    <div class="nav_tab_right"></div>
+                </div>
+                <div id="nav_tab_modules" class="nav_tab" onClick="javascript:location='modules.html'">
+                    <div class="nav_tab_left"></div>
+                    <div class="nav_tab_center">MODULES</div>
+                    <div class="nav_tab_right"></div>
+                </div>
+                <div id="nav_tab_plans" class="nav_tab" onClick="javascript:location='dep_plans.html'">
+                    <div class="nav_tab_left"></div>
+                    <div class="nav_tab_center">PLANS</div>
+                    <div class="nav_tab_right"></div>
+                </div>
+                <div id="nav_tab_configuration" class="nav_tab" onClick="javascript:location='config_preferences.html'">
+                    <div class="nav_tab_left"></div>
+                    <div class="nav_tab_center">CONFIGURATION</div>
+                    <div class="nav_tab_right"></div>
+                </div>
+            </div>
+            <div class="nav_base"></div>
+            <div class="nav_submenu_container">
+                <div class="nav_submenu_items">
+<!-- InstanceBeginEditable name="nav_submenu" -->
+                    <div id="nav_submenu_execute_deployments" class="nav_submenu_item">Execute&nbsp;Deployments</div>
+                    <div id="nav_submenu_logs"                class="nav_submenu_item">Logs</div>
+<!-- InstanceEndEditable -->
+                </div>
+                <div class="nav_submenu_right"><img src="images/nav_submenu_right.png"/></div>
+            </div>
+        </div>
+        <div class="page_content">
+            <div class="page_title_container">
+                <div class="page_title">
+<!-- InstanceBeginEditable name="page_title" -->
+                    EXECUTE DEPLOYMENTS
+<!-- InstanceEndEditable -->
+                </div>
+                <div class="page_description">
+<!-- InstanceBeginEditable name="page_description" -->
+                    <div class="collapsable"><!-- used with the setCollapsable() function above -->
+                        <div class="collapsable-content">
+                            Execute a deployment plan.
+                        </div>
+                    </div>
+<!-- InstanceEndEditable -->
+                </div>
+            </div>
+<!-- InstanceBeginEditable name="content" -->
+            <div class="table_container">
+                <div class="execute_form">
+                    <form action="javascript: void">
+                        <span class="execute_select_label">Execute using this deployment config:&nbsp;</span>
+                        <select id="execute_using">
+                        </select>&nbsp;&nbsp;<a href="/pdtoolgui/config_dep_conf_files.html"><img src="images/edit.gif" border="0" alt="edit_profiles"/></a>
+                    </form>
+                </div>
+                <table id="list"></table> <!-- table generated and populated by jqGrid in header -->
+                <div id="pager"></div> 
+            </div>
+            <div id="alertDialog" title="Alert" class="dialog">
+                <p id="alertDialogMessage"></p>
+            </div>
+            <div id="confirmDialog" title="Confirm" class="dialog">
+                <p id="confirmDialogMessage"></p>
+            </div>
+            <div id="logDialog" title="Execution Log" class="dialog">
+                <pre id="logContent" class="logContent"></pre>
+            </div>
+<!-- InstanceEndEditable -->
+        </div>
+    </body>
+<!-- InstanceEnd --></html>

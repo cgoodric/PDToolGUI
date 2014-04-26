@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html><!-- InstanceBegin template="/Templates/pdtoolgui.dwt" codeOutsideHTMLIsLocked="false" -->
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<!-- InstanceBeginEditable name="doctitle" -->
+        <title>PDTool: Configuration</title>
+<!-- InstanceEndEditable -->
+        <link rel="stylesheet" type="text/css" href="css/styles.css">
+        <link rel="stylesheet" type="text/css" href="css/smoothness/jquery-ui-1.10.2.custom.css" />
+        <link rel="stylesheet" type="text/css" href="css/ui.jqgrid.css" />
+        <script type="text/javascript" src="js/jquery-1.9.1.js"></script>
+        <script type="text/javascript" src="js/jquery-ui-1.10.2.custom.js"></script>
+        <script type="text/javascript" src="js/i18n/grid.locale-en.js"></script>
+        <script type="text/javascript" src="js/jquery.jqGrid.src.js"></script>
+        <script type="text/javascript" src="js/jquery-queryParser.min.js"></script>
+        <script type="text/javascript" src="js/pdtoolgui.js"></script>
+        <script type="text/javascript" src="js/pdtoolgui_docs_en.js"></script>
+<!-- InstanceBeginEditable name="head" -->
+        <script language="javascript">
+        
+            // set an event handler to fire when the page's DOM is complete (not necessarily when all the images or CSS finish loading.)
+            // this is similar to the <body> tag's "onload" attribute. however, "onload" waits until all the other resources (CSS,
+            // images, etc.) are done loading, too. this way the construction of the table can start a bit sooner.
+            //
+            $(document).ready (function() { 
+
+                // check access status and forward to incex.html if access is denied.
+                //
+                $.getJSON (
+                    "/security?rnd=" + myRand(), // base URL
+                    null,                       // argument
+                    function(data) {            // callback function to parse data
+                        if (data.status == "error") {
+                            location = "/pdtoolgui/index.html?denied=true&rnd=" + myRand();
+                        }
+                    }
+                );
+
+                // update the navigation tabs by highlighting the correct tab
+                //
+                setActiveNavTab('nav_tab_configuration'); 
+
+                // set the active submenu item and set click event handlers on all submenu items
+                //
+                $("#nav_submenu_prefs")     .click(function() {location='config_preferences.html'});
+                $("#nav_submenu_servers")   .click(function() {location='config_servers.html'});
+                $("#nav_submenu_dep_confs") .click(function() {location='config_dep_conf_files.html'}).addClass("nav_submenu_item_active");
+                $("#nav_submenu_vcs_init")  .click(function() {location='config_vcs_init.html'});
+
+                // enable the more/less functions of the page description
+                //
+                //setCollapsable();
+                
+                // enable tooltips over editor fields
+                //
+                setTooltips (TOOLTIPS["config_dep_conf"]);
+
+                // create alert and confirm dialogs
+                //
+                createAlertDialog();
+                createConfirmDialog();
+                
+                var customRowCount = 0;
+
+                // parse this page's URL query parameters
+                //
+                var queryParams = $.parseQuery(location.search);
+                
+                $("#profile_name").html (decodeURIComponent(queryParams.path.replace(/\+/g, " ")).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\s/g, "&nbsp;"));
+                
+                // disable all the forms' submit functionality. this will be overridden with custom AJAX code.
+                //
+                $("form").submit(function() {return false;});
+
+                // create the tabs container (the unordered list child provides the tab names and the three child <div>'s 
+                // become the tabs in the tabs container.
+                //
+                $("#tabs").tabs();
+                
+                // set up various numeric fields with spinners
+                //
+                $("#user_option_threshold").spinner ({min: 0});
+                $("#cis_connect_retry").spinner ({min: 0});
+                $("#cis_connect_retry_sleep").spinner ({min: 0});
+                
+                // set up the radio buttons in the behaviors tab
+                //
+                $("#suppress_comments").buttonset();
+                $("#debug1").buttonset();
+                $("#debug2").buttonset();
+                $("#debug3").buttonset();
+                $("#diffmerger_verbose").buttonset();
+                $("#cis_ping_server").buttonset();
+
+                // set up the radio buttons in the vcs tab
+                //
+                $("#vcs_multi_user_topology").buttonset();
+                //$("#vcs_type").buttonset();
+                $("#vcs_exec_full_path").buttonset();
+                
+                // put a click event handler on the vcs type radio that hides/shows the appropriate vcs table rows. use the
+                // same function to update the vcs rows as the AJAX callback does.
+                //
+                //$('#vcs_type input:radio').change(setVCSFields);
+                $('#vcs_type').change(setVCSFields);
+
+                // create an array containing the table rows for each vcs type. this is used for showing and hiding
+                // the appropriate rows when the vcs type radio is changed.
+                //
+                var vcs_divs = [null, $(".svn_row"), $(".p4_row"), $(".cvs_row"), $(".tfs_row"), $(".tfs_row"), $(".tfs_row"), $(".tfs_row")];
+                
+                // hides or shows the appropriate vcs specific settings based on the vcs type radio button setting.
+                //
+                function setVCSFields() {
+                    //var selectedVal = $("#vcs_type input:radio:checked").val();
+                    var selectedVal = $("#vcs_type").val();
+
+                    $(".svn_row").hide();
+                    $(".p4_row").hide();
+                    $(".cvs_row").hide();
+                    $(".tfs_row").hide();
+                    
+                    vcs_divs[selectedVal].show();
+                }
+                
+                // set up the add new custom variable button in the custom variables tab. use the same click event handler code
+                // as the AJAX callback does.
+                //
+                $("#custom_add")
+                    .button()
+                    .click(addCustomVarRow);
+                
+                // set up the form "submit" and "cancel" buttons.
+                //
+                $("#submit")
+                    .button()
+                    .click(function() {
+                        $('#submit').button ("disable");
+                        
+                        var data = createJSON();
+
+                        $.ajax({  
+                            type: 'PUT',
+                            contentType: 'application/json',
+                            url: "/deployment_profile?rnd=" + myRand(),
+                            dataType: "json",
+                            data: data,  
+                            success: function (data) {
+                                var success = processAjaxResult (
+                                    data, 
+                                    {
+                                        useDialog:false, 
+                                        reloadGrid:false
+                                    }
+                                );
+                                
+                                // this is a little different than most editors in that when the submit is
+                                // successful, we have to navigate back to the parent page.
+                                //
+                                if (success) {
+                                    location = "config_dep_conf_files.html"
+                                } else {
+                                    $("#submit").button ("enable");
+                                }
+                            },
+                            // this should only happen when things go seriously wrong on the server
+                            //
+                            error: function(jqXHR, textStatus, errorThrown) {
+                                myAlert ("textStatus = " + textStatus + "<br>errorThrown = " + errorThrown);
+                                $("#submit").button ("enable");
+                            }
+                        });
+                    });
+                
+                $("#cancel")
+                    .button()
+                    .click(function() {
+                        location = "config_dep_conf_files.html";
+                    });
+                
+                // creates a row containing the form elements for a custom variable in the custom variables tab.
+                //
+                function addCustomVarRow() {
+                    // add the html code before the "add new custom variable" button container row.
+                    //
+                    $('#custom_add_row').before (function() {
+                                                     return '<tr id="custom_variable_row_' + customRowCount + '" class="dynamic_row">\n' +
+                                                            '    <td><input type="text" name="custom_name_' + customRowCount + '" id="custom_name_' + customRowCount + '"size="30" class="text ui-widget-content ui-corner-all dynamic_row_name" /></td>\n' +
+                                                            '    <td><input type="text" name="custom_value_' + customRowCount + '" id="custom_value_' + customRowCount + '" size="60" class="text ui-widget-content ui-corner-all dynamic_row_value" /></td>\n' +
+                                                            '    <td><div id="custom_row_' + customRowCount + '_del" title="Delete custom variable" >Delete custom variable</div></td>\n' +
+                                                            '</tr>\n';
+                                                 });
+
+                    // add a click event handler to the delete button to delete the custom variable when clicked.
+                    //
+                    $("#custom_row_" + customRowCount + "_del")
+                        .button({
+                            icons: {
+                                primary: "ui-icon-trash"
+                            },
+                            text: false
+                        })
+                        .data('rownum', customRowCount)
+                        .click(function() {
+                            $('#custom_variable_row_' + $(this).data('rownum')).remove();
+                            if ($('.dynamic_row').length == 0) {
+                                addCustomVarRow();
+                            }
+                        });
+
+                    customRowCount++;
+                }
+                
+                // use the "path" variable from the page's query params to call the server and get the deployment plan data. call
+                // the setFormData() function when finished downloading the JSON.
+                //
+                $.getJSON (
+                    "/deployment_profile/" + encodeURIComponent(queryParams.path) + "?rnd=" + myRand(), // base URL ("path" is still URL encoded here so no need to re-encode.)
+                    null,                                                                              // argument
+                    setFormData                                                                        // callback function to parse data
+                );
+
+                // sets the page's form data based on a JSON payload.
+                //
+                function setFormData (data) {
+                    $('#suppress_comments_' + data.suppressComments).prop ("checked", "checked");
+                    $("#suppress_comments").buttonset("refresh");
+                    $('#debug1_' + data.debug1).prop ("checked", "checked");
+                    $("#debug1").buttonset("refresh");
+                    $('#debug2_' + data.debug2).prop ("checked", "checked");
+                    $("#debug2").buttonset("refresh");
+                    $('#debug3_' + data.debug3).prop ("checked", "checked");
+                    $("#debug3").buttonset("refresh");
+                    $('#diffmerger_verbose_' + data.diffmergerVerbose).prop ("checked", "checked");
+                    $("#diffmerger_verbose").buttonset("refresh");
+                    $('#all_resources_indicator').val (data.allResourcesIndicator);
+                    $('#exclude_resources_indicator').val (data.excludeResourcesIndicator);
+                    $('#user_option_threshold').val (data.userOptionThreshold);
+                    $('#dsm_non_updatable_attributes').val (data.dataSourceModuleNonUpdateableAttributes);
+                    $('#sam_non_updatable_attributes').val (data.serverAttributeModuleNonUpdateableAttributes);
+                    $('#dm_non_updatable_attributes').val (data.domainModuleNonUpdateableAttributes);
+                    $('#vm_external_vcs_resource_type_list').val (data.vcsModuleExternalVcsResourceTypeList);
+                    $('#cis_ping_server_' + data.cisPingServer).prop ("checked", "checked");
+                    $("#cis_ping_server").buttonset("refresh");
+                    $('#cis_connect_retry').val (data.cisConnectRetry);
+                    $('#cis_connect_retry_sleep').val (data.cisConnectRetrySleepMillis);
+                    $('#vcs_multi_user_topology_' + data.vcsMultiUserTopology).prop ("checked", "checked");
+                    $("#vcs_multi_user_topology").buttonset("refresh");
+                    
+                    //$('#vcs_type_' + data.vcsType).prop ("checked", "checked");
+                    //$("#vcs_type").buttonset("refresh");
+                    for (var i = 1; i < VCS_TYPES.length; i++) {
+                        if (VCS_TYPES[i] == data.vcsType) {
+                            $("#vcs_type").val (i);
+                            break;
+                        }
+                    }
+                    setVCSFields();
+                    $('#vcs_home').val (data.vcsHome);
+                    $('#vcs_command').val (data.vcsCommand);
+                    $('#vcs_exec_full_path_' + data.vcsExecFullPath).prop ("checked", "checked");
+                    $("#vcs_exec_full_path").buttonset("refresh");
+                    $('#vcs_options').val (data.vcsOptions);
+                    $('#vcs_workspace_init_new_options').val (data.vcsWorkspaceInitNewOptions);
+                    $('#vcs_workspace_init_link_options').val (data.vcsWorkspaceInitLinkOptions);
+                    $('#vcs_workspace_init_get_options').val (data.vcsWorkspaceInitGetOptions);
+                    
+                    // TFS_CHECKIN_OPTIONS is deprecated. Use its value for VCS_CHECKIN_OPTIONS
+                    // if VCS_TYPE is a version of TFS and VCS_CHECKIN_OPTIONS is otherwise unset.)
+                    //
+                    if ($("#vcs_type").val() == VCS_TYPE_TFS2005 ||
+                        $("#vcs_type").val() == VCS_TYPE_TFS2010 ||
+                        $("#vcs_type").val() == VCS_TYPE_TFS2012 ||
+                        $("#vcs_type").val() == VCS_TYPE_TFS2013
+                       ) {
+                        if (data.vcsCheckinOptions !== undefined && data.vcsCheckinOptions.length > 0) {
+                            $('#vcs_checkin_options').val (data.vcsCheckinOptions);
+                        } else {
+                            $('#vcs_checkin_options').val (data.tfsCheckinOptions);
+                        }
+                    } else {
+                        $('#vcs_checkin_options').val (data.vcsCheckinOptions);
+                    }
+
+                    $('#vcs_checkin_options_required').val (data.vcsCheckinOptionsRequired);
+                    $('#vcs_checkout_options').val (data.vcsCheckoutOptions);
+                    $('#vcs_checkout_options_required').val (data.vcsCheckoutOptionsRequired);
+                    $('#vcs_repository_url').val (data.vcsRepositoryUrl);
+                    $('#vcs_project_root').val (data.vcsProjectRoot);
+                    $('#vcs_workspace_home').val (data.vcsWorkspaceHome);
+                    $('#vcs_workspace_name').val (data.vcsWorkspaceName);
+                    $('#vcs_workspace_dir').val (data.vcsWorkspaceDir);
+                    $('#vcs_temp_dir').val (data.vcsTempDir);
+                    $('#vcs_username').val (data.vcsUsername);
+                    $('#vcs_password').val (data.vcsPassword);
+                    $('#vcs_ignore_messages').val (data.vcsIgnoreMessages);
+                    $('#vcs_message_prepend').val (data.vcsMessagePrepend);
+                    $('#svn_editor').val (data.svnEditor);
+                    $('#svn_env').val (data.svnEnv);
+                    $('#p4_editor').val (data.p4Editor);
+                    $('#p4_client').val (data.p4Client);
+                    $('#p4_port').val (data.p4Port);
+                    $('#p4_user').val (data.p4User);
+                    $('#p4_passwd').val (data.p4Passwd);
+                    $('#p4_env').val (data.p4Env);
+                    $('#p4_del_opt').val (data.p4DelLinkOptions);
+                    $('#cvs_root').val (data.cvsRoot);
+                    $('#cvs_rsh').val (data.cvsRsh);
+                    $('#cvs_env').val (data.cvsEnv);
+                    $('#tfs_editor').val (data.tfsEditor);
+                    $('#tfs_env').val (data.tfsEnv);
+                    $('#tfs_checkin_options').val (data.tfsCheckinOptions);
+                    $('#tfs_server_url').val (data.tfsServerUrl);
+                    
+                    for (var i = 0; i < data.envVars.length; i++) {
+                        
+                        // row 0 is hard coded into the html below as a placeholder so that the selector
+                        // ".custom_variable_row:last" used in addCustomVarRow() will work.
+                        //
+                        //if (i > 0) 
+                           addCustomVarRow();
+                        
+                        $('#custom_name_' + i).val(data.envVars[i].variable);
+                        $('#custom_value_' + i).val(data.envVars[i].value);
+                    }
+                }
+
+                // creates a JSON artifact for sending with AJAX queries. Jackson on the server side is very particular
+                // about the format of JSON objects: double quoted attributes AND values.
+                //
+                function createJSON () {
+                    var envVars = new Array();
+                    for (var i = 0; i < customRowCount; i++) {                        
+                        // make sure the row hasn't been deleted by the user and that the variable name is filled in
+                        //
+                        if ($("#custom_variable_row_" + i).length > 0 && $('#custom_name_' + i).val().length > 0) {
+                            envVars.push({
+                                "variable": $('#custom_name_' + i).val(),
+                                "value": $('#custom_value_' + i).val()
+                            });
+                        }
+                    }
+                    
+                    var data = {
+                        "path": decodeURIComponent(queryParams.path.replace (/\+/, " ")),
+                        "suppressComments": $('#suppress_comments input:radio:checked').val(),
+                        "debug1": $('#debug1 input:radio:checked').val(),
+                        "debug2": $('#debug2 input:radio:checked').val(),
+                        "debug3": $('#debug3 input:radio:checked').val(),
+                        "diffmergerVerbose": $('#diffmerger_verbose input:radio:checked').val(),
+                        "allResourcesIndicator": $('#all_resources_indicator').val(),
+                        "excludeResourcesIndicator": $('#exclude_resources_indicator').val(),
+                        "userOptionThreshold": $('#user_option_threshold').val(),
+                        "dataSourceModuleNonUpdateableAttributes": $('#dsm_non_updatable_attributes').val(),
+                        "serverAttributeModuleNonUpdateableAttributes": $('#sam_non_updatable_attributes').val(),
+                        "domainModuleNonUpdateableAttributes": $('#dm_non_updatable_attributes').val(),
+                        "vcsModuleExternalVcsResourceTypeList": $('#vm_external_vcs_resource_type_list').val(),
+                        "cisPingServer": $('#cis_ping_server input:radio:checked').val(),
+                        "cisConnectRetry": $('#cis_connect_retry').val(),
+                        "cisConnectRetrySleepMillis": $('#cis_connect_retry_sleep').val(),
+                        "vcsMultiUserTopology": $('#vcs_multi_user_topology input:radio:checked').val(),
+                        //"vcsType": VCS_TYPES[$('#vcs_type input:radio:checked').val()],
+                        "vcsType": VCS_TYPES[$('#vcs_type').val()],
+                        "vcsHome": $('#vcs_home').val(),
+                        "vcsCommand": $('#vcs_command').val(),
+                        "vcsExecFullPath": $('#vcs_exec_full_path input:radio:checked').val(),
+                        "vcsOptions": $('#vcs_options').val(),
+                        "vcsWorkspaceInitNewOptions": $('#vcs_workspace_init_new_options').val(),
+                        "vcsWorkspaceInitLinkOptions": $('#vcs_workspace_init_link_options').val(),
+                        "vcsWorkspaceInitGetOptions": $('#vcs_workspace_init_get_options').val(),
+                        "vcsCheckinOptions": $('#vcs_checkin_options').val(),
+                        "vcsCheckinOptionsRequired": $('#vcs_checkin_options_required').val(),
+                        "vcsCheckoutOptions": $('#vcs_checkout_options').val(),
+                        "vcsCheckoutOptionsRequired": $('#vcs_checkout_options_required').val(),
+                        "vcsRepositoryUrl": $('#vcs_repository_url').val(),
+                        "vcsProjectRoot": $('#vcs_project_root').val(),
+                        "vcsWorkspaceHome": $('#vcs_workspace_home').val(),
+                        "vcsWorkspaceName": $('#vcs_workspace_name').val(),
+                        "vcsWorkspaceDir": $('#vcs_workspace_dir').val(),
+                        "vcsTempDir": $('#vcs_temp_dir').val(),
+                        "vcsUsername": $('#vcs_username').val(),
+                        "vcsPassword": $('#vcs_password').val(),
+                        "vcsIgnoreMessages": $('#vcs_ignore_messages').val(),
+                        "vcsMessagePrepend": $('#vcs_message_prepend').val(),
+                        "svnEditor": $('#svn_editor').val(),
+                        "svnEnv": $('#svn_env').val(),
+                        "p4Editor": $('#p4_editor').val(),
+                        "p4Client": $('#p4_client').val(),
+                        "p4Port": $('#p4_port').val(),
+                        "p4User": $('#p4_user').val(),
+                        "p4Passwd": $('#p4_passwd').val(),
+                        "p4Env": $('#p4_env').val(),
+                        "p4DelLinkOptions": $('#p4_del_opt').val(),
+                        "cvsRoot": $('#cvs_root').val(),
+                        "cvsRsh": $('#cvs_rsh').val(),
+                        "cvsEnv": $('#cvs_env').val(),
+                        "tfsEditor": $('#tfs_editor').val(),
+                        "tfsEnv": $('#tfs_env').val(),
+                        "tfsCheckinOptions": $('#tfs_checkin_options').val(),
+                        "tfsServerUrl": $('#tfs_server_url').val(),
+                        "envVars": envVars
+                    };
+                    
+                    return JSON.stringify (data);
+                }
+
+            }); // $(document).ready()
+            
+        </script>
+<!-- InstanceEndEditable -->
+    </head>
+<!-- InstanceBeginEditable name="bodytag" -->
+    <body class="page">
+<!-- InstanceEndEditable -->
+        <div class="header">
+            <div class="logo" onClick="javascript:location='index.html'"><img src="images/cisco_logo.png"/></div>
+            <div class="app_title" onClick="javascript:location='index.html'">Promotion &amp; Deployment Tool</div>
+        </div>
+        <div class="nav_container">
+            <div class="nav_tab_container"><!-- divs are floated right so listed in reverse order -->
+                <div class="nav_tab_spacer"></div>
+                <div id="nav_tab_execute" class="nav_tab" onClick="javascript:location='execute.html'">
+                    <div class="nav_tab_left"></div>
+                    <div class="nav_tab_center">EXECUTE</div>
+                    <div class="nav_tab_right"></div>
+                </div>
+                <div id="nav_tab_modules" class="nav_tab" onClick="javascript:location='modules.html'">
+                    <div class="nav_tab_left"></div>
+                    <div class="nav_tab_center">MODULES</div>
+                    <div class="nav_tab_right"></div>
+                </div>
+                <div id="nav_tab_plans" class="nav_tab" onClick="javascript:location='dep_plans.html'">
+                    <div class="nav_tab_left"></div>
+                    <div class="nav_tab_center">PLANS</div>
+                    <div class="nav_tab_right"></div>
+                </div>
+                <div id="nav_tab_configuration" class="nav_tab" onClick="javascript:location='config_preferences.html'">
+                    <div class="nav_tab_left"></div>
+                    <div class="nav_tab_center">CONFIGURATION</div>
+                    <div class="nav_tab_right"></div>
+                </div>
+            </div>
+            <div class="nav_base"></div>
+            <div class="nav_submenu_container">
+                <div class="nav_submenu_items">
+<!-- InstanceBeginEditable name="nav_submenu" -->
+                    <div id="nav_submenu_prefs"     class="nav_submenu_item">Preferences</div>
+                    <div id="nav_submenu_servers"   class="nav_submenu_item">Servers</div>
+                    <div id="nav_submenu_dep_confs" class="nav_submenu_item">Deployment&nbsp;Configurations</div>
+                    <div id="nav_submenu_vcs_init"  class="nav_submenu_item">VCS&nbsp;Initialization</div>
+<!-- InstanceEndEditable -->
+                </div>
+                <div class="nav_submenu_right"><img src="images/nav_submenu_right.png"/></div>
+            </div>
+        </div>
+        <div class="page_content">
+            <div class="page_title_container">
+                <div class="page_title">
+<!-- InstanceBeginEditable name="page_title" -->
+                    DEPLOYMENT PROFILE: <span id="profile_name"></span>
+<!-- InstanceEndEditable -->
+                </div>
+                <div class="page_description">
+<!-- InstanceBeginEditable name="page_description" -->
+                    <div class="collapsable"><!-- used with the setCollapsable() function above -->
+                        <div class="collapsable-content">
+                        </div>
+                    </div>
+<!-- InstanceEndEditable -->
+                </div>
+            </div>
+<!-- InstanceBeginEditable name="content" -->
+            <div id="tabs">
+                <ul>
+                    <li><a href="#tabs-1">PDTool Behavior</a></li>
+                    <li><a href="#tabs-2">VCS Settings</a></li>
+                    <li><a href="#tabs-3">Custom Variables</a></li>
+                </ul>
+                <div id="tabs-1">
+                    <form id="behaviors">
+                        <fieldset>
+                            <table cellpadding="0" cellspacing="0" border="0">
+                                <tbody>
+                                    <tr>
+                                        <td><label for="suppress_comments" class="tabs_form_label">Suppress Comments</label></td>
+                                        <td>
+                                            <div id="suppress_comments">
+                                                <input type="radio" name="suppress_comments" id="suppress_comments_true" value="true" /><label for="suppress_comments_true">True</label>
+                                                <input type="radio" name="suppress_comments" id="suppress_comments_false" value="false" /><label for="suppress_comments_false">False</label>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td><label for="debug1" class="tabs_form_label">Debug Level 1 Messages</label></td>
+                                        <td>
+                                            <div id="debug1">
+                                                <input type="radio" name="debug1" id="debug1_true" value="true" /><label for="debug1_true">True</label>
+                                                <input type="radio" name="debug1" id="debug1_false" value="false" /><label for="debug1_false">False</label>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td><label for="debug2" class="tabs_form_label">Debug Level 2 Messages</label></td>
+                                        <td>
+                                            <div id="debug2">
+                                                <input type="radio" name="debug2" id="debug2_true" value="true" /><label for="debug2_true">True</label>
+                                                <input type="radio" name="debug2" id="debug2_false" value="false" /><label for="debug2_false">False</label>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td><label for="debug3" class="tabs_form_label">Debug Level 3 Messages</label></td>
+                                        <td>
+                                            <div id="debug3">
+                                                <input type="radio" name="debug3" id="debug3_true" value="true" /><label for="debug3_true">True</label>
+                                                <input type="radio" name="debug3" id="debug3_false" value="false" /><label for="debug3_false">False</label>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td><label for="diffmerger_verbose" class="tabs_form_label">Diffmerger Verbose</label></td>
+                                        <td>
+                                            <div id="diffmerger_verbose">
+                                                <input type="radio" name="diffmerger_verbose" id="diffmerger_verbose_true" value="true" /><label for="diffmerger_verbose_true">True</label>
+                                                <input type="radio" name="diffmerger_verbose" id="diffmerger_verbose_false" value="false" /><label for="diffmerger_verbose_false">False</label>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td><label for="all_resources_indicator" class="tabs_form_label">All Resources Indicator</label></td>
+                                        <td><input type="text" name="all_resources_indicator" id="all_resources_indicator" size="1" maxlength="1" class="text ui-widget-content ui-corner-all" /></td>
+                                    </tr>
+                                    <tr>
+                                        <td><label for="exclude_resources_indicator" class="tabs_form_label">Exclude Resources Indicator</label></td>
+                                        <td><input type="text" name="exclude_resources_indicator" id="exclude_resources_indicator" size="1" maxlength="1" class="text ui-widget-content ui-corner-all" /></td>
+                                    </tr>
+                                    <tr>
+                                        <td><label for="user_option_threshold" class="tabs_form_label">User Option Threshold</label></td>
+                                        <td><input type="text" name="user_option_threshold" id="user_option_threshold" size="4" maxlength="5" class="text ui-widget-content ui-corner-all" /></td>
+                                    </tr>
+                                    <tr>
+                                        <td><label for="dsm_non_updatable_attributes" class="tabs_form_label">Data Source Module Non-Updatable Attributes</label></td>
+                                        <td><input type="text" name="dsm_non_updatable_attributes" id="dsm_non_updatable_attributes" size="60" class="text ui-widget-content ui-corner-all" /></td>
+                                    </tr>
+                                    <tr>
+                                        <td><label for="sam_non_updatable_attributes" class="tabs_form_label">Server Attribute Module Non-Updatable Attributes</label></td>
+                                        <td><input type="text" name="sam_non_updatable_attributes" id="sam_non_updatable_attributes" size="60" class="text ui-widget-content ui-corner-all" /></td>
+                                    </tr>
+                                    <tr>
+                                        <td><label for="dm_non_updatable_attributes" class="tabs_form_label">Domain Module Non-Updatable Attributes</label></td>
+                                        <td><input type="text" name="dm_non_updatable_attributes" id="dm_non_updatable_attributes" size="60" class="text ui-widget-content ui-corner-all" /></td>
+                                    </tr>
+                                    <tr>
+                                        <td><label for="vm_external_vcs_resource_type_list" class="tabs_form_label">VCS Module External Resource Type List</label></td>
+                                        <td><input type="text" name="vm_external_vcs_resource_type_list" id="vm_external_vcs_resource_type_list" size="60" class="text ui-widget-content ui-corner-all" /></td>
+                                    </tr>
+                                    <tr>
+                                        <td><label for="cis_ping_server" class="tabs_form_label">CIS Ping Server</label></td>
+                                        <td>
+                                            <div id="cis_ping_server">
+                                                <input type="radio" name="cis_ping_server" id="cis_ping_server_true" value="true" /><label for="cis_ping_server_true">True</label>
+                                                <input type="radio" name="cis_ping_server" id="cis_ping_server_false" value="false" /><label for="cis_ping_server_false">False</label>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td><label for="cis_connect_retry" class="tabs_form_label">CIS Connect Retry</label></td>
+                                        <td><input type="text" name="cis_connect_retry" id="cis_connect_retry" size="1" maxlength="2" class="text ui-widget-content ui-corner-all" /></td>
+                                    </tr>
+                                    <tr>
+                                        <td><label for="cis_connect_retry_sleep" class="tabs_form_label">CIS Connection Retry Sleep</label></td>
+                                        <td><input type="text" name="cis_connect_retry_sleep" id="cis_connect_retry_sleep" size="6" maxlength="6" class="text ui-widget-content ui-corner-all" /></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </fieldset>
+                    </form>
+                </div>
+                <div id="tabs-2">
+                    <form id="vcs">
+                        <fieldset>
+                            <table cellpadding="0" cellspacing="0" border="0">
+                                <tbody>
+                                    <tr>
+                                        <td><label for="vcs_multi_user_topology" class="tabs_form_label">Multi-User Topology</label></td>
+                                        <td>
+                                            <div id="vcs_multi_user_topology">
+                                                <input type="radio" name="vcs_multi_user_topology" id="vcs_multi_user_topology_true" value="true" /><label for="vcs_multi_user_topology_true">True</label>
+                                                <input type="radio" name="vcs_multi_user_topology" id="vcs_multi_user_topology_false" value="false" /><label for="vcs_multi_user_topology_false">False</label>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td><label for="vcs_type" class="tabs_form_label">Version Control System Type</label></td>
+                                        <td>
+                                            <!--div id="vcs_type">
+                                                <input type="radio" name="vcs_type" id="vcs_type_svn" value="1" /><label for="vcs_type_svn">SVN</label>
+                                                <input type="radio" name="vcs_type" id="vcs_type_p4" value="2" /><label for="vcs_type_p4">Perforce</label>
+                                                <input type="radio" name="vcs_type" id="vcs_type_cvs" value="3" /><label for="vcs_type_cvs">CVS</label>
+                                                <input type="radio" name="vcs_type" id="vcs_type_tfs2005" value="4" /><label for="vcs_type_tfs2005">TFS 2005</label>
+                                                <input type="radio" name="vcs_type" id="vcs_type_tfs2010" value="5" /><label for="vcs_type_tfs2010">TFS 2010</label>
+                                                <input type="radio" name="vcs_type" id="vcs_type_tfs2012" value="6" /><label for="vcs_type_tfs2012">TFS 2012</label>
+                                            </div-->
+                                            <select id="vcs_type" name="vcs_type">
+                                                <option value="1">SVN</option>
+                                                <option value="2">Perforce</option>
+                                                <option value="3">CVS</option>
+                                                <option value="4">TFS 2005</option>
+                                                <option value="5">TFS 2010</option>
+                                                <option value="6">TFS 2012</option>
+                                                <option value="7">TFS 2013</option>
+                                            </select>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td><label for="vcs_home" class="tabs_form_label">VCS Home</label></td>
+                                        <td><input type="text" name="vcs_home" id="vcs_home" size="60" class="text ui-widget-content ui-corner-all" /></td>
+                                    </tr>
+                                    <tr>
+                                        <td><label for="vcs_command" class="tabs_form_label">VCS Command</label></td>
+                                        <td><input type="text" name="vcs_command" id="vcs_command" class="text ui-widget-content ui-corner-all" /></td>
+                                    </tr>
+                                    <tr>
+                                        <td><label for="vcs_exec_full_path" class="tabs_form_label">Execute VCS Command With Full Path</label></td>
+                                        <td>
+                                            <div id="vcs_exec_full_path">
+                                                <input type="radio" name="vcs_exec_full_path" id="vcs_exec_full_path_true" value="true" /><label for="vcs_exec_full_path_true">True</label>
+                                                <input type="radio" name="vcs_exec_full_path" id="vcs_exec_full_path_false" value="false" /><label for="vcs_exec_full_path_false">False</label>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td><label for="vcs_options" class="tabs_form_label">VCS Command Options</label></td>
+                                        <td><input type="text" name="vcs_options" id="vcs_options" size="60" class="text ui-widget-content ui-corner-all" /></td>
+                                    </tr>
+                                    <tr>
+                                        <td><label for="vcs_workspace_init_new_options" class="tabs_form_label">VCS Workspace Init New Options</label></td>
+                                        <td><input type="text" name="vcs_workspace_init_new_options" id="vcs_workspace_init_new_options" size="60" class="text ui-widget-content ui-corner-all" /></td>
+                                    </tr>
+                                    <tr>
+                                        <td><label for="vcs_workspace_init_link_options" class="tabs_form_label">VCS Workspace Init Link Options</label></td>
+                                        <td><input type="text" name="vcs_workspace_init_link_options" id="vcs_workspace_init_link_options" size="60" class="text ui-widget-content ui-corner-all" /></td>
+                                    </tr>
+                                    <tr>
+                                        <td><label for="vcs_workspace_init_get_options" class="tabs_form_label">VCS Workspace Init Get Options</label></td>
+                                        <td><input type="text" name="vcs_workspace_init_get_options" id="vcs_workspace_init_get_options" size="60" class="text ui-widget-content ui-corner-all" /></td>
+                                    </tr>
+                                    <tr>
+                                        <td><label for="vcs_checkin_options" class="tabs_form_label">VCS Checkin Options</label></td>
+                                        <td><input type="text" name="vcs_checkin_options" id="vcs_checkin_options" size="60" class="text ui-widget-content ui-corner-all" /></td>
+                                    </tr>
+                                    <tr>
+                                        <td><label for="vcs_checkin_options_required" class="tabs_form_label">VCS Required Checkin Options</label></td>
+                                        <td><input type="text" name="vcs_checkin_options_required" id="vcs_checkin_options_required" size="60" class="text ui-widget-content ui-corner-all" /></td>
+                                    </tr>
+                                    <tr>
+                                        <td><label for="vcs_checkout_options" class="tabs_form_label">VCS Checkout Options</label></td>
+                                        <td><input type="text" name="vcs_checkout_options" id="vcs_checkout_options" size="60" class="text ui-widget-content ui-corner-all" /></td>
+                                    </tr>
+                                    <tr>
+                                        <td><label for="vcs_checkout_options_required" class="tabs_form_label">VCS Required Checkout Options</label></td>
+                                        <td><input type="text" name="vcs_checkout_options_required" id="vcs_checkout_options_required" size="60" class="text ui-widget-content ui-corner-all" /></td>
+                                    </tr>
+                                    <tr>
+                                        <td><label for="vcs_repository_url" class="tabs_form_label">Repository URL</label></td>
+                                        <td><input type="text" name="vcs_repository_url" id="vcs_repository_url" size="60" class="text ui-widget-content ui-corner-all" /></td>
+                                    </tr>
+                                    <tr>
+                                        <td><label for="vcs_project_root" class="tabs_form_label">Project Root</label></td>
+                                        <td><input type="text" name="vcs_project_root" id="vcs_project_root" class="text ui-widget-content ui-corner-all" /></td>
+                                    </tr>
+                                    <tr>
+                                        <td><label for="vcs_workspace_home" class="tabs_form_label">Workspace Home</label></td>
+                                        <td><input type="text" name="vcs_workspace_home" id="vcs_workspace_home" size="60" class="text ui-widget-content ui-corner-all" /></td>
+                                    </tr>
+                                    <tr>
+                                        <td><label for="vcs_workspace_name" class="tabs_form_label">Workspace Name</label></td>
+                                        <td><input type="text" name="vcs_workspace_name" id="vcs_workspace_name" size="60" class="text ui-widget-content ui-corner-all" /></td>
+                                    </tr>
+                                    <tr>
+                                        <td><label for="vcs_workspace_dir" class="tabs_form_label">Workspace Directory</label></td>
+                                        <td><input type="text" name="vcs_workspace_dir" id="vcs_workspace_dir" size="60" class="text ui-widget-content ui-corner-all" /></td>
+                                    </tr>
+                                    <tr>
+                                        <td><label for="vcs_temp_dir" class="tabs_form_label">Temporary Directory</label></td>
+                                        <td><input type="text" name="vcs_temp_dir" id="vcs_temp_dir" size="60" class="text ui-widget-content ui-corner-all" /></td>
+                                    </tr>
+                                    <tr>
+                                        <td><label for="vcs_username" class="tabs_form_label">VCS User Name</label></td>
+                                        <td><input type="text" name="vcs_username" id="vcs_username" class="text ui-widget-content ui-corner-all" /></td>
+                                    </tr>
+                                    <tr>
+                                        <td><label for="vcs_password" class="tabs_form_label">VCS Password</label></td>
+                                        <td><input type="password" name="vcs_password" id="vcs_password" class="text ui-widget-content ui-corner-all" /></td>
+                                    </tr>
+                                    <tr>
+                                        <td><label for="vcs_ignore_messages" class="tabs_form_label">Messages To Ignore</label></td>
+                                        <td><input type="text" name="vcs_ignore_messages" id="vcs_ignore_messages" size="60" class="text ui-widget-content ui-corner-all" /></td>
+                                    </tr>
+                                    <tr>
+                                        <td><label for="vcs_message_prepend" class="tabs_form_label">Prepend Message</label></td>
+                                        <td><input type="text" name="vcs_message_prepend" id="vcs_message_prepend" size="60" class="text ui-widget-content ui-corner-all" /></td>
+                                    </tr>
+                                    <tr class="svn_row">
+                                        <td><label for="svn_editor" class="tabs_form_label">SVN Editor</label></td>
+                                        <td><input type="text" name="svn_editor" id="svn_editor" class="text ui-widget-content ui-corner-all" /></td>
+                                    </tr>
+                                    <tr class="svn_row">
+                                        <td><label for="svn_env" class="tabs_form_label">SVN Environment Variables</label></td>
+                                        <td><input type="text" name="svn_env" id="svn_env" size="60" class="text ui-widget-content ui-corner-all" /></td>
+                                    </tr>
+                                    <tr class="p4_row">
+                                        <td><label for="p4_editor" class="tabs_form_label">Perforce Editor</label></td>
+                                        <td><input type="text" name="p4_editor" id="p4_editor" class="text ui-widget-content ui-corner-all" /></td>
+                                    </tr>
+                                    <tr class="p4_row">
+                                        <td><label for="p4_client" class="tabs_form_label">Perforce Client</label></td>
+                                        <td><input type="text" name="p4_client" id="p4_client" size="60" class="text ui-widget-content ui-corner-all" /></td>
+                                    </tr>
+                                    <tr class="p4_row">
+                                        <td><label for="p4_port" class="tabs_form_label">Perforce Port</label></td>
+                                        <td><input type="text" name="p4_port" id="p4_port" size="60" class="text ui-widget-content ui-corner-all" /></td>
+                                    </tr>
+                                    <tr class="p4_row">
+                                        <td><label for="p4_user" class="tabs_form_label">Perforce User Name</label></td>
+                                        <td><input type="text" name="p4_user" id="p4_user" class="text ui-widget-content ui-corner-all" /></td>
+                                    </tr>
+                                    <tr class="p4_row">
+                                        <td><label for="p4_passwd" class="tabs_form_label">Perforce Password</label></td>
+                                        <td><input type="password" name="p4_passwd" id="p4_passwd" class="text ui-widget-content ui-corner-all" /></td>
+                                    </tr>
+                                    <tr class="p4_row">
+                                        <td><label for="p4_env" class="tabs_form_label">Perforce Environment Variables</label></td>
+                                        <td><input type="text" name="p4_env" id="p4_env" size="60" class="text ui-widget-content ui-corner-all" /></td>
+                                    </tr>
+                                    <tr class="p4_row">
+                                        <td><label for="p4_del_opt" class="tabs_form_label">Perforce Delete Link Options</label></td>
+                                        <td><input type="text" name="p4_del_opt" id="p4_del_opt" class="text ui-widget-content ui-corner-all" /></td>
+                                    </tr>
+                                    <tr class="cvs_row">
+                                        <td><label for="cvs_root" class="tabs_form_label">CVS Root</label></td>
+                                        <td><input type="text" name="cvs_root" id="cvs_root" size="60" class="text ui-widget-content ui-corner-all" /></td>
+                                    </tr>
+                                    <tr class="cvs_row">
+                                        <td><label for="cvs_rsh" class="tabs_form_label">CVS RSH Command</label></td>
+                                        <td><input type="text" name="cvs_rsh" id="cvs_rsh" class="text ui-widget-content ui-corner-all" /></td>
+                                    </tr>
+                                    <tr class="cvs_row">
+                                        <td><label for="cvs_env" class="tabs_form_label">CVS Envrionment Variables</label></td>
+                                        <td><input type="text" name="cvs_env" id="cvs_env" size="60" class="text ui-widget-content ui-corner-all" /></td>
+                                    </tr>
+                                    <tr class="tfs_row">
+                                        <td><label for="tfs_editor" class="tabs_form_label">TFS Editor</label></td>
+                                        <td><input type="text" name="tfs_editor" id="tfs_editor" class="text ui-widget-content ui-corner-all" /></td>
+                                    </tr>
+                                    <tr class="tfs_row">
+                                        <td><label for="tfs_env" class="tabs_form_label">TFS Environment Variables</label></td>
+                                        <td><input type="text" name="tfs_env" id="tfs_env" size="60" class="text ui-widget-content ui-corner-all" /></td>
+                                    </tr>
+                                    <tr class="tfs_row">
+                                        <td><label for="tfs_checkin_options" class="tabs_form_label">TFS Check In Options</label></td>
+                                        <td><input type="text" name="tfs_checkin_options" id="tfs_checkin_options" class="text ui-widget-content ui-corner-all" /></td>
+                                    </tr>
+                                    <tr class="tfs_row">
+                                        <td><label for="tfs_server_url" class="tabs_form_label">TFS Server URL</label></td>
+                                        <td><input type="text" name="tfs_server_url" id="tfs_server_url" class="text ui-widget-content ui-corner-all" /></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </fieldset>
+                    </form>
+                </div>
+                <div id="tabs-3">
+                    <form id="custom">
+                        <fieldset>
+                            <table cellpadding="0" cellspacing="0" border="0">
+                                <tbody>
+                                    <tr>
+                                        <td><label for="cust_var_name" class="tabs_form_label">Variable Name</label></td>
+                                        <td><label for="cust_var_value" class="tabs_form_label">Value</label></td>
+                                        <td></td>
+                                    </tr>
+                                    <tr id="custom_add_row">
+                                        <td colspan="3"><div id="custom_add" title="Add custom variable" >Add Custom Variable</div></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </fieldset>
+                    </form>
+                </div>
+            </div>
+            <div class="button_container">
+                <div id="submit">Submit</div>
+                <div id="cancel">Cancel</div>
+            </div>
+            <div id="alertDialog" title="Alert" class="dialog">
+                <p id="alertDialogMessage"></p>
+            </div>
+            <div id="confirmDialog" title="Confirm" class="dialog">
+                <p id="confirmDialogMessage"></p>
+            </div>
+            <!-- InstanceEndEditable -->
+        </div>
+    </body>
+<!-- InstanceEnd --></html>

@@ -1,0 +1,6 @@
+{"total": "1",
+"page": "1",
+"rows": [
+    {"id": "1", "cell": ["dev", "cgoodric-mac", "9420", "admin", "composite", "US West"]},
+    {"id": "2", "cell": ["prod", "cgoodric-vm", "9400", "admin", "composite", "US East"]}
+]}

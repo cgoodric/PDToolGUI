@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html><!-- InstanceBegin template="/Templates/pdtoolgui.dwt" codeOutsideHTMLIsLocked="false" -->
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<!-- InstanceBeginEditable name="doctitle" -->
+        <title>PDTool: Servers</title>
+<!-- InstanceEndEditable -->
+        <link rel="stylesheet" type="text/css" href="css/styles.css">
+        <link rel="stylesheet" type="text/css" href="css/smoothness/jquery-ui-1.10.2.custom.css" />
+        <link rel="stylesheet" type="text/css" href="css/ui.jqgrid.css" />
+        <script type="text/javascript" src="js/jquery-1.9.1.js"></script>
+        <script type="text/javascript" src="js/jquery-ui-1.10.2.custom.js"></script>
+        <script type="text/javascript" src="js/i18n/grid.locale-en.js"></script>
+        <script type="text/javascript" src="js/jquery.jqGrid.src.js"></script>
+        <script type="text/javascript" src="js/jquery-queryParser.min.js"></script>
+        <script type="text/javascript" src="js/pdtoolgui.js"></script>
+        <script type="text/javascript" src="js/pdtoolgui_docs_en.js"></script>
+<!-- InstanceBeginEditable name="head" -->
+        <script language="javascript">
+        
+            // set an event handler to fire when the page's DOM is complete (not necessarily when all the images or CSS finish loading.)
+            // this is similar to the <body> tag's "onload" attribute. however, "onload" waits until all the other resources (CSS,
+            // images, etc.) are done loading, too. this way the construction of the table can start a bit sooner.
+            //
+            $(document).ready (function() { 
+
+                // check access status and forward to incex.html if access is denied.
+                //
+                $.getJSON (
+                    "/security?rnd=" + myRand(), // base URL
+                    null,                       // argument
+                    function(data) {            // callback function to parse data
+                        if (data.status == "error") {
+                            location = "/pdtoolgui/index.html?denied=true&rnd=" + myRand();
+                        }
+                    }
+                );
+
+                // update the navigation tabs by highlighting the correct tab
+                //
+                setActiveNavTab('nav_tab_configuration'); 
+
+                // set the active submenu item and set click event handlers on all submenu items
+                //
+                $("#nav_submenu_prefs")     .click(function() {location='config_preferences.html'});
+                $("#nav_submenu_servers")   .addClass("nav_submenu_item_active");
+                $("#nav_submenu_dep_confs") .click(function() {location='config_dep_conf_files.html'});
+                $("#nav_submenu_vcs_init")  .click(function() {location='config_vcs_init.html'});
+
+                // enable the more/less functions of the page description
+                //
+                //setCollapsable();
+
+                // enable tooltips over editor fields
+                //
+                setTooltips (TOOLTIPS["config_servers"]);
+
+                // build the main table and populate with a REST/JSON call
+                //
+                list = $("#list")
+                    .jqGrid({
+                        url:'/server_list',
+                        datatype: 'json',
+                        mtype: 'GET',
+                        autoencode: true,
+                        colNames:['Server ID', 'Hostname', 'Port', 'Usage', 'User Name', 'Password', 'Domain', 'CIS Home', 'Cluster Name', 'Site', 'HTTPS'],
+                        colModel :[ 
+                            {name:'sid', index:'sid', width:150, classes:'idGridCell'}, // can't use "id" here as i think it's reserved by jqGrid.
+                            {name:'hostname', index:'hostname', width:220},
+                            {name:'port', index:'port', width:60},
+                            {name:'usage', index:'usage', width:60, hidden:true}, // not displaying this column
+                            {name:'user', index:'user', width:80},
+                            {name:'encryptedpassword', index:'encryptedpassword', width:60, hidden:true}, // not displaying this column
+                            {name:'domain', index:'domain', width:80},
+                            {name:'cishome', index:'cishome', width:60, hidden:true}, // not displaying this column
+                            {name:'clustername', index:'clustername', width:60, hidden:true}, // not displaying this column
+                            {name:'site', index:'site', width:60},
+                            {name:'useHttps', index:'useHttps', width:40, fixed:true, align:'center', editable: true, edittype: 'checkbox', editoptions: {value: "true:false"},formatter: "checkbox", formatoptions: {disabled: true}},
+                        ],
+                        pager: '#pager',
+                        height: "auto",
+                        autowidth: true,
+                        rowNum:10,
+                        rowList:[10,20,50],
+                        recordtext: "Servers {0} - {1} of {2}",
+                        sortname: 'sid',
+                        sortorder: 'asc',
+                        viewrecords: true,
+                        gridview: true,
+                        multiselect: true,
+
+                        // add a "before select row" event handler that blocks checking of the row's checkbox when the "id"
+                        // column is clicked, but opens the editor for the id instead. depends on the "idGridCell" class being
+                        // added to the column definition of the "id" column.
+                        //
+                        beforeSelectRow: function (rowid, e) {
+                            if ($(e.target).hasClass("idGridCell")) {
+                                
+                                $.getJSON (
+                                    "/server/" + encodeURIComponent (rowid) + "?rnd=" + myRand(), // base URL
+                                    null,                                    // argument
+                                    setDialogData                            // callback function to parse data
+                                );
+        
+                                operation.val("edit");
+                                $("#addEditDialog").dialog ({title: "Edit Server"});
+                                $("#addEditDialog").dialog ("open");
+                                return false;
+                            } else {
+                                return true;
+                            }
+                        }
+                    }) // .jqGrid()
+                    
+                    .navGrid( // get rid of the default buttons (except for search; dunno how to programmatically show it's dialog) so we can reorder them below
+                        '#pager', 
+                        {
+                            edit: false,
+                            add: false,
+                            del: false,
+                            search: true,
+                            searchtitle: "Search for Servers"
+                        },  // nav
+                        {}, // edit
+                        {}, // add
+                        {}, // del
+                        {
+                            closeAfterSearch: true,
+                            closeAfterReset: true,
+                            closeOnEscape: true,
+                            resize: false,
+                            searchOnEnter: true
+                        }, // search
+                        {
+                            caption: "my view caption"
+                        }   // view
+                    )  // .navGrid()
+                    
+                    // set up custom buttons in the order we want. load them in reverse order so they can be placed in front of the search and refresh buttons.
+                    //
+                    // delete button
+                    //
+                    .navButtonAdd(
+                        '#pager',
+                        {
+                            caption: "",
+                            buttonicon: "ui-icon-trash",
+                            onClickButton: function (jqEvent) { 
+                                var selList = list.getGridParam('selarrrow'); // list of selected rows
+
+                                if (selList.length == 0) {
+                                    myAlert ("Please select at least one server to delete.");
+                                    return false;
+                                }
+
+                                var args = "";
+                                var confirmList = "";
+                                for (var i = 0; i < selList.length; i++) {
+                                    if (i > 0) args += ",";
+                                    args += selList[i];
+    
+                                    if (i > 0) confirmList += "<br/>";
+                                    confirmList += decodeURIComponent (selList[i]);
+                                }
+                                
+                                myConfirm (
+                                    "Do you want to delete the following server(s)?<br/><br/>" + confirmList, 
+                                    function() {
+                                        $.ajax({  
+                                            type: "DELETE",
+                                            contentType: 'application/json',
+                                            url: "/server/" + args + "?rnd=" + myRand(),
+                                            dataType: "json",
+                                            success: function (data) {
+                                                processAjaxResult (data, {useDialog:false, reloadGrid:true});
+                                            },
+                                            // this should only happen when things get seriously wrong on the server
+                                            //
+                                            error: function(jqXHR, textStatus, errorThrown) {
+                                                myAlert ("textStatus = " + textStatus + "<br/>errorThrown = " + errorThrown);
+                                            }
+                                        }); 
+                                    }
+                                );
+                            },
+                            title: "Delete Server",
+                            position: "first"
+                        }
+                    )  // .navGrid()
+                    
+                    // copy button
+                    //
+                    .navButtonAdd(
+                        '#pager',
+                        {
+                            caption: "",
+                            buttonicon: "ui-icon-copy",
+                            onClickButton: function (jqEvent) { 
+                                var selList = list.getGridParam('selarrrow'); // list of selected rows
+
+                                if (selList.length == 0) {
+                                    myAlert ("Please select at least one server to copy.");
+                                    return false;
+                                }
+
+                                var args = "";
+                                var confirmList = "";
+                                for (var i = 0; i < selList.length; i++) {
+                                    if (i > 0) args += ",";
+                                    args += selList[i];
+    
+                                    if (i > 0) confirmList += "<br/>";
+                                    confirmList += decodeURIComponent (selList[i]);
+                                }
+                                
+                                myConfirm (
+                                    "Do you want to copy the following server(s)?<br/><br/>" + confirmList, 
+                                    function() {
+                                        $.ajax({  
+                                            type: "POST",
+                                            contentType: 'application/json',
+                                            url: "/server/" + args + "?rnd=" + myRand(),
+                                            dataType: "json",
+                                            success: function (data) {
+                                                processAjaxResult (data, {useDialog:false, reloadGrid:true});
+                                            },
+                                            // this should only happen when things get seriously wrong on the server
+                                            //
+                                            error: function(jqXHR, textStatus, errorThrown) {
+                                                myAlert ("textStatus = " + textStatus + "<br/>errorThrown = " + errorThrown);
+                                            }
+                                        }); 
+                                    }
+                                );
+                            },
+                            title: "Copy Server",
+                            position: "first"
+                        }
+                    )  // .navGrid()
+                    
+                    // edit button
+                    //
+                    .navButtonAdd(
+                        '#pager',
+                        {
+                            caption: "",
+                            buttonicon: "ui-icon-pencil",
+                            onClickButton: function() {
+                                var selList = list.getGridParam('selarrrow');
+
+                                if (selList.length > 1) {
+                                    myAlert ("Cannot edit more than one item at a time.");
+                                    return false;
+                                } else if (selList.length == 0) {
+                                    myAlert ("Please select a server to edit.");
+                                    return false;
+                                }
+
+                                $.getJSON (
+                                    "/server/" + encodeURIComponent (selList[0]) + "?rnd=" + myRand(), // base URL
+                                    null,                                                             // argument
+                                    setDialogData                                                     // callback function to parse data
+                                );
+
+                                operation.val("edit");
+                                $("#addEditDialog").dialog ({title: "Edit Server"});
+                                $("#addEditDialog").dialog ("open");
+                            },
+                            title: "Edit Server",
+                            position: "first"
+                        }
+                    )  // .navGrid()
+                    
+                    // add button
+                    //
+                    .navButtonAdd(
+                        '#pager',
+                        {
+                            caption: "",
+                            buttonicon: "ui-icon-plus",
+                            onClickButton: function() {
+                                operation.val("add");
+                                origid.val("-1");
+
+                                setDialogData ({
+                                    id: "",
+                                    origId: -1,
+                                    hostname: "",
+                                    port: 9400,
+                                    usage: "",
+                                    user: "",
+                                    encryptedpassword: "",
+                                    domain: "",
+                                    cishome: "",
+                                    site: ""
+                                });
+
+                                id.focus();
+                                $("#addEditDialog").dialog ({title: "Add Server"});
+                                $("#addEditDialog").dialog ("open");
+                            },
+                            title: "Add New Server",
+                            position: "first"
+                        }
+                    ); // .navGrid()
+
+                // scale the jqGrid artifact as the user resizes the browser.
+                //
+                $(window).bind('resize', function() {
+                    list.setGridWidth($(window).width() - 60); // 30 pixels of padding on either side of the jqGrid.
+                }).trigger('resize');
+
+                // set up the add/edit dialog
+                //
+                var operation = $("#operation"),
+                    origid = $("#origid"),
+                    id = $("#id"),
+                    hostname = $("#hostname"),
+                    port = $("#port"),
+                    usage = $("#usage"),
+                    user = $("#user"),
+                    encryptedpassword = $("#encryptedpassword"),
+                    domain = $("#domain"),
+                    cishome = $("#cishome"),
+                    clustername = $("#clustername"),
+                    site = $("#site"),
+                    useHttps = $("#useHttps").buttonset(),
+                    allFields = $([]).add (operation).add (origid).add (id).add (hostname).add (port).add (usage).add (user).add (encryptedpassword).add (domain).add (cishome).add (clustername).add (site).add (useHttps);
+
+                $("#port").spinner ({min: 1024});
+                
+                dialogMsg = $(".dialogMsg");
+
+                addEditDialog = $("#addEditDialog").dialog ({
+                    autoOpen: false,
+                    //height: 300,
+                    width: 400,
+                    modal: true,
+                    buttons: [ // declaring buttons this way lets us assign ID's to the buttons so they can be interacted with later.
+                        {
+                            id: "aeOkButton",
+                            text: "OK",
+                            click: function() {
+                                var actionType = (operation.val() == "add") ? "POST" : "PUT";
+                                var errMsg = "";
+                                var dataObj = createDataObjectFromForm();
+                                
+                                allFields.removeClass ("ui-state-error");
+                                clearAEDialogMessage();
+                                $("#aeOkButton").button ("disable");
+
+                                $.ajax({  
+                                    type: actionType,
+                                    contentType: 'application/json',
+                                    url: "/server?rnd=" + myRand(),
+                                    dataType: "json",
+                                    data: createJSON (dataObj),  
+                                    success: function (data) {
+                                        processAjaxResult (data, {useDialog:true, reloadGrid:true});
+                                        $("#aeOkButton").button ("enable");
+                                    },
+                                    // this should only happen when things get seriously wrong on the server
+                                    //
+                                    error: function(jqXHR, textStatus, errorThrown) {
+                                        myAlert ("textStatus = " + textStatus + "<br>errorThrown = " + errorThrown);
+                                        $("#aeOkButton").button ("enable");
+                                    }
+                                });
+                            }
+                        }, {
+                            id: "aeCancelButton",
+                            text: "Cancel",
+                            click: function() {
+                                $(this).dialog ("close");
+                                $("#aeOkButton").button ("enable");
+                          
+                            }
+                        }
+                    ],
+                    // this is an event handler for when the dialog box closes (it can be closed in a number of ways.)
+                    // basically any error classes get cleared from the form elements and the message <div> is cleared.
+                    //
+                    close: function() {
+                        allFields.val ("").removeClass ("ui-state-error");
+                        clearAEDialogMessage();
+                        $("#aeOkButton").button ("enable");
+                    },
+                    // add a custom class to the OK button so that it can be addressed for disabling/enabling later
+                    //
+                    create: function () {
+                        $(this).closest(".ui-dialog")
+                            .find(".ui-button:first") // the first button
+                            .addClass("aeOkButton");
+                    }
+                }); // #addEditDialog
+                
+                // sets the form values of the dialog box from a data object (typically returned from an AJAX call.)
+                //
+                function setDialogData (data) {
+                    id.val (data.id);
+                    origid.val (data.id);
+                    hostname.val (data.hostname);
+                    port.val (data.port);
+                    usage.val (data.usage);
+                    user.val (data.user);
+                    encryptedpassword.val (data.encryptedpassword);
+                    domain.val (data.domain);
+                    cishome.val (data.cishome);
+                    clustername.val (data.clustername);
+                    site.val (data.site);
+                    $('#useHttps_' + data.useHttps).prop ("checked", "checked");
+                    $("#useHttps").buttonset ("refresh");
+                }
+                
+                // create a data object (the same as returned from an AJAX call) but from the dialog's form instead
+                //
+                function createDataObjectFromForm () {
+                    return {
+                        operation: operation.val(),
+                        id: id.val(),
+                        origid: origid.val(),
+                        hostname: hostname.val(),
+                        port: port.val(),
+                        usage: usage.val(),
+                        user: user.val(),
+                        encryptedpassword: encryptedpassword.val(),
+                        domain: domain.val(),
+                        cishome: cishome.val(),
+                        clustername: clustername.val(),
+                        site: site.val(),
+                        useHttps: $('#useHttps input:radio:checked').val()
+                    }
+                }
+                
+                // creates a JSON artifact for sending with AJAX queries. Jackson on the server side is very particular
+                // about the format of JSON objects: double quoted attributes AND values.
+                //
+                function createJSON (data) {
+                    var obj = {
+                        "operation": data.operation,
+                        "origid": data.origid,
+                        "id": data.id,
+                        "hostname": data.hostname,
+                        "port": data.port,
+                        "usage": data.usage,
+                        "user": data.user,
+                        "encryptedpassword": data.encryptedpassword,
+                        "domain": data.domain,
+                        "cishome": data.cishome,
+                        "clustername": data.clustername,
+                        "site": data.site,
+                        "useHttps": data.useHttps
+                    };
+                    
+                    return JSON.stringify (obj);
+                }
+                
+                createAlertDialog();
+                createConfirmDialog();
+
+            }); // $(document).ready()
+            
+        </script>
+<!-- InstanceEndEditable -->
+    </head>
+<!-- InstanceBeginEditable name="bodytag" -->
+    <body class="page">
+<!-- InstanceEndEditable -->
+        <div class="header">
+            <div class="logo" onClick="javascript:location='index.html'"><img src="images/cisco_logo.png"/></div>
+            <div class="app_title" onClick="javascript:location='index.html'">Promotion &amp; Deployment Tool</div>
+        </div>
+        <div class="nav_container">
+            <div class="nav_tab_container"><!-- divs are floated right so listed in reverse order -->
+                <div class="nav_tab_spacer"></div>
+                <div id="nav_tab_execute" class="nav_tab" onClick="javascript:location='execute.html'">
+                    <div class="nav_tab_left"></div>
+                    <div class="nav_tab_center">EXECUTE</div>
+                    <div class="nav_tab_right"></div>
+                </div>
+                <div id="nav_tab_modules" class="nav_tab" onClick="javascript:location='modules.html'">
+                    <div class="nav_tab_left"></div>
+                    <div class="nav_tab_center">MODULES</div>
+                    <div class="nav_tab_right"></div>
+                </div>
+                <div id="nav_tab_plans" class="nav_tab" onClick="javascript:location='dep_plans.html'">
+                    <div class="nav_tab_left"></div>
+                    <div class="nav_tab_center">PLANS</div>
+                    <div class="nav_tab_right"></div>
+                </div>
+                <div id="nav_tab_configuration" class="nav_tab" onClick="javascript:location='config_preferences.html'">
+                    <div class="nav_tab_left"></div>
+                    <div class="nav_tab_center">CONFIGURATION</div>
+                    <div class="nav_tab_right"></div>
+                </div>
+            </div>
+            <div class="nav_base"></div>
+            <div class="nav_submenu_container">
+                <div class="nav_submenu_items">
+<!-- InstanceBeginEditable name="nav_submenu" -->
+                    <div id="nav_submenu_prefs"     class="nav_submenu_item">Preferences</div>
+                    <div id="nav_submenu_servers"   class="nav_submenu_item">Servers</div>
+                    <div id="nav_submenu_dep_confs" class="nav_submenu_item">Deployment&nbsp;Configurations</div>
+                    <div id="nav_submenu_vcs_init"  class="nav_submenu_item">VCS&nbsp;Initialization</div>
+<!-- InstanceEndEditable -->
+                </div>
+                <div class="nav_submenu_right"><img src="images/nav_submenu_right.png"/></div>
+            </div>
+        </div>
+        <div class="page_content">
+            <div class="page_title_container">
+                <div class="page_title">
+<!-- InstanceBeginEditable name="page_title" -->
+                    SERVERS
+<!-- InstanceEndEditable -->
+                </div>
+                <div class="page_description">
+<!-- InstanceBeginEditable name="page_description" -->
+                    <div class="collapsable"><!-- used with the setCollapsable() function above -->
+                        <div class="collapsable-content">
+                            This screen manages the list of CIS servers to be accessed by PDTool.
+                        </div>
+                    </div>
+<!-- InstanceEndEditable -->
+                </div>
+            </div>
+<!-- InstanceBeginEditable name="content" -->
+            <div class="table_container">
+                <table id="list"></table> <!-- table generated and populated by jqGrid in header -->
+                <div id="pager"></div> 
+            </div>
+            <div id="addEditDialog" title="Add/Edit Server" class="dialog">
+                <form id="addEditForm" action="javascript:none">
+                    <fieldset>
+                    <input type="hidden" name="origid" id="origid" />
+                    <input type="hidden" name="operation" id="operation" />
+                    <table cellpadding="0" cellspacing="0">
+                        <tbody>
+                            <tr>
+                                <td><label for="id" class="dialog_label">Server ID</label></td>
+                                <td><input type="text" name="id" id="id" class="text ui-widget-content ui-corner-all" /></td>
+                            </tr>
+                            <tr>
+                                <td><label for="hostname" class="dialog_label">Host Name</label></td>
+                                <td><input type="text" name="hostname" id="hostname" class="text ui-widget-content ui-corner-all" /></td>
+                            </tr>
+                            <tr>
+                                <td><label for="port" class="dialog_label">Port Number</label></td>
+                                <td><input type="number" name="port" id="port" class="text ui-widget-content ui-corner-all" /></td>
+                            </tr>
+                            <tr>
+                                <td><label for="usage" class="dialog_label">Usage</label></td>
+                                <td><input type="text" name="usage" id="usage" class="text ui-widget-content ui-corner-all" /></td>
+                            </tr>
+                            <tr>
+                                <td><label for="user" class="dialog_label">User Name</label></td>
+                                <td><input type="text" name="user" id="user" class="text ui-widget-content ui-corner-all" /></td>
+                            </tr>
+                            <tr>
+                                <td><label for="encryptedpassword" class="dialog_label">Password</label><!-- needs to be encoded before being submitted!!! --></td>
+                                <td><input type="password" name="encryptedpassword" id="encryptedpassword" class="text ui-widget-content ui-corner-all" /></td>
+                            </tr>
+                            <tr>
+                                <td><label for="domain" class="dialog_label">Domain</label></td>
+                                <td><input type="text" name="domain" id="domain" class="text ui-widget-content ui-corner-all" /></td>
+                            </tr>
+                            <tr>
+                                <td><label for="cishome" class="dialog_label">Install Folder</label></td>
+                                <td><input type="text" name="cishome" id="cishome" class="text ui-widget-content ui-corner-all" /></td>
+                            </tr>
+                            <tr>
+                                <td><label for="clustername" class="dialog_label">Cluster Name</label></td>
+                                <td><input type="text" name="clustername" id="clustername" class="text ui-widget-content ui-corner-all" /></td>
+                            </tr>
+                            <tr>
+                                <td><label for="site" class="dialog_label">Site</label></td>
+                                <td><input type="text" name="site" id="site" class="text ui-widget-content ui-corner-all" /></td>
+                            </tr>
+                            <tr>
+                                <td><label for="useHttps" class="dialog_label">Use HTTPS?</label></td>
+                                <td class="dialog_radio">
+                                    <div id="useHttps">
+                                        <input type="radio" name="useHttps" id="useHttps_true" value="true" /><label for="useHttps_true" class="dialog_radio">True</label>
+                                        <input type="radio" name="useHttps" id="useHttps_false" value="false" /><label for="useHttps_false" class="dialog_radio">False</label>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    </fieldset>
+                </form>
+                <p class="dialogMsg"></p>
+            </div>
+            <div id="alertDialog" title="Alert" class="dialog">
+                <p id="alertDialogMessage"></p>
+            </div>
+            <div id="confirmDialog" title="Confirm" class="dialog">
+                <p id="confirmDialogMessage"></p>
+            </div>
+            <!-- InstanceEndEditable -->
+        </div>
+    </body>
+<!-- InstanceEnd --></html>

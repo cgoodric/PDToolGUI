@@ -1,0 +1,9 @@
+{"total": "1",
+"page": "1",
+"rows": [
+    {"id": "1", "cell": ["FullBackup", "CAR", "$PROJECT_HOME_PHYSICAL/resources/modules/example/server_backup.car", "Full server backup"]},
+    {"id": "2", "cell": ["dev_exp_base", "CAR", "$PROJECT_HOME_PHYSICAL/resources/modules/example/dev_base_$CIS_VERSION$.car", "Export of base objects from dev environment"]},
+    {"id": "3", "cell": ["dev_exp_app1", "CAR", "$PROJECT_HOME_PHYSICAL/resources/modules/example/dev_app1_$CIS_VERSION$.car", "Export of App1 project objects from dev environment"]},
+    {"id": "4", "cell": ["prod_imp_base", "CAR", "$PROJECT_HOME_PHYSICAL/resources/modules/example/dev_base_$CIS_VERSION$.car", "Import of base objects into prod environment"]},
+    {"id": "5", "cell": ["prod_imp_app1", "CAR", "$PROJECT_HOME_PHYSICAL/resources/modules/example/dev_app1_$CIS_VERSION$.car", "Import of App1 project objects into prod environment"]}
+]}
