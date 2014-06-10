@@ -65,7 +65,6 @@ public class ListResultRowComparator implements Comparator<ListResult.Row> { // 
      * @param  row2 Second {@link ListResult.Row} object to compare.
      * @return     -1 if row1 is "less than" row2, 1 if row1 is "greater than" row2, and 0 if they are "equal".
      */
-    @Override
     public int compare (ListResult.Row row1, ListResult.Row row2) {
 
         String val1 = row1.getCell().get (this.index);

@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--(c) 2014 Cisco and/or its affiliates. All rights reserved.-->
+
+<project name="PDToolGUI" default="default" basedir="." xmlns:artifact="antlib:org.apache.maven.artifact.ant">
+
+	<!-- configure Ant to enable Maven tasks -->
+    <path id="maven-ant-tasks.classpath" path="lib/maven-ant-tasks-2.1.3.jar" />
+    <typedef resource="org/apache/maven/artifact/ant/antlib.xml" uri="antlib:org.apache.maven.artifact.ant" classpathref="maven-ant-tasks.classpath" />
+
+	<property name="src" location="src"/>
+    <property name="build" location="target"/>
+    <property name="dist" location="gui"/>
+    <property name="lib" location="lib"/>
+    <property name="templates" location="templates"/>
+    <property name="project-name" value="PDToolGUI"/>
+    <property name="maven_version" value="0.1.0-SNAPSHOT"/>
+    <property name="dist_version" value="beta_bld0001"/>
+    <property name="pom_tmpl" location="pom_template.xml"/>
+    <property name="pom_xml" location="pom.xml"/>
+
+    <target name="clean" description="clean up">
+        <!-- Delete the ${build} and ${dist} directory trees, the pom.xml, and distribution zip(s) -->
+        <delete includeemptydirs="true">
+        	<fileset dir="${build}" includes="**/*" />
+        </delete>
+        <delete dir="${dist}" />
+        <delete>
+        	<fileset dir="." includes="PDToolGUI*.zip" />
+        </delete>
+    </target>
+
+    <target name="generate_pom" description="generate a Maven POM from a template">
+    	<!-- make a copy of a POM from the template -->
+    	<copy file="${pom_tmpl}" tofile="${pom_xml}" />
+
+        <!-- replace the substitution label MAVEN_VERSION in the pom.xml with the ${maven_version} property -->
+        <replaceregexp file="${pom_xml}" match="MAVEN_VERSION" replace="${maven_version}" />
+    </target>
+
+    <target name="mvn_package" depends="generate_pom" description="build the project using Maven">
+        <artifact:mvn pom="${pom_xml}">
+            <arg value="package"/>
+        </artifact:mvn>
+    </target>
+
+    <target name="dist" depends="clean, mvn_package" description="generate the distribution">
+    	
+    	<!-- make the distribution folder -->
+    	<mkdir dir="${dist}" />
+    	
+    	<!-- copy the dropwizard YML config file to the distribution folder -->
+    	<copy file="pdtoolgui_dist.yml" tofile="${dist}/pdtoolgui.yml" />
+    	
+    	<!-- copy the template run scripts to the distribution folder and replace the MAVEN_VERSION label -->
+    	<copy todir="${dist}">
+            <fileset dir="." includes="run.*" />
+        </copy>
+        <replaceregexp match="MAVEN_VERSION" replace="${maven_version}" >
+            <fileset dir="${dist}" includes="run.*" />
+        </replaceregexp>
+        
+        <!-- copy the documentation into the distribution folder -->
+        <copy file="PDToolGui_release_notes.txt" todir="${dist}" />
+        <copy file="Composite PS Promotion and Deployment Tool GUI Guide.pdf" todir="${dist}" />
+    	
+    	<!-- copy the web assets to the distribution folder -->
+        <mkdir dir="${dist}/src/main/resources" />
+        <copy todir="${dist}/src/main/resources">
+            <fileset dir="${src}/main/resources" />
+        </copy>
+    	
+        <!-- copy the template files to the distribution folder -->
+        <mkdir dir="${dist}/templates" />
+        <copy todir="${dist}/templates">
+            <fileset dir="${templates}" />
+        </copy>
+        
+        <!-- copy the jar file to the distribution folder -->
+        <mkdir dir="${dist}/target" />
+        <copy file="target/PDToolGUI-${maven_version}.jar" todir="${dist}/target" />
+        
+        <!-- zip the distribution folder -->
+        <zip destfile="PDToolGUI_${dist_version}.zip">
+            <zipfileset dir="gui" prefix="gui"/>
+        </zip>
+    </target>
+
+    <target name="default" depends="dist" description="Compile and package"/>
+</project>

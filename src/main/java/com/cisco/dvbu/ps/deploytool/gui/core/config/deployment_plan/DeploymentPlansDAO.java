@@ -4,9 +4,7 @@ import com.cisco.dvbu.ps.deploytool.gui.core.runtime.file.FilesDAO;
 import com.cisco.dvbu.ps.deploytool.gui.core.config.prefs.PreferencesManager;
 import com.cisco.dvbu.ps.deploytool.gui.resources.DeploymentPlanResource;
 import com.cisco.dvbu.ps.deploytool.gui.util.ListResult;
-import com.cisco.dvbu.ps.deploytool.gui.util.ListResult.Row;
 import com.cisco.dvbu.ps.deploytool.gui.util.ResultMessage;
-import com.cisco.dvbu.ps.deploytool.gui.util.ResultMessage.MessageItem;
 import com.cisco.dvbu.ps.deploytool.gui.util.StringUtils;
 
 import java.io.BufferedReader;
@@ -194,7 +192,6 @@ public class DeploymentPlansDAO {
         File ft = new File (FilesDAO.getPdtHome() + "/" + FilesDAO.fileTypeProperties.get (FilesDAO.FILE_TYPE_DEPLOY_PLAN).getTemplate());
         BufferedReader br = null;
         BufferedWriter bw = null;
-        Matcher m = null;
         
         log.debug ("checking inputs");
         
@@ -487,6 +484,8 @@ public class DeploymentPlansDAO {
                 }
             }
         }
+        
+        br.close();
         
         result.setSteps (steps);
         

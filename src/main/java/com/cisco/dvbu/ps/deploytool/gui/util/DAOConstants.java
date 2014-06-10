@@ -1,7 +1,7 @@
 package com.cisco.dvbu.ps.deploytool.gui.util;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+//import org.slf4j.Logger;
+//import org.slf4j.LoggerFactory;
 
 /**
  * <p>
@@ -13,7 +13,7 @@ import org.slf4j.LoggerFactory;
  */
 public class DAOConstants {
 
-    private static final Logger log = LoggerFactory.getLogger (DAOConstants.class);
+//    private static final Logger log = LoggerFactory.getLogger (DAOConstants.class);
 
     // so that the class is not instantiated
     //

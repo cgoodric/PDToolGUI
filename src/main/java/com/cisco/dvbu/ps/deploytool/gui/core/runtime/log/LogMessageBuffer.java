@@ -153,9 +153,9 @@ public class LogMessageBuffer {
     private void gc() {
         log.debug ("Running garbage collector");
         
-        Iterator it = logPool.keySet().iterator();
+        Iterator<String> it = logPool.keySet().iterator();
         while (it.hasNext()) {
-            String key = (String) it.next();
+            String key = it.next();
             LogMessageContainer lmc = logPool.get (key);
             
             if (lmc.isExecutionCompleted() && lmc.getLastUpdated() < System.currentTimeMillis() - LOG_EXPIRATION_TIME) {

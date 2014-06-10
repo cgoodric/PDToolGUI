@@ -5,8 +5,8 @@ import com.cisco.dvbu.ps.deploytool.gui.util.StringUtils;
 
 import org.jdom2.Element;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+//import org.slf4j.Logger;
+//import org.slf4j.LoggerFactory;
 
 /**
  * <p>
@@ -18,7 +18,7 @@ import org.slf4j.LoggerFactory;
  */
 public class Trigger {
 
-    private static final Logger log = LoggerFactory.getLogger (Trigger.class);
+//    private static final Logger log = LoggerFactory.getLogger (Trigger.class);
     
     public static final int TYPE_TRIGGER = 0;
     public static final int TYPE_SCHEDULE = 1;

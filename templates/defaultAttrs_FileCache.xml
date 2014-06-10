@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<ns2:DatasourceModule xmlns:ns2="http://www.compositesw.com/ps/deploytool/modules">
+    <datasource>
+        <attributeDefsDataSource>
+            <id>ds1</id>
+            <dataSourceType>File-Cache</dataSourceType>
+            <attributeDefs>
+                <attributeDef>
+                    <name>autoAddChildren</name>
+                    <type>STRING</type>
+                    <updateRule>READ_WRITE</updateRule>
+                    <visible>true</visible>
+                </attributeDef>
+                <attributeDef>
+                    <name>driverName</name>
+                    <type>STRING</type>
+                    <updateRule>READ_ONLY</updateRule>
+                    <required>true</required>
+                    <displayName>Adapter Name</displayName>
+                    <visible>true</visible>
+                </attributeDef>
+                <attributeDef>
+                    <name>name</name>
+                    <type>STRING</type>
+                    <updateRule>READ_ONLY</updateRule>
+                    <required>true</required>
+                    <displayName>Name</displayName>
+                    <visible>true</visible>
+                </attributeDef>
+                <attributeDef>
+                    <name>storageDirectory</name>
+                    <type>STRING</type>
+                    <updateRule>READ_WRITE</updateRule>
+                    <required>true</required>
+                    <displayName>Storage Directory</displayName>
+                    <visible>true</visible>
+                </attributeDef>
+                <attributeDef>
+                    <name>type</name>
+                    <type>STRING</type>
+                    <updateRule>READ_ONLY</updateRule>
+                    <required>true</required>
+                    <displayName>Type</displayName>
+                    <visible>false</visible>
+                </attributeDef>
+            </attributeDefs>
+        </attributeDefsDataSource>
+    </datasource>
+</ns2:DatasourceModule>

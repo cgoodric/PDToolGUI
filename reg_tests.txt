@@ -1,0 +1,317 @@
+PDTool GUI regression tests:
+
+- Servers
+
+    - Sort
+    - Search
+    - Add
+    - Edit
+    - Copy
+    - Delete
+
+Add servers to be used for regression tests, source and target.
+
+
+
+- Deploy Confs
+
+    - Sort
+    - Search
+    - Add 
+    - Rename
+    - Edit
+    - Copy
+    - Delete
+    
+Set up real deploy conf for vcs init, generate, and execute tests.
+
+
+
+- Preferences
+
+    - Set default server and deploy conf to previously created server and deploy conf
+    - Update data source attributes
+    - Go back to deploy confs and rename default deploy conf. Verify that new name shows up in prefs automatically.
+
+
+
+- VCS Init
+
+    - Page load shows status
+    - Kick off initialize using previously 
+
+
+
+- Archive Module
+
+    - Sort
+    - Search
+    - Add 
+    - Edit
+    - Copy
+    - Delete
+Add full server backup, export of /shared/test00. For /shared/test00 add set attribute settings for ds_orders and 
+ds_XML to match target.
+
+Create new deployment plan (use separate browser tab for this.)
+        - Add steps to take full server backup and export /shared/test00
+        - Execute plan
+
+
+
+- Data Source Module
+
+    - Sort
+    - Search
+    - Add (add data source from /shared/test00)
+    - Edit
+    - Copy
+    - Delete
+    - Generate 
+
+Generate data sources from /shared/test00
+
+Rename generated data sources.
+
+Update the port in the URL generic attribute for the testWebService to 9450. Create a plan entry to perform the update.
+
+Copy ds_orders to introspect_ds_orders (rename in edit screen after copy). Change to Introspect type. In the 
+introspect plan, add "employees" table and remove "cache_status" and "cache_tracking". Create a plan entry to 
+perform the introspection.
+
+Execute plan.
+
+
+
+- Group Module
+
+    - Sort
+    - Search
+    - Add (add group)
+    - Edit
+    - Copy
+    - Delete 
+    - Generate (generate group)
+
+Generate groups from composite domain
+
+Rename groups to remove "-N".
+
+Remove READ_ALL_CONFIG, READ_ALL_STATUS, and READ_ALL_USERS from "beatles_front_men" group.
+
+Create plan entry to create/update beatles groups.
+
+Execute plan.
+
+
+
+- Privilege Module
+
+    - Sort
+    - Search
+    - Add
+    - Edit
+    - Copy
+    - Delete 
+    - Generate
+
+Generate privileges for /shared/test00, filter = container, options = group, non-system, parent, domain = composite.
+
+Edit privileges, set READ, WRITE, SELECT, EXECUTE for beatles_frontmen; READ, SELECT, EXECUTE for beatles_all;
+set recurse = true; set apply = overwrite append.
+
+Create plan entry to update privileges.
+
+Execute plan.
+
+
+
+- Rebind Module
+
+    - Sort
+    - Search
+    - Add (add rebind from /shared/test00)
+    - Edit
+    - Copy
+    - Delete 
+    - Generate
+
+Generate rebind resources for /shared/test00/Rebind/RebindFolder/Views.
+
+Delete generated resources (just making sure 5 rebind objects get created.)
+
+Create rebind resource for /shared/test00/Rebind/RebindResource/Views/Customers
+    from: /shared/test00/DataSources/ds_orders
+    to:   /shared/test00/DataSourcesCopy/ds_orders
+
+Create rebind folder for /shared/test00/Rebind/RebindFolder/Views
+    from: /shared/test00/DataSources/ds_orders
+    to:   /shared/test00/DataSourcesCopy/ds_orders
+
+Create plan entries for rebinding the resource and the folder.
+
+Execute plan.
+
+
+
+- Regression Module
+
+    - Sort
+    - Search
+    - Add (add regression query and test)
+    - Edit
+    - Copy
+    - Delete 
+
+
+
+- Resource Module
+
+    - Sort
+    - Search
+    - Add (add resource from /shared/test00)
+    - Edit
+    - Copy
+    - Delete 
+
+Create resource entry to test for existence of /shared. (Do NOT set a resource type as this causes a parsing error
+with PDTool.)
+
+Create plan entry for testing existence of /shared.
+
+Execute plan.
+
+
+
+- Resource Cache Module
+
+    - Sort
+    - Search
+    - Add (add cached resource from /shared/test00)
+    - Edit
+    - Copy
+    - Delete 
+    - Generate (generate cached resource from /shared/test00)
+
+Generate resource cache entries starting at /shared/examples (options = configured,table). Should only get one
+for /shared/examples/ds_orders/orders.
+
+Create plan entry to clear the cache for the orders table.
+
+Execute plan.
+
+
+
+- Server Attribute Module
+
+    - Sort
+    - Search
+    - Add (add server attribute "case sensitivity")
+    - Edit
+    - Copy
+    - Delete 
+    - Generate (generate server attribute "trailing spaces")
+
+Generate server attributes for /studio/config/email. Delete all except messageFromAddress, smtpHost, and smtpPort.
+Update messageFromAddress and smtpHost.
+
+Create plan entry to update all the server attributes except smptPort (use the exclusion checkbox.)
+
+Execute plan.
+
+
+
+- Server Manager Module
+
+
+Create a plan entry to restart CIS.
+
+Execute plan.
+
+
+
+- Trigger Module
+
+    - Sort
+    - Search
+    - Add (add trigger from /shared/test00)
+    - Edit
+    - Copy
+    - Delete 
+    - Generate (generate trigger from /shared/test00)
+
+Generate triggers from /shared/test00/ResourceTrigger folder. Delete all triggers but TR-2 and TR-2-SCH-2
+
+Update TR-2 to email to "cgoodrich@compositesw.com" 
+
+Update TR-2-SCH-2 to fire at a different date/time. 
+
+Create plan entry to update both trigger entries.
+
+Execute plan.
+
+
+
+- User Module
+
+    - Sort
+    - Search
+    - Add (add user)
+    - Edit
+    - Copy
+    - Delete 
+    - Generate (generate user)
+
+Generate users from composite domain. Delete all users except john, paul, ringo, and george.
+
+Create plan entry to create/update all users.
+
+Execute plan.
+
+
+
+- VCS Module
+
+    - Sort
+    - Search
+    - Add (add server and resource)
+    - Edit
+    - Copy
+    - Delete 
+    - Generate (generate resource)
+
+Create svn connection entry.
+
+Generate entry for /shared/PSAssets/Utilities/getUtilitiesVersion.
+
+Create plan step to check out getUtilitiesVersion
+
+Execute plan.
+
+
+
+- Deployment Plans
+
+    - Sort
+    - Search
+    - Add (add modules from above)
+    - Edit
+    - Copy
+    - Delete 
+
+
+
+- Execute
+
+    - Sort
+    - Search
+    - Execute
+
+
+
+- Logs
+
+    - Sort
+    - Search
+    - View log
+

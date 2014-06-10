@@ -48,8 +48,8 @@ public class SecurityManager {
         
         if (p.getRestrictAccessToLocalhost().equals("true")) {
             try {
-                for (Enumeration e = NetworkInterface.getNetworkInterfaces(); e.hasMoreElements(); ) {
-                    NetworkInterface n = (NetworkInterface) e.nextElement();
+                for (Enumeration<NetworkInterface> e = NetworkInterface.getNetworkInterfaces(); e.hasMoreElements(); ) {
+                    NetworkInterface n = e.nextElement();
                     
                     for (InterfaceAddress ia : n.getInterfaceAddresses()) {
                         log.debug (n.getDisplayName() + ": " + ia.getAddress().getHostAddress());

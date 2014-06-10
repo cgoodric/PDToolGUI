@@ -18,8 +18,8 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+//import org.slf4j.Logger;
+//import org.slf4j.LoggerFactory;
 
 /**
  * <p>
@@ -32,7 +32,7 @@ import org.slf4j.LoggerFactory;
 @Path("/user_module")
 public class UserModuleResource {
 
-    private static final Logger log = LoggerFactory.getLogger (UserModuleResource.class);
+//    private static final Logger log = LoggerFactory.getLogger (UserModuleResource.class);
     UserModulesDAO dao = new UserModulesDAO();
 
     /**

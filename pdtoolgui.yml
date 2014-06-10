@@ -1,0 +1,123 @@
+#
+# dropwizard config settings in YAML format
+#
+
+
+#
+# variables used by application
+#
+
+# not currently used (set as jvm system property apps.install.dir on startup in run.sh/run.bat)
+pdtgHome: /Users/cgoodric/dev/PDTool62/gui
+
+# indicates whether to make a copy of configuration / module files each time the user makes a change
+backupFiles: true
+
+# used by GUI to set profile select list default value and used internally for generation tasks
+defaultProfile: /Users/cgoodric/dev/PDTool62/resources/config/deploy_custom.properties
+
+# used by GUI to set server select list default value and used internally for generation tasks
+defaultServer: localhost9420
+
+# used by XML serializer to determine number of spaces to use for each level of indent.
+xmlIndentWidth: 4
+
+# indicates whether servlets should restrict client access to browsers running on the local host
+restrictAccessToLocalhost: false
+
+
+#
+# Jetty settings
+#
+http:
+  port: 9399       # CIS base port of 9400 - 1
+  adminPort: 9398  # CIS base port of 9400 - 2
+
+
+#
+# uses slf4j library for logging
+#
+logging:
+  level: INFO      # legal valus ERROR, WARN, INFO, DEBUG, TRACE 
+
+  # Logger-specific levels.
+  #
+  loggers:
+
+    # Overrides the logging level of the package or class
+    #
+    "com.cisco.dvbu.ps.deploytool.gui.core.config.deployment_plan": INFO
+    "com.cisco.dvbu.ps.deploytool.gui.core.config.deployment_profile": INFO
+    "com.cisco.dvbu.ps.deploytool.gui.core.config.prefs": INFO
+    "com.cisco.dvbu.ps.deploytool.gui.core.config.server": INFO
+    "com.cisco.dvbu.ps.deploytool.gui.core.config.vcs_init": INFO
+
+    "com.cisco.dvbu.ps.deploytool.gui.core.module.archive": INFO
+    "com.cisco.dvbu.ps.deploytool.gui.core.module.data_source": INFO
+    "com.cisco.dvbu.ps.deploytool.gui.core.module.group": INFO
+    "com.cisco.dvbu.ps.deploytool.gui.core.module.privilege": INFO
+    "com.cisco.dvbu.ps.deploytool.gui.core.module.rebind": INFO
+    "com.cisco.dvbu.ps.deploytool.gui.core.module.regression": INFO
+    "com.cisco.dvbu.ps.deploytool.gui.core.module.resource": INFO
+    "com.cisco.dvbu.ps.deploytool.gui.core.module.resource_cache": INFO
+    "com.cisco.dvbu.ps.deploytool.gui.core.module.server_attribute": INFO
+    "com.cisco.dvbu.ps.deploytool.gui.core.module.trigger": INFO
+    "com.cisco.dvbu.ps.deploytool.gui.core.module.user": INFO
+    "com.cisco.dvbu.ps.deploytool.gui.core.module.vcs": INFO
+
+    "com.cisco.dvbu.ps.deploytool.gui.core.runtime.execute": INFO
+    "com.cisco.dvbu.ps.deploytool.gui.core.runtime.file": INFO
+    "com.cisco.dvbu.ps.deploytool.gui.core.runtime.log": DEBUG
+
+    "com.cisco.dvbu.ps.deploytool.gui.core.shared": INFO
+
+    "com.cisco.dvbu.ps.deploytool.gui.resources": INFO
+
+    "com.cisco.dvbu.ps.deploytool.gui.util": INFO
+
+  console:         
+    enabled: true  # set to false to disable output to stdout
+    timeZone: PST8PDT
+
+  # Settings for logging to a file.
+  #
+  file:
+
+    # If true, write log statements to a file.
+    enabled: false
+
+    # Do not write log statements below this threshold to the file.
+    threshold: ALL
+
+    # The time zone in which dates should be displayed.
+    timeZone: UTC
+
+    # A custom Logback format string.
+    logFormat: null
+
+    # The file to which statements will be logged.
+    #
+    # If enabled is true, this must be specified.
+    currentLogFilename: ./logs/app.log
+
+    # If true, log files are rotated and archived.
+    archive: true
+
+    # When the log file rolls over, the file will be archived to
+    # app-2012-03-15.log.gz, example.log will be truncated,
+    # and new statements written to it.
+    #
+    # If archive is true, this must be specified.
+    archivedLogFilenamePattern: ./logs/app-%d.log.gz
+
+    # The maximum number of log files to archive.
+    archivedFileCount: 5
+
+
+# used in development so that web assets packaged in jar are bypassed.
+# edits can then be made to web assets without having to recompile. 
+# should be commented out in a deployed environment.
+#
+assets:
+  overrides:
+    /pdtoolgui: src/main/resources/web_assets/

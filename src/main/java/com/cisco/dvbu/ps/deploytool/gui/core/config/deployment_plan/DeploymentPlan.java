@@ -2,8 +2,8 @@ package com.cisco.dvbu.ps.deploytool.gui.core.config.deployment_plan;
 
 import java.util.List;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+//import org.slf4j.Logger;
+//import org.slf4j.LoggerFactory;
 
 /**
  * <p>
@@ -14,7 +14,7 @@ import org.slf4j.LoggerFactory;
  * @version 1.0
  */
 public class DeploymentPlan {
-    private static final Logger log = LoggerFactory.getLogger (DeploymentPlan.class);
+    //private static final Logger log = LoggerFactory.getLogger (DeploymentPlan.class);
     
     private String path;
     private List<Step> steps;

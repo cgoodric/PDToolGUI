@@ -154,7 +154,8 @@ public class VCSDAO {
      * @param  ids   The a comma separated list of VCS IDs to copy.
      * @return       A message or messages with the result of the operation.
      */
-    public ResultMessage copy (
+    @SuppressWarnings("unused")
+	public ResultMessage copy (
         String path,
         String ids
     ) {

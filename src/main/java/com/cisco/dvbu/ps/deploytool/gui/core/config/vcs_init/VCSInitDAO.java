@@ -5,8 +5,6 @@ import com.cisco.dvbu.ps.deploytool.gui.core.config.deployment_profile.Deploymen
 import com.cisco.dvbu.ps.deploytool.gui.resources.VCSInitResource;
 import com.cisco.dvbu.ps.deploytool.gui.util.ResultMessage;
 
-import com.cisco.dvbu.ps.deploytool.gui.util.ResultMessage.MessageItem;
-
 import java.io.File;
 
 import java.util.ArrayList;

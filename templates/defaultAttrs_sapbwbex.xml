@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<ns2:DatasourceModule xmlns:ns2="http://www.compositesw.com/ps/deploytool/modules">
+    <datasource>
+        <attributeDefsDataSource>
+            <id>ds1</id>
+            <dataSourceType>SAP BW BEx (Beta)</dataSourceType>
+            <attributeDefs>
+                <attributeDef>
+                    <name>appServer</name>
+                    <type>STRING</type>
+                    <updateRule>READ_WRITE</updateRule>
+                    <required>true</required>
+                    <displayName>Application Server</displayName>
+                    <visible>true</visible>
+                </attributeDef>
+                <attributeDef>
+                    <name>autoAddChildren</name>
+                    <type>STRING</type>
+                    <updateRule>READ_WRITE</updateRule>
+                    <visible>true</visible>
+                </attributeDef>
+                <attributeDef>
+                    <name>client</name>
+                    <type>STRING</type>
+                    <updateRule>READ_WRITE</updateRule>
+                    <required>true</required>
+                    <displayName>Client</displayName>
+                    <visible>true</visible>
+                </attributeDef>
+                <attributeDef>
+                    <name>displayAndUseTechName</name>
+                    <type>BOOLEAN</type>
+                    <updateRule>READ_WRITE</updateRule>
+                    <required>false</required>
+                    <displayName>Display Technical And Descriptive Names, Use Technical Names In CIS Resource Namespace</displayName>
+                    <visible>true</visible>
+                </attributeDef>
+                <attributeDef>
+                    <name>displayDescriptiveName</name>
+                    <type>BOOLEAN</type>
+                    <updateRule>READ_WRITE</updateRule>
+                    <required>true</required>
+                    <displayName>Display Descriptive Names</displayName>
+                    <visible>true</visible>
+                </attributeDef>
+                <attributeDef>
+                    <name>displayTechName</name>
+                    <type>BOOLEAN</type>
+                    <updateRule>READ_WRITE</updateRule>
+                    <required>false</required>
+                    <displayName>Display Technical And Descriptive Names</displayName>
+                    <visible>true</visible>
+                </attributeDef>
+                <attributeDef>
+                    <name>driverName</name>
+                    <type>STRING</type>
+                    <updateRule>READ_ONLY</updateRule>
+                    <required>true</required>
+                    <displayName>Adapter Name</displayName>
+                    <visible>true</visible>
+                </attributeDef>
+                <attributeDef>
+                    <name>idleConnections</name>
+                    <type>STRING</type>
+                    <updateRule>READ_WRITE</updateRule>
+                    <required>true</required>
+                    <displayName>Maximum Idle Connections In Pool</displayName>
+                    <visible>true</visible>
+                </attributeDef>
+                <attributeDef>
+                    <name>isPassThrough</name>
+                    <type>STRING</type>
+                    <updateRule>READ_WRITE</updateRule>
+                    <required>true</required>
+                    <displayName>Pass-through Login</displayName>
+                    <visible>true</visible>
+                </attributeDef>
+                <attributeDef>
+                    <name>language</name>
+                    <type>STRING</type>
+                    <updateRule>READ_WRITE</updateRule>
+                    <required>true</required>
+                    <displayName>Language</displayName>
+                    <visible>true</visible>
+                </attributeDef>
+                <attributeDef>
+                    <name>maxConnections</name>
+                    <type>STRING</type>
+                    <updateRule>READ_WRITE</updateRule>
+                    <required>true</required>
+                    <displayName>Maximum Connections In Pool</displayName>
+                    <visible>true</visible>
+                </attributeDef>
+                <attributeDef>
+                    <name>maxRows</name>
+                    <type>STRING</type>
+                    <updateRule>READ_WRITE</updateRule>
+                    <required>true</required>
+                    <displayName>Maximum Rows</displayName>
+                    <visible>true</visible>
+                </attributeDef>
+                <attributeDef>
+                    <name>name</name>
+                    <type>STRING</type>
+                    <updateRule>READ_ONLY</updateRule>
+                    <required>true</required>
+                    <displayName>Name</displayName>
+                    <visible>true</visible>
+                </attributeDef>
+                <attributeDef>
+                    <name>password</name>
+                    <type>PASSWORD_STRING</type>
+                    <updateRule>READ_WRITE</updateRule>
+                    <required>true</required>
+                    <displayName>Password</displayName>
+                    <visible>true</visible>
+                </attributeDef>
+                <attributeDef>
+                    <name>persistPassword</name>
+                    <type>BOOLEAN</type>
+                    <updateRule>READ_WRITE</updateRule>
+                    <required>true</required>
+                    <displayName>Save Password</displayName>
+                    <visible>true</visible>
+                </attributeDef>
+                <attributeDef>
+                    <name>routerString</name>
+                    <type>STRING</type>
+                    <updateRule>READ_WRITE</updateRule>
+                    <required>true</required>
+                    <displayName>SAP Router String</displayName>
+                    <visible>true</visible>
+                </attributeDef>
+                <attributeDef>
+                    <name>systemNumber</name>
+                    <type>STRING</type>
+                    <updateRule>READ_WRITE</updateRule>
+                    <required>true</required>
+                    <displayName>System Number</displayName>
+                    <visible>true</visible>
+                </attributeDef>
+                <attributeDef>
+                    <name>type</name>
+                    <type>STRING</type>
+                    <updateRule>READ_ONLY</updateRule>
+                    <required>true</required>
+                    <displayName>Type</displayName>
+                    <visible>false</visible>
+                </attributeDef>
+                <attributeDef>
+                    <name>username</name>
+                    <type>STRING</type>
+                    <updateRule>READ_WRITE</updateRule>
+                    <required>true</required>
+                    <displayName>User</displayName>
+                    <visible>true</visible>
+                </attributeDef>
+            </attributeDefs>
+        </attributeDefsDataSource>
+    </datasource>
+</ns2:DatasourceModule>

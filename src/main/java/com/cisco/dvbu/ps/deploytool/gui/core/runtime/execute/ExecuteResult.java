@@ -1,9 +1,7 @@
 package com.cisco.dvbu.ps.deploytool.gui.core.runtime.execute;
 
-import com.cisco.dvbu.ps.deploytool.gui.core.runtime.log.LogMessages;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+//import org.slf4j.Logger;
+//import org.slf4j.LoggerFactory;
 
 /**
  * <p>
@@ -21,7 +19,7 @@ import org.slf4j.LoggerFactory;
  * @version 1.0
  */
 public class ExecuteResult {
-    private static final Logger log = LoggerFactory.getLogger (LogMessages.class);
+//    private static final Logger log = LoggerFactory.getLogger (ExecuteResult.class);
     
     private int resultCode;
     private String logFilePath;

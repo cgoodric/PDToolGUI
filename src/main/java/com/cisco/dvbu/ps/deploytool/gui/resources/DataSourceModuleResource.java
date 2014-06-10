@@ -7,11 +7,7 @@ import com.cisco.dvbu.ps.deploytool.gui.util.ListResult;
 import com.cisco.dvbu.ps.deploytool.gui.util.ResultMessage;
 import com.cisco.dvbu.ps.deploytool.gui.util.SecurityManager;
 
-import java.io.File;
-
 import java.net.URLDecoder;
-
-import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -24,8 +20,8 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+//import org.slf4j.Logger;
+//import org.slf4j.LoggerFactory;
 
 /**
  * <p>
@@ -38,7 +34,7 @@ import org.slf4j.LoggerFactory;
 @Path("/data_source_module")
 public class DataSourceModuleResource {
 
-    private static final Logger log = LoggerFactory.getLogger (DataSourceModuleResource.class);
+//    private static final Logger log = LoggerFactory.getLogger (DataSourceModuleResource.class);
     DataSourceModulesDAO dao = new DataSourceModulesDAO();
 
     /**

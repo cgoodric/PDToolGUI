@@ -175,7 +175,8 @@ var RESOURCE_SUBTYPES = {
     ],
     "POLICY": [
         {subtype:"", cislabel: "(Select Sub-Type ...)", isDataSource: false},
-        {subtype:"CACHE_POLICY", cislabel: "Cache Policy", isDataSource: false}
+        {subtype:"CACHE_POLICY", cislabel: "Cache Policy", isDataSource: false},
+        {subtype:"NONE", cislabel: "Custom Web Service Security Policy", isDataSource: false}
     ],
     "PROCEDURE": [
         {subtype:"", cislabel: "(Select Sub-Type ...)", isDataSource: true},

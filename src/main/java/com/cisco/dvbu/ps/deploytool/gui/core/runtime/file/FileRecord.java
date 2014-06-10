@@ -1,12 +1,10 @@
 package com.cisco.dvbu.ps.deploytool.gui.core.runtime.file;
 
-import com.cisco.dvbu.ps.deploytool.gui.core.config.server.Server;
+//import java.util.Arrays;
+//import java.util.List;
 
-import java.util.Arrays;
-import java.util.List;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+//import org.slf4j.Logger;
+//import org.slf4j.LoggerFactory;
 
 /**
  * <p>
@@ -17,7 +15,7 @@ import org.slf4j.LoggerFactory;
  * @version 1.0
  */
 public class FileRecord {
-    private static final Logger log = LoggerFactory.getLogger (Server.class);
+//    private static final Logger log = LoggerFactory.getLogger (FileRecord.class);
     
     private String operation;
     private String origname;

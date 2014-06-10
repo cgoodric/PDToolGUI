@@ -4,8 +4,6 @@ import com.cisco.dvbu.ps.deploytool.gui.util.DAOConstants;
 import com.cisco.dvbu.ps.deploytool.gui.resources.DataSourceModuleResource;
 import com.cisco.dvbu.ps.deploytool.gui.util.ResultMessage;
 
-import com.cisco.dvbu.ps.deploytool.gui.util.ResultMessage.MessageItem;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -115,7 +113,8 @@ public class DataSourcesDAO {
         return result;
     }
     
-    public ResultMessage copy (
+    @SuppressWarnings("unused")
+	public ResultMessage copy (
         String path,
         String ids
     ) {

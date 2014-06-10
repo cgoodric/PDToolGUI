@@ -7,8 +7,8 @@ import java.util.List;
 
 import org.jdom2.Element;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+//import org.slf4j.Logger;
+//import org.slf4j.LoggerFactory;
 
 /**
  * <p>
@@ -76,7 +76,7 @@ public class Regression {
         "WEB_SERVICE"
     };
     
-    private static final Logger log = LoggerFactory.getLogger (Regression.class);
+//    private static final Logger log = LoggerFactory.getLogger (Regression.class);
 
     // attributes used by the UI
     //

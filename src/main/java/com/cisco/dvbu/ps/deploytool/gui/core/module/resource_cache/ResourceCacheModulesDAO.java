@@ -35,7 +35,7 @@ import org.apache.commons.io.FileUtils;
 import org.jdom2.Document;
 import org.jdom2.Element;
 import org.jdom2.JDOMException;
-import org.jdom2.Namespace;
+//import org.jdom2.Namespace;
 import org.jdom2.input.SAXBuilder;
 import org.jdom2.output.XMLOutputter;
 
@@ -222,7 +222,7 @@ public class ResourceCacheModulesDAO {
         try {
             rmDoc = builder.build (path);
             Element rootNode = rmDoc.getRootElement();
-            Namespace ns = rmDoc.getNamespacesInScope().get(0); // should only be one namespace
+//            Namespace ns = rmDoc.getNamespacesInScope().get(0); // should only be one namespace
             List<ResourceCache> resourceCaches = new ArrayList<ResourceCache>();
             List<Element> rmList = rootNode.getChildren();
             

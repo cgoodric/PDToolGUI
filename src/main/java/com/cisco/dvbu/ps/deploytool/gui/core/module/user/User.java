@@ -1,7 +1,5 @@
 package com.cisco.dvbu.ps.deploytool.gui.core.module.user;
 
-import com.cisco.dvbu.ps.deploytool.gui.util.DAOConstants;
-
 import com.cisco.dvbu.ps.deploytool.gui.util.StringUtils;
 
 import java.util.ArrayList;

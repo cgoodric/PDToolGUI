@@ -29,7 +29,7 @@ import org.apache.commons.io.FileUtils;
 import org.jdom2.Document;
 import org.jdom2.Element;
 import org.jdom2.JDOMException;
-import org.jdom2.Namespace;
+//import org.jdom2.Namespace;
 import org.jdom2.input.SAXBuilder;
 import org.jdom2.output.XMLOutputter;
 
@@ -51,7 +51,7 @@ public class ArchiveModulesDAO {
     private static final Logger log = LoggerFactory.getLogger (ArchiveModulesDAO.class);
 
     private PDToolGUIConfiguration conf = new PDToolGUIConfiguration();
-    private String indent, indentX2, indentX3, indentX4;
+    private String indent; //, indentX2, indentX3, indentX4;
     private XMLOutputter xmlo = new XMLOutputter();
 
     public ArchiveModulesDAO () {
@@ -68,9 +68,9 @@ public class ArchiveModulesDAO {
         for (int i = 0; i < conf.getXmlIndentWidth(); i++)
             indent += " ";
         
-        indentX2 = indent + indent;
-        indentX3 = indent + indent + indent;
-        indentX4 = indent + indent + indent + indent;
+//        indentX2 = indent + indent;
+//        indentX3 = indent + indent + indent;
+//        indentX4 = indent + indent + indent + indent;
     }
 
     /*
@@ -223,7 +223,7 @@ public class ArchiveModulesDAO {
         try {
             amDoc = builder.build (path);
             Element rootNode = amDoc.getRootElement();
-            Namespace ns = amDoc.getNamespacesInScope().get(0); // should only be one namespace
+//            Namespace ns = amDoc.getNamespacesInScope().get(0); // should only be one namespace
             List<Archive> archives = new ArrayList<Archive>();
             List<Element> amList = rootNode.getChildren();
             

@@ -1,11 +1,9 @@
 package com.cisco.dvbu.ps.deploytool.gui.core.config.server;
 
-import com.cisco.dvbu.ps.deploytool.gui.util.DAOConstants;
-
 import com.cisco.dvbu.ps.deploytool.gui.util.StringUtils;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+//import org.slf4j.Logger;
+//import org.slf4j.LoggerFactory;
 
 /**
  * <p>
@@ -16,7 +14,7 @@ import org.slf4j.LoggerFactory;
  * @version 1.0
  */
 public class Server {
-    private static final Logger log = LoggerFactory.getLogger (Server.class);
+//    private static final Logger log = LoggerFactory.getLogger (Server.class);
 
     private String operation;
     private String origid;

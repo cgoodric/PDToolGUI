@@ -1,7 +1,7 @@
 package com.cisco.dvbu.ps.deploytool.gui.core.config.vcs_init;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+//import org.slf4j.Logger;
+//import org.slf4j.LoggerFactory;
 
 /**
  * <p>
@@ -12,7 +12,7 @@ import org.slf4j.LoggerFactory;
  * @version 1.0
  */
 public class VCSInit {
-    private static final Logger log = LoggerFactory.getLogger (VCSInit.class);
+//    private static final Logger log = LoggerFactory.getLogger (VCSInit.class);
 
     private String status;
 

@@ -20,8 +20,8 @@ import com.cisco.dvbu.ps.deploytool.gui.util.SecurityManager;
 
 import java.net.URLDecoder;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+//import org.slf4j.Logger;
+//import org.slf4j.LoggerFactory;
 
 /**
  * <p>
@@ -34,7 +34,7 @@ import org.slf4j.LoggerFactory;
 @Path("/server")
 public class ServerResource {
 
-    private static final Logger log = LoggerFactory.getLogger (ServerResource.class);
+//    private static final Logger log = LoggerFactory.getLogger (ServerResource.class);
     private ServersDAO dao = new ServersDAO();
     
     /**

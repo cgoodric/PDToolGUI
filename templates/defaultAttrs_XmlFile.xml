@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<ns2:DatasourceModule xmlns:ns2="http://www.compositesw.com/ps/deploytool/modules">
+    <datasource>
+        <attributeDefsDataSource>
+            <id>ds1</id>
+            <dataSourceType>File-XML</dataSourceType>
+            <attributeDefs>
+                <attributeDef>
+                    <type>STRING</type>
+                    <updateRule>READ_WRITE</updateRule>
+                    <required>true</required>
+                    <displayName>                  (Eg. file:///Z:/Engineering/test.xml)</displayName>
+                    <visible>true</visible>
+                </attributeDef>
+                <attributeDef>
+                    <name>autoAddChildren</name>
+                    <type>STRING</type>
+                    <updateRule>READ_WRITE</updateRule>
+                    <visible>true</visible>
+                </attributeDef>
+                <attributeDef>
+                    <name>charset</name>
+                    <type>STRING</type>
+                    <updateRule>READ_WRITE</updateRule>
+                    <required>true</required>
+                    <displayName>Character Set</displayName>
+                    <visible>true</visible>
+                </attributeDef>
+                <attributeDef>
+                    <name>driverName</name>
+                    <type>STRING</type>
+                    <updateRule>READ_ONLY</updateRule>
+                    <required>true</required>
+                    <displayName>Adapter Name</displayName>
+                    <visible>true</visible>
+                </attributeDef>
+                <attributeDef>
+                    <name>filters</name>
+                    <type>STRING</type>
+                    <updateRule>READ_WRITE</updateRule>
+                    <required>false</required>
+                    <displayName>File Name Filter(s)</displayName>
+                    <visible>true</visible>
+                </attributeDef>
+                <attributeDef>
+                    <name>local</name>
+                    <type>BOOLEAN</type>
+                    <updateRule>WRITE_ON_CREATE</updateRule>
+                    <required>true</required>
+                    <displayName>Local File System</displayName>
+                    <visible>true</visible>
+                </attributeDef>
+                <attributeDef>
+                    <name>name</name>
+                    <type>STRING</type>
+                    <updateRule>READ_ONLY</updateRule>
+                    <required>true</required>
+                    <displayName>Name</displayName>
+                    <visible>true</visible>
+                </attributeDef>
+                <attributeDef>
+                    <name>noNamespaceSchemaLocation</name>
+                    <type>STRING</type>
+                    <updateRule>READ_WRITE</updateRule>
+                    <required>false</required>
+                    <displayName>No Namespace Schema Location</displayName>
+                    <visible>true</visible>
+                </attributeDef>
+                <attributeDef>
+                    <name>root</name>
+                    <type>STRING</type>
+                    <updateRule>READ_WRITE</updateRule>
+                    <required>false</required>
+                    <displayName>Root Path</displayName>
+                    <visible>true</visible>
+                </attributeDef>
+                <attributeDef>
+                    <name>schemaLocation</name>
+                    <type>STRING</type>
+                    <updateRule>READ_WRITE</updateRule>
+                    <required>false</required>
+                    <displayName>Schema Location</displayName>
+                    <visible>true</visible>
+                </attributeDef>
+                <attributeDef>
+                    <name>type</name>
+                    <type>STRING</type>
+                    <updateRule>READ_ONLY</updateRule>
+                    <required>true</required>
+                    <displayName>Type</displayName>
+                    <visible>false</visible>
+                </attributeDef>
+                <attributeDef>
+                    <name>url</name>
+                    <type>STRING</type>
+                    <updateRule>WRITE_ON_CREATE</updateRule>
+                    <required>false</required>
+                    <displayName>URL</displayName>
+                    <visible>true</visible>
+                </attributeDef>
+            </attributeDefs>
+        </attributeDefsDataSource>
+    </datasource>
+</ns2:DatasourceModule>

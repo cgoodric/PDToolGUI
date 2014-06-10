@@ -6,6 +6,7 @@ import javax.ws.rs.ext.ExceptionMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@SuppressWarnings("rawtypes")
 public class GenericExceptionMapper implements ExceptionMapper {
 
     private Logger logger = LoggerFactory.getLogger(JsonMappingExceptionHandler.class);

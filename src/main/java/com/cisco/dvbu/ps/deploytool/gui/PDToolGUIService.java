@@ -7,7 +7,7 @@ import com.yammer.dropwizard.Service;
 import com.yammer.dropwizard.config.Bootstrap;
 import com.yammer.dropwizard.config.Environment;
 
-import com.sun.jersey.api.core.ResourceConfig;
+//import com.sun.jersey.api.core.ResourceConfig;
 
 import com.cisco.dvbu.ps.deploytool.gui.resources.ArchiveModuleResource;
 import com.cisco.dvbu.ps.deploytool.gui.resources.ArchiveResource;
@@ -45,16 +45,16 @@ import com.cisco.dvbu.ps.deploytool.gui.resources.VCSInitResource;
 import com.cisco.dvbu.ps.deploytool.gui.resources.VCSModuleResource;
 import com.cisco.dvbu.ps.deploytool.gui.resources.VCSResource;
 import com.yammer.metrics.core.PDToolGUIHealthCheck;
-import com.cisco.dvbu.ps.deploytool.gui.util.GenericExceptionMapper;
+//import com.cisco.dvbu.ps.deploytool.gui.util.GenericExceptionMapper;
 import com.cisco.dvbu.ps.deploytool.gui.util.JsonMappingExceptionHandler;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+//import java.util.ArrayList;
+//import java.util.HashMap;
+//import java.util.List;
+//import java.util.Map;
+//import java.util.Set;
 
-import javax.ws.rs.ext.ExceptionMapper;
+//import javax.ws.rs.ext.ExceptionMapper;
 
 public class PDToolGUIService extends Service<PDToolGUIConfiguration> {
     public static void main(String[] args) throws Exception {

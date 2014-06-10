@@ -61,7 +61,6 @@ implements AssetsBundleConfiguration // comment out when compiling for deploymen
         return restrictAccessToLocalhost;
     }
 
-    @Override
     public AssetsConfiguration getAssetsConfiguration() {
         return assets;
     }

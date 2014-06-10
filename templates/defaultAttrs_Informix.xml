@@ -1,0 +1,265 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<ns2:DatasourceModule xmlns:ns2="http://www.compositesw.com/ps/deploytool/modules">
+    <datasource>
+        <attributeDefsDataSource>
+            <id>ds1</id>
+            <dataSourceType>Informix 9.x</dataSourceType>
+            <attributeDefs>
+                <attributeDef>
+                    <name>autoAddChildren</name>
+                    <type>STRING</type>
+                    <updateRule>READ_WRITE</updateRule>
+                    <visible>true</visible>
+                </attributeDef>
+                <attributeDef>
+                    <name>commitOnFetchDone</name>
+                    <type>BOOLEAN</type>
+                    <updateRule>READ_WRITE</updateRule>
+                    <required>false</required>
+                    <displayName>Execute SELECTs Independently</displayName>
+                    <visible>true</visible>
+                </attributeDef>
+                <attributeDef>
+                    <name>connCheckOutProcedure</name>
+                    <type>STRING</type>
+                    <updateRule>READ_WRITE</updateRule>
+                    <required>false</required>
+                    <displayName>Connection Check-out Procedure</displayName>
+                    <visible>true</visible>
+                </attributeDef>
+                <attributeDef>
+                    <name>connPoolMaxSize</name>
+                    <type>INTEGER</type>
+                    <updateRule>READ_WRITE</updateRule>
+                    <required>true</required>
+                    <displayName>Connection Pool Maximum Size</displayName>
+                    <visible>true</visible>
+                </attributeDef>
+                <attributeDef>
+                    <name>connPoolMinSize</name>
+                    <type>INTEGER</type>
+                    <updateRule>READ_WRITE</updateRule>
+                    <required>true</required>
+                    <displayName>Connection Pool Minimum Size</displayName>
+                    <visible>true</visible>
+                </attributeDef>
+                <attributeDef>
+                    <name>connPoolTimeout</name>
+                    <type>INTEGER</type>
+                    <updateRule>READ_WRITE</updateRule>
+                    <required>true</required>
+                    <displayName>Connection Pool Idle Timeout (s)</displayName>
+                    <visible>true</visible>
+                </attributeDef>
+                <attributeDef>
+                    <name>connProperties</name>
+                    <type>MAP</type>
+                    <updateRule>READ_WRITE</updateRule>
+                    <required>false</required>
+                    <displayName>Connection Properties</displayName>
+                    <visible>true</visible>
+                </attributeDef>
+                <attributeDef>
+                    <name>connStaleTimeout</name>
+                    <type>INTEGER</type>
+                    <updateRule>READ_WRITE</updateRule>
+                    <required>true</required>
+                    <displayName>Maximum Connection Lifetime (m)</displayName>
+                    <visible>true</visible>
+                </attributeDef>
+                <attributeDef>
+                    <name>connValidateQuery</name>
+                    <type>STRING</type>
+                    <updateRule>READ_WRITE</updateRule>
+                    <required>false</required>
+                    <displayName>Connection Validation Query</displayName>
+                    <visible>true</visible>
+                </attributeDef>
+                <attributeDef>
+                    <name>connectorName</name>
+                    <type>STRING</type>
+                    <updateRule>READ_WRITE</updateRule>
+                    <required>false</required>
+                    <displayName>Connector Name</displayName>
+                    <visible>false</visible>
+                </attributeDef>
+                <attributeDef>
+                    <name>driverName</name>
+                    <type>STRING</type>
+                    <updateRule>READ_ONLY</updateRule>
+                    <required>true</required>
+                    <displayName>Adapter Name</displayName>
+                    <visible>true</visible>
+                </attributeDef>
+                <attributeDef>
+                    <name>execTimeout</name>
+                    <type>INTEGER</type>
+                    <updateRule>READ_WRITE</updateRule>
+                    <required>true</required>
+                    <displayName>Execution Timeout (s)</displayName>
+                    <visible>true</visible>
+                </attributeDef>
+                <attributeDef>
+                    <name>healthmonitortable</name>
+                    <type>STRING</type>
+                    <updateRule>READ_WRITE</updateRule>
+                    <required>false</required>
+                    <displayName>Health Monitor Table</displayName>
+                    <visible>false</visible>
+                </attributeDef>
+                <attributeDef>
+                    <name>isPassThrough</name>
+                    <type>STRING</type>
+                    <updateRule>READ_WRITE</updateRule>
+                    <required>true</required>
+                    <displayName>Pass-through Login</displayName>
+                    <visible>true</visible>
+                </attributeDef>
+                <attributeDef>
+                    <name>login</name>
+                    <type>STRING</type>
+                    <updateRule>READ_WRITE</updateRule>
+                    <required>false</required>
+                    <displayName>Login</displayName>
+                    <visible>true</visible>
+                </attributeDef>
+                <attributeDef>
+                    <name>maxNumberForOrSyntax</name>
+                    <type>INTEGER</type>
+                    <updateRule>READ_WRITE</updateRule>
+                    <required>true</required>
+                    <displayName>Max Source Side of Semi Join To Use OR Syntax</displayName>
+                    <visible>true</visible>
+                </attributeDef>
+                <attributeDef>
+                    <name>maxSourceSideCardinalityForSJ</name>
+                    <type>STRING</type>
+                    <updateRule>READ_WRITE</updateRule>
+                    <required>false</required>
+                    <displayName>Max Source Side Cardinality For Semi Join</displayName>
+                    <visible>true</visible>
+                </attributeDef>
+                <attributeDef>
+                    <name>maximumContainerDepth</name>
+                    <type>INTEGER</type>
+                    <updateRule>READ_WRITE</updateRule>
+                    <required>false</required>
+                    <displayName>Maximum Container Depth</displayName>
+                    <visible>false</visible>
+                </attributeDef>
+                <attributeDef>
+                    <name>minTargetToSourceRatioForSJ</name>
+                    <type>STRING</type>
+                    <updateRule>READ_WRITE</updateRule>
+                    <required>false</required>
+                    <displayName>Min Target To Source Ratio For Semi Join</displayName>
+                    <visible>true</visible>
+                </attributeDef>
+                <attributeDef>
+                    <name>name</name>
+                    <type>STRING</type>
+                    <updateRule>READ_ONLY</updateRule>
+                    <required>true</required>
+                    <displayName>Name</displayName>
+                    <visible>true</visible>
+                </attributeDef>
+                <attributeDef>
+                    <name>password</name>
+                    <type>PASSWORD_STRING</type>
+                    <updateRule>READ_WRITE</updateRule>
+                    <required>false</required>
+                    <displayName>Password</displayName>
+                    <visible>true</visible>
+                </attributeDef>
+                <attributeDef>
+                    <name>persistPassword</name>
+                    <type>BOOLEAN</type>
+                    <updateRule>READ_WRITE</updateRule>
+                    <required>true</required>
+                    <displayName>Save Password</displayName>
+                    <visible>true</visible>
+                </attributeDef>
+                <attributeDef>
+                    <name>supportsStarSchema</name>
+                    <type>BOOLEAN</type>
+                    <updateRule>READ_WRITE</updateRule>
+                    <required>false</required>
+                    <displayName>Supports Star Schema</displayName>
+                    <visible>true</visible>
+                </attributeDef>
+                <attributeDef>
+                    <name>topicName</name>
+                    <type>STRING</type>
+                    <updateRule>READ_WRITE</updateRule>
+                    <required>false</required>
+                    <displayName>Topic Name</displayName>
+                    <visible>false</visible>
+                </attributeDef>
+                <attributeDef>
+                    <name>txnIsolationLevel</name>
+                    <type>STRING</type>
+                    <updateRule>READ_WRITE</updateRule>
+                    <required>true</required>
+                    <displayName>Transaction Isolation</displayName>
+                    <visible>true</visible>
+                </attributeDef>
+                <attributeDef>
+                    <name>type</name>
+                    <type>STRING</type>
+                    <updateRule>READ_ONLY</updateRule>
+                    <required>true</required>
+                    <displayName>Type</displayName>
+                    <visible>false</visible>
+                </attributeDef>
+                <attributeDef>
+                    <name>url</name>
+                    <type>STRING</type>
+                    <updateRule>READ_ONLY</updateRule>
+                    <required>false</required>
+                    <displayName>Connection URL String</displayName>
+                    <visible>true</visible>
+                </attributeDef>
+                <attributeDef>
+                    <name>urlDatabaseName</name>
+                    <type>STRING</type>
+                    <updateRule>READ_WRITE</updateRule>
+                    <required>true</required>
+                    <displayName>Database Name</displayName>
+                    <visible>true</visible>
+                </attributeDef>
+                <attributeDef>
+                    <name>urlIP</name>
+                    <type>STRING</type>
+                    <updateRule>READ_WRITE</updateRule>
+                    <required>true</required>
+                    <displayName>Host</displayName>
+                    <visible>true</visible>
+                </attributeDef>
+                <attributeDef>
+                    <name>urlPatternStr</name>
+                    <type>STRING</type>
+                    <updateRule>READ_WRITE</updateRule>
+                    <required>false</required>
+                    <displayName>Connection URL Pattern</displayName>
+                    <visible>true</visible>
+                </attributeDef>
+                <attributeDef>
+                    <name>urlPort</name>
+                    <type>INTEGER</type>
+                    <updateRule>READ_WRITE</updateRule>
+                    <required>true</required>
+                    <displayName>Port</displayName>
+                    <visible>true</visible>
+                </attributeDef>
+                <attributeDef>
+                    <name>urlServer</name>
+                    <type>STRING</type>
+                    <updateRule>READ_WRITE</updateRule>
+                    <required>true</required>
+                    <displayName>Server</displayName>
+                    <visible>true</visible>
+                </attributeDef>
+            </attributeDefs>
+        </attributeDefsDataSource>
+    </datasource>
+</ns2:DatasourceModule>

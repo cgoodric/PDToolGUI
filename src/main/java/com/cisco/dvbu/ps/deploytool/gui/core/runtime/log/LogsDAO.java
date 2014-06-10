@@ -1,6 +1,5 @@
 package com.cisco.dvbu.ps.deploytool.gui.core.runtime.log;
 
-import com.cisco.dvbu.ps.deploytool.gui.core.runtime.file.FilesDAO;
 import com.cisco.dvbu.ps.deploytool.gui.resources.LogResource;
 
 

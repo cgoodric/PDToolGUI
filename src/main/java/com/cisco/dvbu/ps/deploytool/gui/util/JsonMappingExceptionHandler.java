@@ -12,7 +12,6 @@ public class JsonMappingExceptionHandler implements ExceptionMapper<JsonMappingE
  
     private Logger logger = LoggerFactory.getLogger(JsonMappingExceptionHandler.class);
  
-    @Override
     public Response toResponse(JsonMappingException e) {
         String msg = e.getMessage();
         for (int i = 0; i < e.getStackTrace().length; i++) {

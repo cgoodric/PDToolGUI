@@ -35,7 +35,7 @@ import org.apache.commons.io.FileUtils;
 import org.jdom2.Document;
 import org.jdom2.Element;
 import org.jdom2.JDOMException;
-import org.jdom2.Namespace;
+//import org.jdom2.Namespace;
 import org.jdom2.input.SAXBuilder;
 import org.jdom2.output.XMLOutputter;
 
@@ -219,7 +219,7 @@ public class GroupModulesDAO {
         try {
             gmDoc = builder.build (path);
             Element rootNode = gmDoc.getRootElement();
-            Namespace ns = gmDoc.getNamespacesInScope().get(0); // should only be one namespace
+//            Namespace ns = gmDoc.getNamespacesInScope().get(0); // should only be one namespace
             List<Group> groups = new ArrayList<Group>();
             List<Element> gmList = rootNode.getChildren();
             

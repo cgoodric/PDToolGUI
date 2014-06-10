@@ -21,8 +21,8 @@ import javax.servlet.http.HttpServletRequest;
 
 import javax.ws.rs.core.Context;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+//import org.slf4j.Logger;
+//import org.slf4j.LoggerFactory;
 
 /**
  * <p>
@@ -35,7 +35,7 @@ import org.slf4j.LoggerFactory;
 @Path("/vcs_init")
 public class VCSInitResource {
 
-    private static final Logger log = LoggerFactory.getLogger (VCSInitResource.class);
+//    private static final Logger log = LoggerFactory.getLogger (VCSInitResource.class);
     private VCSInitDAO dao = new VCSInitDAO();
     
     /**

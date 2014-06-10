@@ -4,8 +4,6 @@ import com.cisco.dvbu.ps.deploytool.gui.resources.ResourceCacheResource;
 import com.cisco.dvbu.ps.deploytool.gui.util.DAOConstants;
 import com.cisco.dvbu.ps.deploytool.gui.util.ResultMessage;
 
-import com.cisco.dvbu.ps.deploytool.gui.util.ResultMessage.MessageItem;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -156,7 +154,8 @@ public class ResourceCachesDAO {
      * @param  ids   The a comma separated list of resource cache IDs to copy.
      * @return       A message or messages with the result of the operation.
      */
-    public ResultMessage copy (
+    @SuppressWarnings("unused")
+	public ResultMessage copy (
         String path,
         String ids
     ) {

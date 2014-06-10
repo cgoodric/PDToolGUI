@@ -12,8 +12,8 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+//import org.slf4j.Logger;
+//import org.slf4j.LoggerFactory;
 
 /**
  * <p>
@@ -26,7 +26,7 @@ import org.slf4j.LoggerFactory;
 @Path("/security")
 public class SecurityResource {
 
-    private static final Logger log = LoggerFactory.getLogger (SecurityResource.class);
+//    private static final Logger log = LoggerFactory.getLogger (SecurityResource.class);
 
     /**
      * <p>

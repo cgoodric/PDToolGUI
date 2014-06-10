@@ -2,8 +2,8 @@ package com.cisco.dvbu.ps.deploytool.gui.core.runtime.log;
 
 import java.util.List;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+//import org.slf4j.Logger;
+//import org.slf4j.LoggerFactory;
 
 /**
  * <p>
@@ -22,7 +22,7 @@ import org.slf4j.LoggerFactory;
  * @version 1.0
  */
 public class LogMessages {
-    private static final Logger log = LoggerFactory.getLogger (LogMessages.class);
+//    private static final Logger log = LoggerFactory.getLogger (LogMessages.class);
     
     private int lastLineNum;
     private boolean executionCompleted;

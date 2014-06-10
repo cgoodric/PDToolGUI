@@ -20,8 +20,8 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+//import org.slf4j.Logger;
+//import org.slf4j.LoggerFactory;
 
 /**
  * <p>
@@ -34,7 +34,7 @@ import org.slf4j.LoggerFactory;
 @Path("/privilege_module")
 public class PrivilegeModuleResource {
 
-    private static final Logger log = LoggerFactory.getLogger (PrivilegeModuleResource.class);
+//    private static final Logger log = LoggerFactory.getLogger (PrivilegeModuleResource.class);
     PrivilegeModulesDAO dao = new PrivilegeModulesDAO();
 
     /**

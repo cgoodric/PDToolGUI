@@ -5,7 +5,6 @@ import com.cisco.dvbu.ps.deploytool.gui.core.config.deployment_profile.Deploymen
 import com.cisco.dvbu.ps.deploytool.gui.core.config.server.Server;
 import com.cisco.dvbu.ps.deploytool.gui.core.config.server.ServersDAO;
 import com.cisco.dvbu.ps.deploytool.gui.core.module.data_source.DataSource;
-import com.cisco.dvbu.ps.deploytool.gui.core.module.data_source.DataSource.DataSourceType;
 import com.cisco.dvbu.ps.deploytool.gui.core.module.data_source.DataSourceModulesDAO;
 import com.cisco.dvbu.ps.deploytool.gui.core.runtime.execute.ExecutePDTool;
 import com.cisco.dvbu.ps.deploytool.gui.core.runtime.file.FilesDAO;
@@ -13,9 +12,6 @@ import com.cisco.dvbu.ps.deploytool.gui.core.runtime.log.LogsDAO;
 import com.cisco.dvbu.ps.deploytool.gui.util.ResultMessage;
 import com.cisco.dvbu.ps.deploytool.gui.resources.PreferenceResource;
 import com.cisco.dvbu.ps.deploytool.gui.util.DAOConstants;
-import com.cisco.dvbu.ps.deploytool.gui.util.ResultMessage;
-
-import com.cisco.dvbu.ps.deploytool.gui.util.ResultMessage.MessageItem;
 
 import java.io.File;
 
@@ -231,8 +227,8 @@ public class PreferencesDAO {
         
         // iterate over map entries and build up the plan
         //
-        for (Map.Entry e : dsTypes.entrySet()) {
-            String relPath = DAOConstants.DS_ATTRIBUTES_REL_PATH.replaceAll ("<TYPE>", (String) e.getKey());
+        for (Map.Entry<String, String> e : dsTypes.entrySet()) {
+            String relPath = DAOConstants.DS_ATTRIBUTES_REL_PATH.replaceAll ("<TYPE>", e.getKey());
             log.debug ("writing out plan entry for " + e.getKey() + ": XML relative path = " + relPath);
             plan += "PASS	TRUE	ExecuteAction	generateDataSourceAttributeDefsByDataSourceType	\"" + serverId + "\"	\"" + e.getValue() + "\"	\"$PROJECT_HOME/" + relPath + "\"	\"$MODULE_HOME/servers.xml\"\n";
         }
@@ -309,8 +305,8 @@ public class PreferencesDAO {
 
             // iterate over map entries and build up the plan
             //
-            for (Map.Entry e : dsTypes.entrySet()) {
-                String generatedXmlPath = FilesDAO.getPdtHome() + "/" + DAOConstants.DS_ATTRIBUTES_REL_PATH.replaceAll ("<TYPE>", (String) e.getKey());
+            for (Map.Entry<String, String> e : dsTypes.entrySet()) {
+                String generatedXmlPath = FilesDAO.getPdtHome() + "/" + DAOConstants.DS_ATTRIBUTES_REL_PATH.replaceAll ("<TYPE>", e.getKey());
                 if (! (new File (generatedXmlPath).exists())) {
                     tmpMsgList.add (new ResultMessage.MessageItem (null, "Data source attributes for " + e.getKey() + " did not get generated! "));
                 }

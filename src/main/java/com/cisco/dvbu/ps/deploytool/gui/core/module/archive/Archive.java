@@ -7,8 +7,8 @@ import java.util.List;
 
 import org.jdom2.Element;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+//import org.slf4j.Logger;
+//import org.slf4j.LoggerFactory;
 
 
 /**
@@ -21,7 +21,7 @@ import org.slf4j.LoggerFactory;
  */
 public class Archive {
     
-    private static final Logger log = LoggerFactory.getLogger (Archive.class);
+//    private static final Logger log = LoggerFactory.getLogger (Archive.class);
 
     public static final int RESOURCE_TYPE_EXPORT = 0;
     public static final int RESOURCE_TYPE_RELOCATE = 1;

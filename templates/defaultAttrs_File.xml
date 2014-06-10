@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<ns2:DatasourceModule xmlns:ns2="http://www.compositesw.com/ps/deploytool/modules">
+    <datasource>
+        <attributeDefsDataSource>
+            <id>ds1</id>
+            <dataSourceType>File-Delimited</dataSourceType>
+            <attributeDefs>
+                <attributeDef>
+                    <type>STRING</type>
+                    <updateRule>READ_WRITE</updateRule>
+                    <required>true</required>
+                    <displayName>                 (Eg. file:///Z:/Engineering/test.txt with disk drive name or file://Filer/Engineering/test.txt without)</displayName>
+                    <visible>true</visible>
+                </attributeDef>
+                <attributeDef>
+                    <name>autoAddChildren</name>
+                    <type>STRING</type>
+                    <updateRule>READ_WRITE</updateRule>
+                    <visible>true</visible>
+                </attributeDef>
+                <attributeDef>
+                    <name>charset</name>
+                    <type>STRING</type>
+                    <updateRule>READ_WRITE</updateRule>
+                    <required>true</required>
+                    <displayName>Character Set</displayName>
+                    <visible>true</visible>
+                </attributeDef>
+                <attributeDef>
+                    <name>delimiter</name>
+                    <type>STRING</type>
+                    <updateRule>READ_WRITE</updateRule>
+                    <required>true</required>
+                    <displayName>Delimiter</displayName>
+                    <visible>true</visible>
+                </attributeDef>
+                <attributeDef>
+                    <name>driverName</name>
+                    <type>STRING</type>
+                    <updateRule>READ_ONLY</updateRule>
+                    <required>true</required>
+                    <displayName>Adapter Name</displayName>
+                    <visible>true</visible>
+                </attributeDef>
+                <attributeDef>
+                    <name>filters</name>
+                    <type>STRING</type>
+                    <updateRule>READ_WRITE</updateRule>
+                    <required>false</required>
+                    <displayName>File Name Filter(s)</displayName>
+                    <visible>true</visible>
+                </attributeDef>
+                <attributeDef>
+                    <name>hasHeaders</name>
+                    <type>BOOLEAN</type>
+                    <updateRule>READ_WRITE</updateRule>
+                    <required>true</required>
+                    <displayName>Has Header Row</displayName>
+                    <visible>true</visible>
+                </attributeDef>
+                <attributeDef>
+                    <name>ignoreTrailingDelimiter</name>
+                    <type>BOOLEAN</type>
+                    <updateRule>READ_WRITE</updateRule>
+                    <required>true</required>
+                    <displayName>Ignore trailing delimiter</displayName>
+                    <visible>true</visible>
+                </attributeDef>
+                <attributeDef>
+                    <name>local</name>
+                    <type>BOOLEAN</type>
+                    <updateRule>WRITE_ON_CREATE</updateRule>
+                    <required>true</required>
+                    <displayName>Local File System</displayName>
+                    <visible>true</visible>
+                </attributeDef>
+                <attributeDef>
+                    <name>name</name>
+                    <type>STRING</type>
+                    <updateRule>READ_ONLY</updateRule>
+                    <required>true</required>
+                    <displayName>Name</displayName>
+                    <visible>true</visible>
+                </attributeDef>
+                <attributeDef>
+                    <name>qualifier</name>
+                    <type>STRING</type>
+                    <updateRule>READ_WRITE</updateRule>
+                    <required>false</required>
+                    <displayName>Text Qualifier</displayName>
+                    <visible>true</visible>
+                </attributeDef>
+                <attributeDef>
+                    <name>root</name>
+                    <type>STRING</type>
+                    <updateRule>READ_WRITE</updateRule>
+                    <required>false</required>
+                    <displayName>Root Path</displayName>
+                    <visible>true</visible>
+                </attributeDef>
+                <attributeDef>
+                    <name>startRow</name>
+                    <type>INTEGER</type>
+                    <updateRule>READ_WRITE</updateRule>
+                    <required>true</required>
+                    <displayName>Starting Row</displayName>
+                    <visible>true</visible>
+                </attributeDef>
+                <attributeDef>
+                    <name>type</name>
+                    <type>STRING</type>
+                    <updateRule>READ_ONLY</updateRule>
+                    <required>true</required>
+                    <displayName>Type</displayName>
+                    <visible>false</visible>
+                </attributeDef>
+                <attributeDef>
+                    <name>url</name>
+                    <type>STRING</type>
+                    <updateRule>WRITE_ON_CREATE</updateRule>
+                    <required>false</required>
+                    <displayName>URL</displayName>
+                    <visible>true</visible>
+                </attributeDef>
+            </attributeDefs>
+        </attributeDefsDataSource>
+    </datasource>
+</ns2:DatasourceModule>

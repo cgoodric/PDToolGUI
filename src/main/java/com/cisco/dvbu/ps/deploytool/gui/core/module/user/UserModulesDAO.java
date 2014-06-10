@@ -35,7 +35,7 @@ import org.apache.commons.io.FileUtils;
 import org.jdom2.Document;
 import org.jdom2.Element;
 import org.jdom2.JDOMException;
-import org.jdom2.Namespace;
+//import org.jdom2.Namespace;
 import org.jdom2.input.SAXBuilder;
 import org.jdom2.output.XMLOutputter;
 
@@ -222,7 +222,7 @@ public class UserModulesDAO {
         try {
             umDoc = builder.build (path);
             Element rootNode = umDoc.getRootElement();
-            Namespace ns = umDoc.getNamespacesInScope().get(0); // should only be one namespace
+//            Namespace ns = umDoc.getNamespacesInScope().get(0); // should only be one namespace
             List<User> users = new ArrayList<User>();
             List<Element> umList = rootNode.getChildren();
             
@@ -231,7 +231,6 @@ public class UserModulesDAO {
             // iterate over all the "user" elements
             // 
             int i = 0;
-            int j;
             log.debug ("Iterating over child elements.");
             for (Element umChild : umList) {
                 

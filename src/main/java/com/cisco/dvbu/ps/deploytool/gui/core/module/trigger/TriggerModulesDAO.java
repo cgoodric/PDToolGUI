@@ -35,7 +35,7 @@ import org.apache.commons.io.FileUtils;
 import org.jdom2.Document;
 import org.jdom2.Element;
 import org.jdom2.JDOMException;
-import org.jdom2.Namespace;
+//import org.jdom2.Namespace;
 import org.jdom2.input.SAXBuilder;
 import org.jdom2.output.XMLOutputter;
 
@@ -220,7 +220,7 @@ public class TriggerModulesDAO {
         try {
             tmDoc = builder.build (path);
             Element rootNode = tmDoc.getRootElement();
-            Namespace ns = tmDoc.getNamespacesInScope().get(0); // should only be one namespace
+//            Namespace ns = tmDoc.getNamespacesInScope().get(0); // should only be one namespace
             List<Trigger> triggers = new ArrayList<Trigger>();
             List<Element> tmList = rootNode.getChildren();
             
