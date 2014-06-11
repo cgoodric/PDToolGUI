@@ -128,12 +128,14 @@ public class GenericAttribute {
             result.addContent (new Element ("value").setText (this.value));
         }
         
-        if (this.valueArray != null && this.valueArray.size() > 0) {
+        if (this.type != null && this.type.matches (".*_ARRAY")) {
             Element vaNode = new Element ("valueArray");
-            
-            for (String item : this.valueArray) {
-                vaNode.addContent ("\n" + indentStr2);
-                vaNode.addContent (new Element ("item").setText (item));
+
+            if (this.valueArray != null) {
+	            for (String item : this.valueArray) {
+	                vaNode.addContent ("\n" + indentStr2);
+	                vaNode.addContent (new Element ("item").setText (item));
+	            }
             }
             
             vaNode.addContent ("\n" + indentStr);
@@ -142,12 +144,14 @@ public class GenericAttribute {
             result.addContent (vaNode);
         }
         
-        if (this.valueList != null && this.valueList.size() > 0) {
+        if (this.type != null && this.type.equalsIgnoreCase ("LIST")) {
             Element vlNode = new Element ("valueList");
             
-            for (ValueItem vi : this.valueList) {
-                vlNode.addContent ("\n" + indentStr2);
-                vlNode.addContent (vi.toElement ("item", indent + 2).addContent ("\n" + indentStr2));
+            if (this.valueList != null) {
+	            for (ValueItem vi : this.valueList) {
+	                vlNode.addContent ("\n" + indentStr2);
+	                vlNode.addContent (vi.toElement ("item", indent + 2).addContent ("\n" + indentStr2));
+	            }
             }
             
             vlNode.addContent ("\n" + indentStr);
@@ -156,12 +160,14 @@ public class GenericAttribute {
             result.addContent (vlNode);
         }
         
-        if (this.valueMap != null && this.valueMap.size() > 0) {
+        if (this.type != null && this.type.equalsIgnoreCase ("MAP")) {
             Element vmNode = new Element ("valueMap");
             
-            for (MapEntry entry : this.valueMap) {
-                vmNode.addContent ("\n" + indentStr2);
-                vmNode.addContent (entry.toElement ("entry", indent + 2).addContent ("\n" + indentStr2));
+            if (this.valueMap != null) {
+	            for (MapEntry entry : this.valueMap) {
+	                vmNode.addContent ("\n" + indentStr2);
+	                vmNode.addContent (entry.toElement ("entry", indent + 2).addContent ("\n" + indentStr2));
+	            }
             }
             
             vmNode.addContent ("\n" + indentStr);
