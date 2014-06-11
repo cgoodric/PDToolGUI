@@ -11,6 +11,7 @@
     <property name="build" location="target"/>
     <property name="dist" location="gui"/>
     <property name="lib" location="lib"/>
+    <property name="docs" location="docs"/>
     <property name="templates" location="templates"/>
     <property name="project-name" value="PDToolGUI"/>
     <property name="maven_version" value="0.1.0-SNAPSHOT"/>
@@ -60,8 +61,8 @@
         </replaceregexp>
         
         <!-- copy the documentation into the distribution folder -->
-        <copy file="PDToolGui_release_notes.txt" todir="${dist}" />
-        <copy file="Composite PS Promotion and Deployment Tool GUI Guide.pdf" todir="${dist}" />
+        <copy file="${docs}/PDToolGui_release_notes.txt" todir="${dist}" />
+        <copy file="${docs}/Cisco AS Promotion and Deployment Tool GUI Guide.pdf" todir="${dist}" />
     	
     	<!-- copy the web assets to the distribution folder -->
         <mkdir dir="${dist}/src/main/resources" />

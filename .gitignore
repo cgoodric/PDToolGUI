@@ -1,0 +1,27 @@
+*.class
+
+# build and distribution folders
+/target
+/gui
+
+# Package Files #
+*.war
+*.ear
+*.zip
+
+# tmp editor files #
+*~
+*.swp
+
+# local settings #
+.DS_Store
+user.properties
+/logs
+/svnt
+/svnww
+/TFSt
+/TFSww
+/P4ww
+/P4t
+/CVSww
+/CVSt
