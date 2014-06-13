@@ -12,6 +12,7 @@
 # tmp editor files #
 *~
 *.swp
+~*
 
 # local settings #
 .DS_Store

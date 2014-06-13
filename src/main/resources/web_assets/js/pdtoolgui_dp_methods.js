@@ -625,13 +625,15 @@ function setIdSelectData (data) {
         $('#param' + p + '_sel').children().remove();
     }
 
-    for (var i = 0; i < data.rows.length; i++) {
-        var cell = data.rows[i].cell;
+    if ( data.rows !== undefined) {
+        for (var i = 0; i < data.rows.length; i++) {
+            var cell = data.rows[i].cell;
 
-        var id = data.rows[i].cell[0];
-        $('#param' + p + '_sel').append ('<option value="' + id + '">' + cell[0] + '</option>');
+            var id = data.rows[i].cell[0];
+            $('#param' + p + '_sel').append ('<option value="' + id + '">' + cell[0] + '</option>');
+        }
+        $('#param' + p + '_sel').append ('<option value="' + ALL_RESOURCES_INDICATOR + '">' + ALL_RESOURCES_INDICATOR + '</option>');
     }
-    $('#param' + p + '_sel').append ('<option value="' + ALL_RESOURCES_INDICATOR + '">' + ALL_RESOURCES_INDICATOR + '</option>');
 
     var valuesStr = $('#param' + p).val();
     

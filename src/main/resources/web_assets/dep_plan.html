@@ -546,7 +546,9 @@
                 }); // #addEditDialog
                 
                 function getNextUnusedID() {
-                    return list.getDataIDs()[list.getDataIDs().length - 1] * 1 + 1;
+                    return (list.getDataIDs().length > 0)
+                        ? list.getDataIDs()[list.getDataIDs().length - 1] * 1 + 1
+                        : 1;
                 }
                 
                 function generateRowDataFromDialog() {
