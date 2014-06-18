@@ -274,7 +274,8 @@ public class DeploymentProfile {
 
             // append any unmatched text ahead of the variable reference in the value string, then append the text that replaces the variable.
             //
-            m.appendReplacement (sb, getProperty (subProp, true)); 
+            String subPropValue = getProperty (subProp, true);
+            m.appendReplacement (sb, (subPropValue != null) ? subPropValue : ""); 
             log.debug ("evaluateVariables(\"" + value + "\"): sb = \"" + sb + "\"");
         }
         
