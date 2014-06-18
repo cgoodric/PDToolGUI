@@ -58,7 +58,7 @@ public class ExecutePDTool {
      * Constructor. For backwards compatibility of older usages.
      * </p>
      * 
-     * @param iPlanPath  The absolute path to the deployment plan file. This can be set to <code>null</code> with TYPE_VCS_INIT executions.
+     * @param iPlanPath  The absolute path to the deployment plan file.
      * @param iConfPath  The absolute path to the deployment configuration file.
      */
     public ExecutePDTool (
@@ -198,7 +198,8 @@ public class ExecutePDTool {
                 
                 // create an output writer for the log file on the filesystem.
                 //
-                logFilePath = pdtHome + "/logs/log_" + sdf.format (dt) + ".log";
+                String planName = StringUtils.basename (planPath).replaceAll("\\.dp$", "");
+                logFilePath = pdtHome + "/logs/log_" + planName + "_" + sdf.format (dt) + ".log";
                 File logFile = new File (logFilePath);
                 BufferedWriter bw = null;
                 log.debug ("[Launcher Thread]: writing log to " + logFilePath);
