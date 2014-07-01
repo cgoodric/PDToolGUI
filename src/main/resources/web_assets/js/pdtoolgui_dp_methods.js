@@ -1,3 +1,5 @@
+// (c) 2014 Cisco and/or its affiliates. All rights reserved.
+
 // constants
 //
 var ALL_RESOURCES_INDICATOR = "*";

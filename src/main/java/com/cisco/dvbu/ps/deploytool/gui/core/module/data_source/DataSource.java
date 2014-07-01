@@ -1,5 +1,9 @@
 package com.cisco.dvbu.ps.deploytool.gui.core.module.data_source;
 
+/*
+ * (c) 2014 Cisco and/or its affiliates. All rights reserved.
+ */
+
 import com.cisco.dvbu.ps.deploytool.gui.core.shared.GenericAttribute;
 import com.cisco.dvbu.ps.deploytool.gui.util.StringUtils;
 

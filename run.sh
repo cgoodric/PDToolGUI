@@ -1,6 +1,9 @@
 #!/bin/sh
 #
 # runs the PDToolGUI jetty instance
+#
+# (c) 2014 Cisco and/or its affiliates. All rights reserved.
+#
 
 APPS_INSTALL_DIR="/Users/cgoodric/dev/PDTool62"
 

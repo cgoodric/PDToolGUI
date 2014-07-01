@@ -1,5 +1,9 @@
 package com.cisco.dvbu.ps.deploytool.gui;
 
+/*
+ * (c) 2014 Cisco and/or its affiliates. All rights reserved.
+ */
+
 import com.bazaarvoice.dropwizard.assets.ConfiguredAssetsBundle;
 
 //import com.yammer.dropwizard.assets.AssetsBundle;
@@ -56,6 +60,14 @@ import com.cisco.dvbu.ps.deploytool.gui.util.JsonMappingExceptionHandler;
 
 //import javax.ws.rs.ext.ExceptionMapper;
 
+/**
+ * <p>
+ * The main class of the PDToolGUI web server.
+ * </p>
+ * 
+ * @author Calvin Goodrich
+ * @version 1.0
+ */
 public class PDToolGUIService extends Service<PDToolGUIConfiguration> {
     public static void main(String[] args) throws Exception {
         new PDToolGUIService().run(args);

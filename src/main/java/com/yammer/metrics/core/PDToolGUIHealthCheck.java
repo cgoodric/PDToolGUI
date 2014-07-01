@@ -1,5 +1,9 @@
 package com.yammer.metrics.core;
 
+/*
+ * (c) 2014 Cisco and/or its affiliates. All rights reserved.
+ */
+
 public class PDToolGUIHealthCheck extends HealthCheck {
 
     public PDToolGUIHealthCheck (java.lang.String p1) {

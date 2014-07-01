@@ -1,5 +1,9 @@
 package com.cisco.dvbu.ps.deploytool.gui.core.config.deployment_plan;
 
+/*
+ * (c) 2014 Cisco and/or its affiliates. All rights reserved.
+ */
+
 import java.util.List;
 
 //import org.slf4j.Logger;

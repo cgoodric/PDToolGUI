@@ -1,3 +1,5 @@
+// (c) 2014 Cisco and/or its affiliates. All rights reserved. 
+
 // tool tip information for form fields by html file. the first field is the jQuery selector that identifies 
 // the DOM object to apply the "title" attribute to, the second is the tooltip text.
 //

@@ -3,6 +3,8 @@ SETLOCAL
 :
 : runs the PDToolGUI jetty instance
 :
+: (c) 2014 Cisco and/or its affiliates. All rights reserved.
+:
 set APPS_INSTALL_DIR="C:\PDTool62"
 
 call %APPS_INSTALL_DIR%\bin\setVars.bat

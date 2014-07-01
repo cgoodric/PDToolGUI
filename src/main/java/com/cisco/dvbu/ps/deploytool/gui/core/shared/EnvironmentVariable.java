@@ -1,9 +1,21 @@
 package com.cisco.dvbu.ps.deploytool.gui.core.shared;
 
+/*
+ * (c) 2014 Cisco and/or its affiliates. All rights reserved.
+ */
+
 import com.cisco.dvbu.ps.deploytool.gui.util.StringUtils;
 
 import org.jdom2.Element;
 
+/**
+ * <p>
+ * Bean object for environment variables. Intended to be serialized/deserialized by Jackson into/from JSON.
+ * </p>
+ *
+ * @author Calvin Goodrich
+ * @version 1.0
+ */
 public class EnvironmentVariable {
     private String variable;
     private String value;

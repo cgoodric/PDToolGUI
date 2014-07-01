@@ -1,5 +1,9 @@
 package com.cisco.dvbu.ps.deploytool.gui.util;
 
+/*
+ * (c) 2014 Cisco and/or its affiliates. All rights reserved.
+ */
+
 import com.compositesw.common.security.EncryptionManager;
 import com.cisco.dvbu.ps.deploytool.gui.core.config.prefs.PreferencesManager;
 

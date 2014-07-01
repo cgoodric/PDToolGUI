@@ -1,6 +1,0 @@
-{"total": 1,
-"page": 2,
-"rows":[
-    {"id": 1, "cell": ["server1","cgoodric-mac","9400","admin","composite","U.S. West"]},
-    {"id": 2, "cell": ["server2","cgoodric-vm","9400","admin","composite","U.S. East"]}
-]}

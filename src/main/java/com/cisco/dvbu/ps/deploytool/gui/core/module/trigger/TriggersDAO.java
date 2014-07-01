@@ -1,5 +1,9 @@
 package com.cisco.dvbu.ps.deploytool.gui.core.module.trigger;
 
+/*
+ * (c) 2014 Cisco and/or its affiliates. All rights reserved.
+ */
+
 import com.cisco.dvbu.ps.deploytool.gui.util.DAOConstants;
 import com.cisco.dvbu.ps.deploytool.gui.resources.TriggerResource;
 import com.cisco.dvbu.ps.deploytool.gui.util.ResultMessage;

@@ -1,5 +1,9 @@
 package com.cisco.dvbu.ps.deploytool.gui.util;
 
+/*
+ * (c) 2014 Cisco and/or its affiliates. All rights reserved.
+ */
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Matcher;

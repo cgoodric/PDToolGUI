@@ -1,5 +1,9 @@
 package com.cisco.dvbu.ps.deploytool.gui.core.shared;
 
+/*
+ * (c) 2014 Cisco and/or its affiliates. All rights reserved.
+ */
+
 import com.cisco.dvbu.ps.deploytool.gui.util.StringUtils;
 
 import org.jdom2.Element;

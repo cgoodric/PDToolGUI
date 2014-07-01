@@ -1,5 +1,9 @@
 package com.cisco.dvbu.ps.deploytool.gui.core.module.privilege;
 
+/*
+ * (c) 2014 Cisco and/or its affiliates. All rights reserved.
+ */
+
 import com.cisco.dvbu.ps.deploytool.gui.PDToolGUIConfiguration;
 import com.cisco.dvbu.ps.deploytool.gui.core.config.deployment_profile.DeploymentProfile;
 import com.cisco.dvbu.ps.deploytool.gui.core.config.deployment_profile.DeploymentProfilesDAO;

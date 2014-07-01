@@ -1,5 +1,9 @@
 package com.cisco.dvbu.ps.deploytool.gui.core.module.resource;
 
+/*
+ * (c) 2014 Cisco and/or its affiliates. All rights reserved.
+ */
+
 import com.cisco.dvbu.ps.deploytool.gui.core.config.deployment_profile.DeploymentProfile;
 import com.cisco.dvbu.ps.deploytool.gui.core.config.deployment_profile.DeploymentProfilesDAO;
 import com.cisco.dvbu.ps.deploytool.gui.core.config.prefs.Preferences;

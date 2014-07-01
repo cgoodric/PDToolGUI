@@ -1,5 +1,9 @@
 package com.cisco.dvbu.ps.deploytool.gui.resources;
 
+/*
+ * (c) 2014 Cisco and/or its affiliates. All rights reserved.
+ */
+
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;

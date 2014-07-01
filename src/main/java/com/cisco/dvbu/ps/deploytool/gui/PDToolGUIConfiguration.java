@@ -1,5 +1,9 @@
 package com.cisco.dvbu.ps.deploytool.gui;
 
+/*
+ * (c) 2014 Cisco and/or its affiliates. All rights reserved.
+ */
+
 import com.bazaarvoice.dropwizard.assets.AssetsConfiguration;
 import com.bazaarvoice.dropwizard.assets.AssetsBundleConfiguration;
 import com.yammer.dropwizard.config.Configuration;
@@ -7,6 +11,14 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import javax.validation.constraints.NotNull;
 import org.hibernate.validator.constraints.NotEmpty;
 
+/**
+ * <p>
+ * Contains default configuration settings for PDToolGUI
+ * </p>
+ * 
+ * @author Calvin Goodrich
+ * @version 1.0
+ */
 public class PDToolGUIConfiguration extends Configuration 
 implements AssetsBundleConfiguration // comment out when compiling for deployment
 {
