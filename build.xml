@@ -14,8 +14,8 @@
     <property name="docs" location="docs"/>
     <property name="templates" location="templates"/>
     <property name="project-name" value="PDToolGUI"/>
-    <property name="maven_version" value="0.1.0-SNAPSHOT"/>
-    <property name="dist_version" value="beta_bld0001"/>
+    <property name="maven_version" value="0.2.0-SNAPSHOT"/>
+    <property name="dist_version" value="beta_bld0002"/>
     <property name="pom_tmpl" location="pom_template.xml"/>
     <property name="pom_xml" location="pom.xml"/>
 
@@ -32,6 +32,7 @@
 
     <target name="generate_pom" description="generate a Maven POM from a template">
     	<!-- make a copy of a POM from the template -->
+    	<delete file="${pom_xml}" />
     	<copy file="${pom_tmpl}" tofile="${pom_xml}" />
 
         <!-- replace the substitution label MAVEN_VERSION in the pom.xml with the ${maven_version} property -->

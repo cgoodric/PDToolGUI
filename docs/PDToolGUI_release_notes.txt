@@ -41,6 +41,32 @@ Release Notes (newest first):
 ==================================
 
 ======================
+Release Beta 2:
+======================
+1) Execution log file names now contain the file name of the plan being executed.
+
+2) Fixed an issue with the deployment plan editor where new plans would get the first row repeated across all rows
+   until the plan editor page was refreshed.
+   
+3) Fixed an issue where the data source editor page would write out data source map attribute without the value map
+   element. This would cause PDTool to exit with an error.
+
+4) Fixed an issue with the plan editor check to see if the plan file is empty.
+
+5) Fixed an issue where a null pointer exception would be thrown when the plan editor attempted to interpolate variables
+   in a file path that were unset.
+
+6) The privilege editor did not set a default value for "update dependencies" with add privilege.
+
+7) Updated new module fields and methods for PDTool releases since the 2014-04-12 release.
+
+8) Server ID is no longer common to all module methods. Removed it as a hard coded field and set it up to be built
+   dynamically with all the other method parameters in the plan editor.
+
+9) Other miscellaneous fixes.
+
+	
+======================
 Release Beta 1:
 ======================
 1) Added support for TFS 2012 and 2013
