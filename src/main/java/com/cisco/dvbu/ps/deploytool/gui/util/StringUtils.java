@@ -150,15 +150,15 @@ public class StringUtils {
 
     /**
      * <p>
-     * Used to encrypt the password field. if the password is null or has already been encrypted
-     * the password is simply returned.
+     * Used to encrypt the password field. if the password is null, has already been encrypted, or
+     * represents a variable reference the password is simply returned.
      * </p>
      *
      * @param p The string to encrypt
      * @return The encrypted string.
      */
     public static String encryptPassword (String p) {
-        if (p != null && !p.startsWith ("Encrypted:")) {
+        if (p != null && !p.startsWith ("Encrypted:") && !p.startsWith ("$")) {
             try {
                 p = "Encrypted:" + EncryptionManager.encrypt (p);
             } catch (Exception e) {
