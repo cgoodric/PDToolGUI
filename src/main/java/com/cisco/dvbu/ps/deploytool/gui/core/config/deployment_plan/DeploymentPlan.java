@@ -89,7 +89,7 @@ public class DeploymentPlan {
         private boolean exitOnError;
         private String batchName;
         private String method;
-        private String server;
+        private String param0;
         private String param1;
         private String param2;
         private String param3;
@@ -241,24 +241,24 @@ public class DeploymentPlan {
     
         /**
          * <p>
-         * Sets the <code>server</code> field.
+         * Sets the <code>param0</code> field.
          * </p>
          * 
-         * @param  server  The module's method to call.
+         * @param  param0  The zero-th parameter to the module's method.
          */
-        public void setServer (String server) {
-            this.server = server;
+        public void setParam0 (String param0) {
+            this.param0 = param0;
         }
     
         /**
          * <p>
-         * Returns the value of the <code>server</code> field.
+         * Returns the value of the <code>param0</code> field.
          * </p>
          * 
          * @return     The value.
          */
-        public String getServer () {
-            return server;
+        public String getParam0 () {
+            return param0;
         }
         /**
          * <p>

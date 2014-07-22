@@ -101,15 +101,15 @@
                         datatype: 'json',
                         mtype: 'GET',
                         autoencode: true,
-                        colNames:['Line Number', 'Enabled', 'Behavior', 'Exit?', 'Batch', 'Method', 'Server', 'Parameter 1', 'Parameter 2', 'Parameter 3', 'Parameter 4', 'Parameter 5', 'Parameter 6', 'Parameter 7', 'Parameter 8', 'Parameter 9'],
+                        colNames:['Line Number', 'Enabled', 'Behavior', 'Exit?', 'Batch', 'Method', 'Parameter 1', 'Parameter 2', 'Parameter 3', 'Parameter 4', 'Parameter 5', 'Parameter 6', 'Parameter 7', 'Parameter 8', 'Parameter 9', 'Parameter 10'],
                         colModel :[ 
                             {name:'lineNum', index:'lineNum', width:30, key:true, hidden:true}, // not sure if we'll need this
                             {name:'enabled', index:'enabled', width:50, fixed:true, align:'center', editable: true, edittype: 'checkbox', editoptions: {value: "true:false"},formatter: "checkbox", formatoptions: {disabled: true}},
                             {name:'expectedBehavior', index:'expectedBehavior', width:60},
                             {name:'exitOnError', index:'exitOnError', width:40, fixed:true, align:'center', editable: true, edittype: 'checkbox', editoptions: {value: "true:false"},formatter: "checkbox", formatoptions: {disabled: true}},
                             {name:'batch', index:'batch', width:100, hidden:true}, // not displaying this column. the value never seems to change, why show it?
-                            {name:'method', index:'method', width:100, classes:'idGridCell'},
-                            {name:'server', index:'server', width:100},
+                            {name:'method', index:'method', width:200, classes:'idGridCell'},
+                            {name:'param0', index:'param0', width:150},
                             {name:'param1', index:'param1', width:150},
                             {name:'param2', index:'param2', width:150},
                             {name:'param3', index:'param3', width:150},
@@ -435,15 +435,6 @@
                     server_list = $("#server_list"),
                     allFields = $([]).add (enabled).add (expectedBehavior).add (exitOnError).add (module).add (method).add (server);
 
-                // set up the server text input to be an auto complete field.
-                // set a dummy list for now. opening the dialog will set auto-complete
-                // values each time.
-                //
-                $("#server").autocomplete ({
-                                source: [],
-                                appendTo: "#addEditDialog"
-                            });
-                
                 // populate the method menu and set a change event handler on it.
                 // not setting a method here so no default selected module
                 //
@@ -464,6 +455,7 @@
                         $(this).val(),
                         {
                             "method": $(this).val() /*,
+                            "param0": null,
                             "param1": null,
                             "param2": null,
                             "param3": null,
@@ -473,7 +465,8 @@
                             "param7": null,
                             "param8": null,
                             "param9": null*/
-                        }
+                        },
+                        prefs
                     );
                 });
                 
@@ -559,7 +552,7 @@
                         "expectedBehavior": $('#expectedBehavior input:radio:checked').val(),
                         "exitOnError": $('#exitOnError input:radio:checked').val(),
                         "method": method.val(),
-                        "server": server.val(),
+                        "param0": ($("#param0").length > 0) ? $("#param0").val() : null,
                         "param1": ($("#param1").length > 0) ? $("#param1").val() : null,
                         "param2": ($("#param2").length > 0) ? $("#param2").val() : null,
                         "param3": ($("#param3").length > 0) ? $("#param3").val() : null,
@@ -634,8 +627,6 @@
                 function setDialogDataFromList (rowid) {
                     $("#server_list").children().remove();
 
-                    setServerAutoCompleteData ("#server");
-                    
                     // set the plan step value
                     //
                     id.val (rowid);
@@ -668,11 +659,7 @@
                     // set up the parameter fields and populate them with values
                     // from the deployment plan
                     //
-                    setMethodParameters ("#inputs_table", moduleId, methodName, list.getRowData (rowid));
-                    
-                    // set the serverId field value
-                    //
-                    server.val (list.getCell (rowid, "server"));                    
+                    setMethodParameters ("#inputs_table", moduleId, methodName, list.getRowData (rowid), prefs);
                 }
 
                 function updateDepPlan (iUseDialog, iAlertOnlyOnError) {
@@ -721,7 +708,7 @@
                             "exitOnError": row.exitOnError,
                             "batchName": "ExecuteAction",
                             "method": row.method,
-                            "server": row.server,
+                            "param0": row.param0,
                             "param1": row.param1,
                             "param2": row.param2,
                             "param3": row.param3,
@@ -861,10 +848,10 @@
                                 <td><label for="method" class="dialog_label">Method</label></td>
                                 <td><select name="method" id="method"></select></td>
                             </tr>
-                            <tr>
+                            <!--tr>
                                 <td><label for="server" class="dialog_label">serverId</label></td>
                                 <td><input type="text" name="server" id="server" class="text ui-widget-content ui-corner-all"/>&nbsp;<a href="/pdtoolgui/config_servers.html"><img src="images/edit.gif" border="0" alt="Edit Server Profiles"/></a></td>
-                            </tr>
+                            </tr-->
                         </tbody>
                     </table>
                     </fieldset>

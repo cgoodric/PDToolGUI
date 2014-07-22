@@ -35,6 +35,10 @@ fieldset td {
     border-width: 0;
 }
 
+.page .ui-tooltip {
+    max-width: 800px; /* set the max width of JQuery UI tooltips to something a bit wider for readability */
+}
+
 /* page header styles */
 .header {
     width: 100%;

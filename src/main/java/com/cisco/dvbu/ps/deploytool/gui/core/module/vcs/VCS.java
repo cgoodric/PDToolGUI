@@ -11,7 +11,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.jdom2.Element;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,6 +44,29 @@ public class VCS {
         "tfs2012",
         "tfs2013"
     };
+    public static final int[] VCS_TYPE_BASES = {
+        0,
+        1,
+        2,
+        3,
+        4,
+        4,
+        4,
+        4
+    };
+
+    public static final int VCS_BASE_TYPE_NULL = 0;
+    public static final int VCS_BASE_TYPE_SVN = 1;
+    public static final int VCS_BASE_TYPE_P4 = 2;
+    public static final int VCS_BASE_TYPE_CVS = 3;
+    public static final int VCS_BASE_TYPE_TFS = 4;
+    public static final String[] VCS_BASE_TYPE_LABELS = {
+        "",
+        "SVN",
+        "P4",
+        "CVS",
+        "TFS"
+    };
 
     private static final Logger log = LoggerFactory.getLogger (VCS.class);
 
@@ -61,6 +83,7 @@ public class VCS {
     // connection specific attributes
     //
     int vcsType = 0;
+    int vcsBaseType = 0;
     String vcsHome;
     String vcsCommand;
     boolean vcsExecFullPath = false;
@@ -68,10 +91,13 @@ public class VCS {
     String vcsWorkspaceInitNewOptions;
     String vcsWorkspaceInitLinkOptions;
     String vcsWorkspaceInitGetOptions;
+    String vcsBaseFolderInitAdd;
     String vcsCheckinOptions;
     String vcsCheckinOptionsRequired;
     String vcsCheckoutOptions;
     String vcsCheckoutOptionsRequired;
+    String vcsCisImportOptions;
+    String vcsCisExportOptions;
     String vcsRepositoryUrl;
     String vcsProjectRoot;
     String vcsWorkspaceHome;
@@ -133,6 +159,7 @@ public class VCS {
             this.id = v.getId();
             this.type = v.getType();
             this.vcsType = v.getVcsType();
+            this.vcsBaseType = v.getVcsBaseType();
             this.vcsHome = v.getVcsHome();
             this.vcsCommand = v.getVcsCommand();
             this.vcsExecFullPath = v.isVcsExecFullPath();
@@ -140,10 +167,13 @@ public class VCS {
             this.vcsWorkspaceInitNewOptions = v.getVcsWorkspaceInitNewOptions();
             this.vcsWorkspaceInitLinkOptions = v.getVcsWorkspaceInitLinkOptions();
             this.vcsWorkspaceInitGetOptions = v.getVcsWorkspaceInitGetOptions();
+            this.vcsBaseFolderInitAdd = v.getVcsBaseFolderInitAdd();
             this.vcsCheckinOptions = v.getVcsCheckinOptions();
             this.vcsCheckinOptionsRequired = v.getVcsCheckinOptionsRequired();
             this.vcsCheckoutOptions = v.getVcsCheckoutOptions();
             this.vcsCheckoutOptionsRequired = v.getVcsCheckoutOptionsRequired();
+            this.vcsCisImportOptions = v.getVcsCisImportOptions();
+            this.vcsCisExportOptions = v.getVcsCisExportOptions();
             this.vcsRepositoryUrl = v.getVcsRepositoryUrl();
             this.vcsProjectRoot = v.getVcsProjectRoot();
             this.vcsWorkspaceHome = v.getVcsWorkspaceHome();
@@ -201,6 +231,15 @@ public class VCS {
                     if (vChild.getText().equalsIgnoreCase (VCS_TYPE_LABELS[t]))
                         this.vcsType = t;
                 }
+                
+                this.vcsBaseType = VCS_TYPE_BASES[this.vcsType]; // earlier versions of PDTool do not have this attribute.
+            }
+
+            if (vChild.getName().equals ("VCS_BASE_TYPE")) {
+                for (int t = 1; t < VCS_BASE_TYPE_LABELS.length; t++) {
+                    if (vChild.getText().equalsIgnoreCase (VCS_BASE_TYPE_LABELS[t]))
+                        this.vcsBaseType = t;
+                }
             }
 
             if (vChild.getName().equals ("VCS_HOME"))
@@ -224,6 +263,9 @@ public class VCS {
             if (vChild.getName().equals ("VCS_WORKSPACE_INIT_GET_OPTIONS"))
                 this.vcsWorkspaceInitGetOptions = vChild.getText();
 
+            if (vChild.getName().equals ("VCS_BASE_FOLDER_INIT_ADD"))
+                this.vcsBaseFolderInitAdd = vChild.getText();
+
             if (vChild.getName().equals ("VCS_CHECKIN_OPTIONS"))
                 this.vcsCheckinOptions = vChild.getText();
 
@@ -235,6 +277,12 @@ public class VCS {
 
             if (vChild.getName().equals ("VCS_CHECKOUT_OPTIONS_REQUIRED"))
                 this.vcsCheckoutOptionsRequired = vChild.getText();
+
+            if (vChild.getName().equals ("VCS_CIS_IMPORT_OPTIONS"))
+                this.vcsCisImportOptions = vChild.getText();
+
+            if (vChild.getName().equals ("VCS_CIS_EXPORT_OPTIONS"))
+                this.vcsCisExportOptions = vChild.getText();
 
             if (vChild.getName().equals ("VCS_REPOSITORY_URL"))
                 this.vcsRepositoryUrl = vChild.getText();
@@ -356,6 +404,9 @@ public class VCS {
             result.addContent (new Element ("VCS_TYPE").setText (VCS_TYPE_LABELS [this.vcsType]));
 
             result.addContent ("\n" + indentStr);
+            result.addContent (new Element ("VCS_BASE_TYPE").setText (VCS_BASE_TYPE_LABELS [this.vcsBaseType]));
+
+            result.addContent ("\n" + indentStr);
             result.addContent (new Element ("VCS_HOME").setText (this.vcsHome));
 
             result.addContent ("\n" + indentStr);
@@ -379,6 +430,9 @@ public class VCS {
             result.addContent (new Element ("VCS_WORKSPACE_INIT_GET_OPTIONS").setText (this.vcsWorkspaceInitGetOptions));
 
             result.addContent ("\n" + indentStr);
+            result.addContent (new Element ("VCS_BASE_FOLDER_INIT_ADD").setText (this.vcsBaseFolderInitAdd));
+
+            result.addContent ("\n" + indentStr);
             result.addContent (new Element ("VCS_CHECKIN_OPTIONS").setText (this.vcsCheckinOptions));
 
             result.addContent ("\n" + indentStr);
@@ -388,8 +442,13 @@ public class VCS {
             result.addContent (new Element ("VCS_CHECKOUT_OPTIONS").setText (this.vcsCheckoutOptions));
 
             result.addContent ("\n" + indentStr);
-            result.addContent (new Element ("VCS_CHECKOUT_OPTIONS_REQUIRED").setText (this.vcsCheckoutOptionsRequired));
-            //
+            result.addContent (new Element ("VCS_CHECKOUT_OPTIONS_REQUIRED").setText (this.vcsCheckoutOptionsRequired));            //
+
+            result.addContent ("\n" + indentStr);
+            result.addContent (new Element ("VCS_CIS_IMPORT_OPTIONS").setText (this.vcsCisImportOptions));
+
+            result.addContent ("\n" + indentStr);
+            result.addContent (new Element ("VCS_CIS_EXPORT_OPTIONS").setText (this.vcsCisExportOptions));
 
             result.addContent ("\n" + indentStr);
             result.addContent (new Element ("VCS_REPOSITORY_URL").setText (this.vcsRepositoryUrl));
@@ -428,7 +487,7 @@ public class VCS {
             Element evNode = null;
             
             switch (this.vcsType) {
-                case (VCS_TYPE_SVN):
+                case (VCS_BASE_TYPE_SVN):
                     if (this.svnEditor != null && this.svnEditor.length() > 0 ||
                         this.svnEnv != null && this.svnEnv.length() > 0
                     ) {
@@ -447,7 +506,7 @@ public class VCS {
                 
                     break;
                     
-                case (VCS_TYPE_P4):
+                case (VCS_BASE_TYPE_P4):
                     if (this.p4Editor != null && this.p4Editor.length() > 0 ||
                         this.p4Client != null && this.p4Client.length() > 0 ||
                         this.p4Port != null && this.p4Port.length() > 0 ||
@@ -490,7 +549,7 @@ public class VCS {
                     
                     break;
 
-                case (VCS_TYPE_CVS):
+                case (VCS_BASE_TYPE_CVS):
                     if (this.cvsRoot != null && this.cvsRoot.length() > 0 ||
                         this.cvsRsh != null && this.cvsRsh.length() > 0 ||
                         this.cvsEnv != null && this.cvsEnv.length() > 0
@@ -515,8 +574,7 @@ public class VCS {
                 
                     break;
                     
-                case (VCS_TYPE_TFS2005):
-                case (VCS_TYPE_TFS2010):
+                case (VCS_BASE_TYPE_TFS):
                     if (this.tfsEditor != null && this.tfsEditor.length() > 0 ||
                         this.tfsEnv != null && this.tfsEnv.length() > 0 ||
                         this.tfsCheckinOptions != null && this.tfsCheckinOptions.length() > 0 ||
@@ -704,6 +762,11 @@ public class VCS {
      */
     public void setVcsType (int vcsType) {
         this.vcsType = vcsType;
+        
+        // earlier versions of PDTool do not have the VCS_BASE_TYPE attribute
+        if (this.vcsType >= 0 && this.vcsType < VCS_TYPE_BASES.length) {
+        	this.vcsBaseType = VCS_TYPE_BASES[this.vcsType];
+        }
     }
 
     /**
@@ -715,6 +778,28 @@ public class VCS {
      */
     public int getVcsType () {
         return vcsType;
+    }
+
+    /**
+     * <p>
+     * Sets the <code>vcsBaseType</code> field.
+     * </p>
+     * 
+     * @param  vcsBaseType  The base type of VCS being used [svn, p4, cvs, tfs, etc].
+     */
+    public void setVcsBaseType (int vcsBaseType) {
+        this.vcsBaseType = vcsBaseType;
+    }
+
+    /**
+     * <p>
+     * Returns the value of the <code>vcsBaseType</code> field.
+     * </p>
+     * 
+     * @return     The value.
+     */
+    public int getVcsBaseType () {
+        return vcsBaseType;
     }
 
     /**
@@ -873,6 +958,28 @@ public class VCS {
 
     /**
      * <p>
+     * Sets the <code>vcsBaseFolderInitAdd</code> field.
+     * </p>
+     * 
+     * @param  vcsBaseFolderInitAdd  Options to use when performing an add operation after initialization.
+     */
+    public void setVcsBaseFolderInitAdd (String vcsBaseFolderInitAdd) {
+        this.vcsBaseFolderInitAdd = vcsBaseFolderInitAdd;
+    }
+
+    /**
+     * <p>
+     * Returns the value of the <code>vcsBaseFolderInitAdd</code> field.
+     * </p>
+     * 
+     * @return     The value.
+     */
+    public String getVcsBaseFolderInitAdd () {
+        return vcsBaseFolderInitAdd;
+    }
+
+    /**
+     * <p>
      * Sets the <code>vcsCheckinOptions</code> field.
      * </p>
      * 
@@ -957,6 +1064,50 @@ public class VCS {
      */
     public String getVcsCheckoutOptionsRequired () {
         return vcsCheckoutOptionsRequired;
+    }
+
+    /**
+     * <p>
+     * Sets the <code>vcsCisImportOptions</code> field.
+     * </p>
+     * 
+     * @param  vcsCisImportOptions  Options to use when importing resources into CIS.
+     */
+    public void setVcsCisImportOptions (String vcsCisImportOptions) {
+        this.vcsCisImportOptions = vcsCisImportOptions;
+    }
+
+    /**
+     * <p>
+     * Returns the value of the <code>vcsCisImportOptions</code> field.
+     * </p>
+     * 
+     * @return     The value.
+     */
+    public String getVcsCisImportOptions () {
+        return vcsCisImportOptions;
+    }
+
+    /**
+     * <p>
+     * Sets the <code>vcsCisExportOptions</code> field.
+     * </p>
+     * 
+     * @param  vcsCisExportOptions  Options to use when exporting resources from CIS.
+     */
+    public void setVcsCisExportOptions (String vcsCisExportOptions) {
+        this.vcsCisExportOptions = vcsCisExportOptions;
+    }
+
+    /**
+     * <p>
+     * Returns the value of the <code>vcsCisExportOptions</code> field.
+     * </p>
+     * 
+     * @return     The value.
+     */
+    public String getVcsCisExportOptions () {
+        return vcsCisExportOptions;
     }
 
     /**

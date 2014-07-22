@@ -96,14 +96,12 @@
                 // set up the radio buttons in the vcs tab
                 //
                 $("#vcs_multi_user_topology").buttonset();
-                //$("#vcs_type").buttonset();
                 $("#vcs_exec_full_path").buttonset();
                 
-                // put a click event handler on the vcs type radio that hides/shows the appropriate vcs table rows. use the
+                // put a click event handler on the vcs type select that hides/shows the appropriate vcs table rows. use the
                 // same function to update the vcs rows as the AJAX callback does.
                 //
-                //$('#vcs_type input:radio').change(setVCSFields);
-                $('#vcs_type').change(setVCSFields);
+                $('#vcs_type').change (setVCSFields);
 
                 // create an array containing the table rows for each vcs type. this is used for showing and hiding
                 // the appropriate rows when the vcs type radio is changed.
@@ -113,7 +111,6 @@
                 // hides or shows the appropriate vcs specific settings based on the vcs type radio button setting.
                 //
                 function setVCSFields() {
-                    //var selectedVal = $("#vcs_type input:radio:checked").val();
                     var selectedVal = $("#vcs_type").val();
 
                     $(".svn_row").hide();
@@ -234,6 +231,7 @@
                     $("#debug3").buttonset("refresh");
                     $('#diffmerger_verbose_' + data.diffmergerVerbose).prop ("checked", "checked");
                     $("#diffmerger_verbose").buttonset("refresh");
+                    $('#property_order_precedence').val (data.propertyOrderPrecedence);
                     $('#all_resources_indicator').val (data.allResourcesIndicator);
                     $('#exclude_resources_indicator').val (data.excludeResourcesIndicator);
                     $('#user_option_threshold').val (data.userOptionThreshold);
@@ -265,6 +263,7 @@
                     $('#vcs_workspace_init_new_options').val (data.vcsWorkspaceInitNewOptions);
                     $('#vcs_workspace_init_link_options').val (data.vcsWorkspaceInitLinkOptions);
                     $('#vcs_workspace_init_get_options').val (data.vcsWorkspaceInitGetOptions);
+                    $('#vcs_base_folder_init_add').val (data.vcsBaseFolderInitAdd);
                     
                     // TFS_CHECKIN_OPTIONS is deprecated. Use its value for VCS_CHECKIN_OPTIONS
                     // if VCS_TYPE is a version of TFS and VCS_CHECKIN_OPTIONS is otherwise unset.)
@@ -286,6 +285,8 @@
                     $('#vcs_checkin_options_required').val (data.vcsCheckinOptionsRequired);
                     $('#vcs_checkout_options').val (data.vcsCheckoutOptions);
                     $('#vcs_checkout_options_required').val (data.vcsCheckoutOptionsRequired);
+                    $('#vcs_cis_import_options').val (data.vcsCisImportOptions);
+                    $('#vcs_cis_export_options').val (data.vcsCisExportOptions);
                     $('#vcs_repository_url').val (data.vcsRepositoryUrl);
                     $('#vcs_project_root').val (data.vcsProjectRoot);
                     $('#vcs_workspace_home').val (data.vcsWorkspaceHome);
@@ -349,6 +350,7 @@
                         "debug2": $('#debug2 input:radio:checked').val(),
                         "debug3": $('#debug3 input:radio:checked').val(),
                         "diffmergerVerbose": $('#diffmerger_verbose input:radio:checked').val(),
+                        "propertyOrderPrecedence": $('#property_order_precedence').val(),
                         "allResourcesIndicator": $('#all_resources_indicator').val(),
                         "excludeResourcesIndicator": $('#exclude_resources_indicator').val(),
                         "userOptionThreshold": $('#user_option_threshold').val(),
@@ -360,7 +362,6 @@
                         "cisConnectRetry": $('#cis_connect_retry').val(),
                         "cisConnectRetrySleepMillis": $('#cis_connect_retry_sleep').val(),
                         "vcsMultiUserTopology": $('#vcs_multi_user_topology input:radio:checked').val(),
-                        //"vcsType": VCS_TYPES[$('#vcs_type input:radio:checked').val()],
                         "vcsType": VCS_TYPES[$('#vcs_type').val()],
                         "vcsHome": $('#vcs_home').val(),
                         "vcsCommand": $('#vcs_command').val(),
@@ -369,10 +370,13 @@
                         "vcsWorkspaceInitNewOptions": $('#vcs_workspace_init_new_options').val(),
                         "vcsWorkspaceInitLinkOptions": $('#vcs_workspace_init_link_options').val(),
                         "vcsWorkspaceInitGetOptions": $('#vcs_workspace_init_get_options').val(),
+                        "vcsBaseFolderInitAdd": $('#vcs_base_folder_init_add').val(),
                         "vcsCheckinOptions": $('#vcs_checkin_options').val(),
                         "vcsCheckinOptionsRequired": $('#vcs_checkin_options_required').val(),
                         "vcsCheckoutOptions": $('#vcs_checkout_options').val(),
                         "vcsCheckoutOptionsRequired": $('#vcs_checkout_options_required').val(),
+                        "vcsCisImportOptions": $('#vcs_cis_import_options').val(),
+                        "vcsCisExportOptions": $('#vcs_cis_export_options').val(),
                         "vcsRepositoryUrl": $('#vcs_repository_url').val(),
                         "vcsProjectRoot": $('#vcs_project_root').val(),
                         "vcsWorkspaceHome": $('#vcs_workspace_home').val(),
@@ -528,6 +532,10 @@
                                         </td>
                                     </tr>
                                     <tr>
+                                        <td><label for="property_order_precedence" class="tabs_form_label">Property Order Precedence</label></td>
+                                        <td><input type="text" name="property_order_precedence" id="property_order_precedence" class="text ui-widget-content ui-corner-all" /></td>
+                                    </tr>
+                                    <tr>
                                         <td><label for="all_resources_indicator" class="tabs_form_label">All Resources Indicator</label></td>
                                         <td><input type="text" name="all_resources_indicator" id="all_resources_indicator" size="1" maxlength="1" class="text ui-widget-content ui-corner-all" /></td>
                                     </tr>
@@ -594,14 +602,6 @@
                                     <tr>
                                         <td><label for="vcs_type" class="tabs_form_label">Version Control System Type</label></td>
                                         <td>
-                                            <!--div id="vcs_type">
-                                                <input type="radio" name="vcs_type" id="vcs_type_svn" value="1" /><label for="vcs_type_svn">SVN</label>
-                                                <input type="radio" name="vcs_type" id="vcs_type_p4" value="2" /><label for="vcs_type_p4">Perforce</label>
-                                                <input type="radio" name="vcs_type" id="vcs_type_cvs" value="3" /><label for="vcs_type_cvs">CVS</label>
-                                                <input type="radio" name="vcs_type" id="vcs_type_tfs2005" value="4" /><label for="vcs_type_tfs2005">TFS 2005</label>
-                                                <input type="radio" name="vcs_type" id="vcs_type_tfs2010" value="5" /><label for="vcs_type_tfs2010">TFS 2010</label>
-                                                <input type="radio" name="vcs_type" id="vcs_type_tfs2012" value="6" /><label for="vcs_type_tfs2012">TFS 2012</label>
-                                            </div-->
                                             <select id="vcs_type" name="vcs_type">
                                                 <option value="1">SVN</option>
                                                 <option value="2">Perforce</option>
@@ -647,6 +647,10 @@
                                         <td><input type="text" name="vcs_workspace_init_get_options" id="vcs_workspace_init_get_options" size="60" class="text ui-widget-content ui-corner-all" /></td>
                                     </tr>
                                     <tr>
+                                        <td><label for="vcs_base_folder_init_add" class="tabs_form_label">VCS Base Folder Initialization Add Options</label></td>
+                                        <td><input type="text" name="vcs_base_folder_init_add" id="vcs_base_folder_init_add" size="60" class="text ui-widget-content ui-corner-all" /></td>
+                                    </tr>
+                                    <tr>
                                         <td><label for="vcs_checkin_options" class="tabs_form_label">VCS Checkin Options</label></td>
                                         <td><input type="text" name="vcs_checkin_options" id="vcs_checkin_options" size="60" class="text ui-widget-content ui-corner-all" /></td>
                                     </tr>
@@ -661,6 +665,14 @@
                                     <tr>
                                         <td><label for="vcs_checkout_options_required" class="tabs_form_label">VCS Required Checkout Options</label></td>
                                         <td><input type="text" name="vcs_checkout_options_required" id="vcs_checkout_options_required" size="60" class="text ui-widget-content ui-corner-all" /></td>
+                                    </tr>
+                                    <tr>
+                                        <td><label for="vcs_cis_import_options" class="tabs_form_label">VCS CIS Import Options</label></td>
+                                        <td><input type="text" name="vcs_cis_import_options" id="vcs_cis_import_options" size="60" class="text ui-widget-content ui-corner-all" /></td>
+                                    </tr>
+                                    <tr>
+                                        <td><label for="vcs_cis_export_options" class="tabs_form_label">VCS CIS Export Options</label></td>
+                                        <td><input type="text" name="vcs_cis_export_options" id="vcs_cis_export_options" size="60" class="text ui-widget-content ui-corner-all" /></td>
                                     </tr>
                                     <tr>
                                         <td><label for="vcs_repository_url" class="tabs_form_label">Repository URL</label></td>

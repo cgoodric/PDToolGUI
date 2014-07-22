@@ -64,7 +64,7 @@
                         datatype: 'json',
                         mtype: 'GET',
                         autoencode: true,
-                        colNames:['Server ID', 'Hostname', 'Port', 'Usage', 'User Name', 'Password', 'Domain', 'CIS Home', 'Cluster Name', 'Site', 'HTTPS'],
+                        colNames:['Server ID', 'Hostname', 'Port', 'Usage', 'User Name', 'Password', 'Domain', 'CIS Home', 'Cluster Name', 'Site', 'HTTPS', 'Allow Vars'],
                         colModel :[ 
                             {name:'sid', index:'sid', width:150, classes:'idGridCell'}, // can't use "id" here as i think it's reserved by jqGrid.
                             {name:'hostname', index:'hostname', width:220},
@@ -77,6 +77,7 @@
                             {name:'clustername', index:'clustername', width:60, hidden:true}, // not displaying this column
                             {name:'site', index:'site', width:60},
                             {name:'useHttps', index:'useHttps', width:40, fixed:true, align:'center', editable: true, edittype: 'checkbox', editoptions: {value: "true:false"},formatter: "checkbox", formatoptions: {disabled: true}},
+                            {name:'allowVariables', index:'allowVariables', width:40, fixed:true, align:'center', editable: true, edittype: 'checkbox', editoptions: {value: "true:false"},formatter: "checkbox", formatoptions: {disabled: true}, hidden:true} // not displaying this column
                         ],
                         pager: '#pager',
                         height: "auto",
@@ -293,7 +294,9 @@
                                     encryptedpassword: "",
                                     domain: "",
                                     cishome: "",
-                                    site: ""
+                                    site: "",
+                                    useHttps: false,
+                                    allowVariables: false
                                 });
 
                                 id.focus();
@@ -326,7 +329,8 @@
                     clustername = $("#clustername"),
                     site = $("#site"),
                     useHttps = $("#useHttps").buttonset(),
-                    allFields = $([]).add (operation).add (origid).add (id).add (hostname).add (port).add (usage).add (user).add (encryptedpassword).add (domain).add (cishome).add (clustername).add (site).add (useHttps);
+                    allowVariables = $("#allowVariables").buttonset(),
+                    allFields = $([]).add (operation).add (origid).add (id).add (hostname).add (port).add (usage).add (user).add (encryptedpassword).add (domain).add (cishome).add (clustername).add (site).add (useHttps).add (allowVariables);
 
                 $("#port").spinner ({min: 1024});
                 
@@ -411,6 +415,8 @@
                     site.val (data.site);
                     $('#useHttps_' + data.useHttps).prop ("checked", "checked");
                     $("#useHttps").buttonset ("refresh");
+                    $('#allowVariables_' + data.allowVariables).prop ("checked", "checked");
+                    $("#allowVariables").buttonset ("refresh");
                 }
                 
                 // create a data object (the same as returned from an AJAX call) but from the dialog's form instead
@@ -429,7 +435,8 @@
                         cishome: cishome.val(),
                         clustername: clustername.val(),
                         site: site.val(),
-                        useHttps: $('#useHttps input:radio:checked').val()
+                        useHttps: $('#useHttps input:radio:checked').val(),
+                        allowVariables: $('#allowVariables input:radio:checked').val()
                     }
                 }
                 
@@ -450,7 +457,8 @@
                         "cishome": data.cishome,
                         "clustername": data.clustername,
                         "site": data.site,
-                        "useHttps": data.useHttps
+                        "useHttps": data.useHttps,
+                        "allowVariables": data.allowVariables
                     };
                     
                     return JSON.stringify (obj);
@@ -583,6 +591,15 @@
                                     <div id="useHttps">
                                         <input type="radio" name="useHttps" id="useHttps_true" value="true" /><label for="useHttps_true" class="dialog_radio">True</label>
                                         <input type="radio" name="useHttps" id="useHttps_false" value="false" /><label for="useHttps_false" class="dialog_radio">False</label>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><label for="allowVariables" class="dialog_label">Allow Variables?</label></td>
+                                <td class="dialog_radio">
+                                    <div id="allowVariables">
+                                        <input type="radio" name="allowVariables" id="allowVariables_true" value="true" /><label for="allowVariables_true" class="dialog_radio">True</label>
+                                        <input type="radio" name="allowVariables" id="allowVariables_false" value="false" /><label for="allowVariables_false" class="dialog_radio">False</label>
                                     </div>
                                 </td>
                             </tr>

@@ -342,6 +342,31 @@ var VCS_TYPES = [
     "tfs2012", 
     "tfs2013"
 ];
+var VCS_TYPE_BASES = [
+    0,
+    1, 
+    2, 
+    3, 
+    4, 
+    4, 
+    4, 
+    4
+];
+
+// supported version control systems base types
+//
+VCS_TYPE_NULL = 0;
+VCS_TYPE_SVN = 1;
+VCS_TYPE_P4 = 2;
+VCS_TYPE_CVS = 3;
+VCS_TYPE_TFS = 4;
+var VCS_TYPES = [
+    "(Choose VCS Base Type ...)",
+    "svn", 
+    "p4", 
+    "cvs", 
+    "tfs"
+];
 
 
 // random number generator for ajax calls (otherwise IE caches ajax call results.)

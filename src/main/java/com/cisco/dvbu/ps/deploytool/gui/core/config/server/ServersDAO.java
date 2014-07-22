@@ -11,7 +11,6 @@ import com.cisco.dvbu.ps.deploytool.gui.util.DAOConstants;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -24,9 +23,7 @@ import org.jdom2.Element;
 import org.jdom2.JDOMException;
 import org.jdom2.input.SAXBuilder;
 import org.jdom2.output.XMLOutputter;
-
 import org.apache.commons.io.FileUtils;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,6 +34,7 @@ import com.cisco.dvbu.ps.deploytool.gui.util.ListResult;
 import com.cisco.dvbu.ps.deploytool.gui.util.ListResultRowComparator;
 import com.cisco.dvbu.ps.deploytool.gui.util.ListUtils;
 import com.cisco.dvbu.ps.deploytool.gui.util.ResultMessage;
+import com.cisco.dvbu.ps.deploytool.gui.util.StringUtils;
 
 /**
  * <p>
@@ -79,6 +77,7 @@ public class ServersDAO {
         listColumnsInfo.put ("clustername",       new ListColumnInfo (8, ListResultRowComparator.SORT_TYPE_STRING));
         listColumnsInfo.put ("site",              new ListColumnInfo (9, ListResultRowComparator.SORT_TYPE_STRING));
         listColumnsInfo.put ("useHttps",          new ListColumnInfo (10, ListResultRowComparator.SORT_TYPE_STRING));
+        listColumnsInfo.put ("allowVariables",    new ListColumnInfo (11, ListResultRowComparator.SORT_TYPE_STRING));
         
         // initialize servers list from servers.xml
         //
@@ -485,6 +484,9 @@ public class ServersDAO {
                 tmpCell.add ("" + ((node.getChildText ("useHttps") != null ) ? node.getChildText ("useHttps").matches ("(?i)^(yes|true|on|1)$") : false));
                 tmpServer.setUseHttps ((node.getChildText ("useHttps") != null ) ? node.getChildText ("useHttps").matches ("(?i)^(yes|true|on|1)$") : false);
 
+                tmpCell.add ("" + ((node.getChildText ("allowVariables") != null ) ? node.getChildText ("allowVariables").matches ("(?i)^(yes|true|on|1)$") : false));
+                tmpServer.setAllowVariables ((node.getChildText ("allowVariables") != null ) ? node.getChildText ("allowVariables").matches ("(?i)^(yes|true|on|1)$") : false);
+
                 tmpServersList.add (new ListResult.Row(tmpServer.getId(), tmpCell));
                 tmpServers.put (tmpServer.getId(), tmpServer);
             }
@@ -569,30 +571,35 @@ public class ServersDAO {
     // includes whitespace so the serialized file doesn't end up too ugly.
     //
     private Element createServerElement (Server server) {
+        String indentStr = StringUtils.getIndent (1);
+        String indentStr2 = StringUtils.getIndent (2);
+
         Element s = new Element ("server");
-        s.addContent ("\n    ");
+        s.addContent ("\n" + indentStr2);
         s.addContent (new Element("id").setText (server.getId()));
-        s.addContent ("\n    ");
+        s.addContent ("\n" + indentStr2);
         s.addContent (new Element("hostname").setText (server.getHostname()));
-        s.addContent ("\n    ");
+        s.addContent ("\n" + indentStr2);
         s.addContent (new Element("port").setText (server.getPort()));
-        s.addContent ("\n    ");
+        s.addContent ("\n" + indentStr2);
         s.addContent (new Element("usage").setText (server.getUsage()));
-        s.addContent ("\n    ");
+        s.addContent ("\n" + indentStr2);
         s.addContent (new Element("user").setText (server.getUser()));
-        s.addContent ("\n    ");
+        s.addContent ("\n" + indentStr2);
         s.addContent (new Element("encryptedpassword").setText (server.getEncryptedpassword()));
-        s.addContent ("\n    ");
+        s.addContent ("\n" + indentStr2);
         s.addContent (new Element("domain").setText (server.getDomain()));
-        s.addContent ("\n    ");
+        s.addContent ("\n" + indentStr2);
         s.addContent (new Element("cishome").setText (server.getCishome()));
-        s.addContent ("\n    ");
+        s.addContent ("\n" + indentStr2);
         s.addContent (new Element("clustername").setText (server.getClustername()));
-        s.addContent ("\n    ");
+        s.addContent ("\n" + indentStr2);
         s.addContent (new Element("site").setText (server.getSite()));
-        s.addContent ("\n    ");
+        s.addContent ("\n" + indentStr2);
         s.addContent (new Element("useHttps").setText ("" + server.isUseHttps()));
-        s.addContent ("\n  ");
+        s.addContent ("\n" + indentStr2);
+        s.addContent (new Element("allowVariables").setText ("" + server.isAllowVariables()));
+        s.addContent ("\n" + indentStr);
         
         return s;
     }

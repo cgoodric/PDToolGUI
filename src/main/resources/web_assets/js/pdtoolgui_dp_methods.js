@@ -102,7 +102,8 @@ function setMethodParameters (
     tableId,
     moduleId,
     methodName,
-    rowData
+    rowData,
+    prefs
 ) {
     if (DEPLOYMENT_METHODS[moduleId] !== undefined && DEPLOYMENT_METHODS[moduleId].methods[methodName] !== undefined) {
         var module = DEPLOYMENT_METHODS[moduleId];
@@ -112,7 +113,7 @@ function setMethodParameters (
         // get the param values from the previous method so they can be put back into the same fields.
         //
         var oldParamValues = new Object();
-        for (var p = 1; p <= 9; p++) {
+        for (var p = 0; p <= 9; p++) {
             var paramName = $("#param" + p).parent().parent().children().first().first().contents().html(); // have to get this from the parameter row's label
             oldParamValues[paramName] = $("#param" + p).val();
         }
@@ -131,12 +132,13 @@ function setMethodParameters (
                                     ? oldParamValues[param.name]
                                     : "";
 
-            if (param.type == "serverId") {
-                continue; // serverId is the first argument to all methods, and so is hard coded into the form
+            //if (param.type == "serverId") {
+                //continue; // serverId is the first argument to all methods, and so is hard coded into the form
                 
             // CSV and SCSV types
             //
-            } else if (/^S?CSV/.test (param.type)) {
+            //} else 
+            if (/^S?CSV/.test (param.type)) {
                 var csvType, csvContent;
                 var csvSplit = param.type.split (": ");
 
@@ -536,6 +538,22 @@ function setMethodParameters (
                 //
                 if (paramValue != null && paramValue.length > 0) {
                     $('#param' + p).val (paramValue);
+                } else if (param.name == "server") {
+                    $('#param' + p).val (prefs.defaultServer);
+                }
+                
+                if (param.name == "server") {
+                    // set up the server text input to be an auto complete field.
+                    // set a dummy list for now. opening the dialog will set auto-complete
+                    // values each time.
+                    //
+                    $('#param' + p).autocomplete ({
+                                    source: [],
+                                    appendTo: "#addEditDialog"
+                                });
+
+                                        
+                    setServerAutoCompleteData ('#param' + p);                    
                 }
 
                 if (param.name == "pathToServersXML") {
@@ -556,7 +574,7 @@ function setMethodParameters (
                 if (param.name == "vcsConnectionId") {
                     $('#param' + p + '_link')
                         .data ('moduleId', moduleId)
-                        .data ('methodName', rowData.method)
+                        .data ('methodName', methodName)
                         .data ('paramNum', p)
                         .click (editModuleCallback);
 
@@ -570,16 +588,16 @@ function setMethodParameters (
                     //
                     $('#param' + p + '_link')
                         .data ('moduleId', moduleId)
-                        .data ('methodName', rowData.method)
+                        .data ('methodName', methodName)
                         .data ('paramNum', p)
                         .click (editModuleCallback);
 
-                    // set attach data to the input field and set up auto-complete on it.
+                    // attach data to the input field and set up auto-complete on it.
                     //
                     $('#param' + p)
                         .autocomplete ({source: []})
                         .data ('moduleId', moduleId)
-                        .data ('methodName', rowData.method)
+                        .data ('methodName', methodName)
                         .data ('paramNum', p);
                     
                     setParamAutoCompleteData ('#param' + p, module.fileType);
@@ -2671,11 +2689,32 @@ var DEPLOYMENT_METHODS = {
                     }
                 ]
             },
+            "vcsInitializeBaseFolderCheckin" : {
+                idParamNum: null,
+                moduleParamNum: null,
+                params: [
+                    {
+                        name: "customPathList",
+                        type: "CSV: string",
+                        title: "A comma separated list of paths that are added to the base paths of <span class='code'>/shared</span> or <span class='code'>/services/databases</span> or <span class='code'>/services/webservices</span>"
+                    },
+                    {
+                        name: "vcsUser",
+                        type: "string",
+                        title: "The user to log into the VCS server with"
+                    },
+                    {
+                        name: "vcsPassword",
+                        type: "password",
+                        title: "The password to log into the VCS server with"
+                    }
+                ]
+            },
             "vcsCheckout" : {
                 idParamNum: null,
                 moduleParamNum: null,
                 overloadTest: function (rowData) {
-                    if (rowData["param5"].match (/servers.xml$/)) {
+                    if (rowData["param5"].match (/servers.xml$/) != null) {
                         return "vcsCheckout (VCSLabel)";
                     } else {
                         return "vcsCheckout";
@@ -3008,6 +3047,42 @@ var DEPLOYMENT_METHODS = {
                     }
                 ]
             },
+            "vcsScanPathLength" : {
+                idParamNum: null,
+                moduleParamNum: null,
+                params: [
+                    {
+                        name: "server",
+                        type: "serverId",
+                        title: STANDARD_PARAM_TITLES["serverId"]
+                    },
+                    {
+                        name: "vcsMaxPathLength",
+                        type: "integer",
+                        title: "A non-negative integer length from which to compare path lengths found in vcsResourcePathList. When 0, use the default CommonConstants.maxWindowsPathLen=259."
+                    },
+                    {
+                        name: "vcsResourcePathList",
+                        type: "CSV: string",
+                        title: "A comma separated list of CIS paths to scan"
+                    },
+                    {
+                        name: "pathToServersXML",
+                        type: "serverXML",
+                        title: STANDARD_PARAM_TITLES["pathToServersXML"]
+                    },
+                    {
+                        name: "vcsUser",
+                        type: "string",
+                        title: "The user to log into the VCS server with"
+                    },
+                    {
+                        name: "vcsPassword",
+                        type: "password",
+                        title: "The password to log into the VCS server with"
+                    }
+                ]
+            },
             "generateVCSXML" : {
                 idParamNum: null,
                 moduleParamNum: null,
@@ -3061,12 +3136,44 @@ var DEPLOYMENT_METHODS = {
                     }
                 ]
             },
+            "vcsInitializeBaseFolderCheckin2" : {
+                connParamNum: 0,
+                idParamNum: null,
+                moduleParamNum: 2,
+                params: [
+                    {
+                        name: "vcsConnectionId",
+                        type: "vcsConnectionId",
+                        title: "The VCS Module connection ID to use to initialize the workspace"
+                    },
+                    {
+                        name: "customPathList",
+                        type: "CSV: string",
+                        title: "A comma separated list of paths that are added to the base paths of <span class='code'>/shared</span> or <span class='code'>/services/databases</span> or <span class='code'>/services/webservices</span>"
+                    },
+                    {
+                        name: "pathToVcsXML",
+                        type: "file_path",
+                        title: "The path to the VCS Module XML file"
+                    },
+                    {
+                        name: "vcsUser",
+                        type: "string",
+                        title: "The user to log into the VCS server with"
+                    },
+                    {
+                        name: "vcsPassword",
+                        type: "password",
+                        title: "The password to log into the VCS server with"
+                    }
+                ]
+            },
             "vcsCheckout2" : {
                 connParamNum: 1,
                 idParamNum: null,
                 moduleParamNum: 5,
                 overloadTest: function (rowData) {
-                    if (rowData["param7"].match (/servers.xml$/)) {
+                    if (rowData["param7"].match (/servers.xml$/) != null) {
                         return "vcsCheckout2 (VCSLabel)";
                     } else {
                         return "vcsCheckout2";
@@ -3497,8 +3604,55 @@ var DEPLOYMENT_METHODS = {
                     }
                 ]
             },
+            "vcsScanPathLength2" : {
+                connParamNum: 1,
+                idParamNum: null,
+                moduleParamNum: 4,
+                params: [
+                    {
+                        name: "server",
+                        type: "serverId",
+                        title: STANDARD_PARAM_TITLES["serverId"]
+                    },
+                    {
+                        name: "vcsConnectionId",
+                        type: "vcsConnectionId",
+                        title: "The VCS Module connection ID to use to perform the generation"
+                    },
+                    {
+                        name: "vcsMaxPathLength",
+                        type: "integer",
+                        title: "A non-negative integer length from which to compare path lengths found in vcsResourcePathList. When 0, use the default CommonConstants.maxWindowsPathLen=259."
+                    },
+                    {
+                        name: "vcsResourcePathList",
+                        type: "CSV: string",
+                        title: "A comma separated list of CIS paths to scan"
+                    },
+                    {
+                        name: "pathToVcsXML",
+                        type: "file_path",
+                        title: "The path to the generated VCS Module XML file"
+                    },
+                    {
+                        name: "pathToServersXML",
+                        type: "serverXML",
+                        title: STANDARD_PARAM_TITLES["pathToServersXML"]
+                    },
+                    {
+                        name: "vcsUser",
+                        type: "string",
+                        title: "The user to log into the VCS server with"
+                    },
+                    {
+                        name: "vcsPassword",
+                        type: "password",
+                        title: "The password to log into the VCS server with"
+                    }
+                ]
+            },
             "generateVCSXML2" : {
-                connParamNum: null,
+                connParamNum: 1,
                 idParamNum: null,
                 moduleParamNum: 3,
                 params: [

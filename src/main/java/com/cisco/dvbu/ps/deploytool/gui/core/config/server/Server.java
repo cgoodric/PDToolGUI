@@ -33,6 +33,7 @@ public class Server {
     private String clustername;
     private String site;
     private boolean useHttps = false;
+    private boolean allowVariables = false;
 
     /**
      * <p>
@@ -330,5 +331,27 @@ public class Server {
      */
     public boolean isUseHttps () {
         return useHttps;
+    }
+
+    /**
+     * <p>
+     * Sets the <code>allowVariables</code> field.
+     * </p>
+     * 
+     * @param  allowVariables  Indicates whether or not variables are allowed in all fields.
+     */
+    public void setAllowVariables (boolean allowVariables) {
+        this.allowVariables = allowVariables;
+    }
+
+    /**
+     * <p>
+     * Returns the value of the <code>allowVariables</code> field.
+     * </p>
+     * 
+     * @return     The value.
+     */
+    public boolean isAllowVariables () {
+        return allowVariables;
     }
 }

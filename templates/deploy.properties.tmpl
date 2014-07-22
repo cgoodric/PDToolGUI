@@ -15,6 +15,41 @@
 #   Note: May be used in the orchestration property file.
 #   This section may not be used with ANT Deploy.
 #==============================================================================
+CARFILE=testout.car
+#
+# Used by Regression Module query :: SELECT "$$Status" FROM ViewSales2 WHERE "$$Status" = '$VIEWSALES_STATUS'
+VIEWSALES_STATUS=open
+# Used by Regression Module query :: SELECT * FROM ViewSales2 WHERE ProductName like '$PRODUCT_NAME_WILDCARD'
+#   SQL Wildcards must be escaped with two % so that it is not interpreted as a variable.
+PRODUCT_NAME_WILDCARD=Widget%%
+#
+# Used to define which CIS version to use for the various resources [ArchiveModule and VCSModule]
+CIS_VERSION=6_2
+#
+# Used to define the SERVERID
+PORT=9420
+#
+# Web Service Port (DataSourceModule.xml)
+#   for HTTP set WSPORT=9400
+#   for HTTPS set WSPORT=9402
+WSPORT=9430
+#
+# HTTP_TYPE is set in the OS prior to execution giving greater flexibility to choose at runtime.  
+#    set HTTP_TYPE=http to connect over regular http.
+#    set HTTP_TYPE=https to connect PDTool over SSL (htts).
+# This is used to compose the SERVERID for selecting the correct servers.xml id.
+HTTP_TYPE=http
+#
+# Provides an easy way to customize which server to the deployment orchestration property file will connect to
+SERVERID=localhost%PORT%$HTTP_TYPE$
+#
+# Server environment for the LabPD-Deploy
+LAB_SERVERID=lab%PORT%$HTTP_TYPE$
+# The student number for the Lab-PD [01-10]
+STUDENTID=01
+#
+# VCS Connection variable - identifies a VCONN id in VCSModule.xml
+VCONN=svn01_win
 #
 #==============================================================================
 # Behavior Environment Variables [default values set]
@@ -24,13 +59,22 @@ SUPPRESS_COMMENTS=true
 #
 # DEBUG=true|false :: Turn on when debugging this script
 # Debug Level 1: Debug PDTool script only
-DEBUG1=false
+DEBUG1=true
 # Debug Level 2: Debug ExecuteAction, executeVcs
-DEBUG2=false
+DEBUG2=true
 # Debug Level 3: Debug 3rd level scripts invoked from ExecuteAction and executeVcs
-DEBUG3=false
+DEBUG3=true
 # Diffmerger Verbose allows the VCS Diffmerger process to output more information when set to true [Default=true]
-DIFFMERGER_VERBOSE=false
+DIFFMERGER_VERBOSE=true
+#
+# The property order of precedence defines which properties are retrieved in what order.
+#   JVM - These are properties that are set on the JVM command line with a -DVAR=value
+#   PROPERTY_FILE - These are the variables set in the configuration property file like deploy.properties or in the VCSModule.xml
+#   SYSTEM - These are variables that are set in batch files in the operating system prior to invocation of PDTool.
+# If left blank, the default=JVM PROPERTY_FILE SYSTEM
+# However, it may be necessary to be able to override what is in the property file and pick up an environment variable first.
+# propertyOrderPrecedence=JVM SYSTEM PROPERTY_FILE
+propertyOrderPrecedence=
 #
 # Used when parsing property file and processing the moduleId list
 allResourcesIndicator=*
@@ -69,7 +113,7 @@ DomainModule_NonUpdateableAttributes=
 #
 # The CIS Resource Type is mapped to one of the basic VCS Resource Types provided above.
 # Finally, provide the name value pair in the form of "VCS Resource Type=Studio Display Resource Type"
-# Create a comma separate list of these name=value pairs.  For example:
+# Create a comma separated list of these name=value pairs.  For example:
 # folder=Data Source,folder=Composite Database,procedure=Basic Transformation
 #
 VCSModule_ExternalVcsResourceTypeList=
@@ -129,7 +173,7 @@ CIS_CONNECT_RETRY_SLEEP_MILLIS=5000
 # -------------------------------------------------
 # Set the Topology mode here:
 # -------------------------------------------------
-VCS_MULTI_USER_TOPOLOGY=true
+VCS_MULTI_USER_TOPOLOGY=false
 #
 #-------------------
 # VCS_TYPE - The type of VCS being used [svn, p4, cvs, tfs2005, tfs2010, tfs2012, tfs2013, etc]
@@ -139,18 +183,22 @@ VCS_MULTI_USER_TOPOLOGY=true
 #     Concurrent Versions Systems=cvs
 #     Team Foundation Server=tfs2005 or [tfs2010, tfs2012, tfs2013]
 VCS_TYPE=svn
+# VCS_BASE_TYPE - Recommended options=[SVN, CVS, P4, or TFS]. Choose to coincide with VCS_TYPE.
+#     This can be used as a default option when constructing the VCS_WORKSPACE_NAME and VCS_TEMP_DIR name.
+VCS_BASE_TYPE=SVN
 #-------------------
 #
 #-------------------
 # VCS_HOME - VCS Client Home directory where the VCS executable lives.  
 #     Note: This could be a /bin directory.  It must be where the VCS_COMMAND is found.
-#     Windows example: D:/dev/vcs/csvn/bin
+#     Windows example: D:/dev/vcs/csvn/bin or D:\\dev\\vcs\\csvn\\bin
 #        UNIX example: /usr/bin
-VCS_HOME=E:/dev/vcs/csvn/bin
+#VCS_HOME=E:/dev/vcs/csvn/bin
+VCS_HOME=C:/dev/vcs/csvn/bin
 #-------------------
 #
 #-------------------
-# VCS_COMMAND - The actual command for the given VCS Type [svn,p4,cvs]
+# VCS_COMMAND - The actual command for the given VCS Type [svn,p4,cvs,tf.cmd]
 VCS_COMMAND=svn
 #
 # VCS_FULL_COMMAND - [true|false] - Execute the VCS command with the full path (true) or the VCS command only (false)
@@ -188,6 +236,14 @@ VCS_WORKSPACE_INIT_LINK_OPTIONS=
 #		CVS: cvs co ${VCS_PROJECT_ROOT} ${VCS_WORKSPACE_INIT_GET_OPTIONS}
 VCS_WORKSPACE_INIT_GET_OPTIONS=
 
+# VCS Base Folder Initialization.  Add Options: 
+#		TFS: tf.cmd add ${fullResourcePath} -recursive -noprompt /login:${VCS_USERNAME},${VCS_PASSWORD} ${VCS_OPTIONS} ${VCS_BASE_FOLDER_INIT_ADD}
+#			   e.g. E:/dev/vcs/TEE-CLC-11.0.0/tf.cmd add P:/TFSww/Composite_62/cis_objects/shared/test00  $/Composite_62/cis_objects -noprompt /login:user,********
+#		SVN: svn add ${fullResourcePath} ${SVN_AUTH} ${VCS_OPTIONS} ${VCS_BASE_FOLDER_INIT_ADD}
+#		 P4: p4 add ${fullResourcePath} ${VCS_BASE_FOLDER_INIT_ADD}
+#		CVS: cvs add ${fullResourcePath} ${VCS_BASE_FOLDER_INIT_ADD}
+VCS_BASE_FOLDER_INIT_ADD=
+
 # Resource Checkin. Checkin resources to VCS equates to:
 #		TFS: 
 #			Folder:             fullResourcePath:  execFromDir+"/"+resourcePath"
@@ -211,8 +267,10 @@ VCS_WORKSPACE_INIT_GET_OPTIONS=
 #					             Check in folder:  cvs commit -m "${Message}" ${fullResourcePath} ${VCS_CHECKIN_OPTIONS}
 #		      File:             fullResourcePath:  execFromDir+"/"+resourcePath+"_"+resourceType+".cmf"
 #								   Check in file:  cvs commit -m "${Message}" ${fullResourcePath} ${VCS_CHECKIN_OPTIONS}
+# Check-in options are specific to the commit part of the command.  For example, TFS might be -associate:1 which associates a work item with a submission.
 VCS_CHECKIN_OPTIONS=
-# A comma separated list of base-level commands that are required for checkin.  VCS_CHECKIN_OPTIONS is validated against this list.
+# A comma separated list of base-level commands that are required for checkin.  VCS_CHECKIN_OPTIONS is validated against this list.  
+# For example, it may be required by TFS to have the -associate command present on the check-in command line.
 VCS_CHECKIN_OPTIONS_REQUIRED=
 
 # Resource Checkout. Checkout resources to VCS equates to:
@@ -241,6 +299,18 @@ VCS_CHECKIN_OPTIONS_REQUIRED=
 VCS_CHECKOUT_OPTIONS=
 # A comma separated list of base-level commands that are required for checkout.  VCS_CHECKOUT_OPTIONS is validated against this list.
 VCS_CHECKOUT_OPTIONS_REQUIRED=
+
+# VCS Resource Import Options:
+#   Occurs during a vcsCheckout when the temporary checkout.car file is imported into the target server.
+#   The import is the final step in the process.  The backwards compatible option is to include access: -includeaccess 
+#   Consult the Archive Module documentation for more options.
+VCS_CIS_IMPORT_OPTIONS=-includeaccess
+
+# VCS Resource Export Options:
+#   Occurs during a vcsCheckin when the temporary checkout.car file is exported from the target server.
+#   The export from the target is used to compare resources against the VCS repository.  The backwards compatible option is leave this option blank.
+#   Consult the Archive Module documentation for more options.
+VCS_CIS_EXPORT_OPTIONS=
 
 #-------------------
 #
@@ -273,8 +343,8 @@ VCS_CHECKOUT_OPTIONS_REQUIRED=
 #                      Example: :pserver:<VCS_USERNAME>:<VCS_PASSWORD>@myhost:2401/home/cvs
 #
 #     TFS - The base HTTP URL in Team Foundation Server 
-#                  Command Format: [http:////hostname.domain:8080/tfs/basename]
-#                         Example: http:////myhost:8080/tfs/TeamCollection/TeamProject
+#                  Command Format: [http:////hostname.domain:8080/tfs/CollectionName]
+#                         Example: http:////myhost:8080/tfs/TeamCollection
 #
 VCS_REPOSITORY_URL=http:////$SVN_VCS_HOST/svn/sandbox/PDTOOL/$CIS_VERSION
 #-------------------
@@ -284,6 +354,7 @@ VCS_REPOSITORY_URL=http:////$SVN_VCS_HOST/svn/sandbox/PDTOOL/$CIS_VERSION
 #     subversion - The project name
 #     perforce   - The depot name
 #     cvs        - 
+#     TFS        - The Team Project + folders leading up to where Composite metadata folders begin.
 VCS_PROJECT_ROOT=cis_objects
 #-------------------
 #
@@ -298,19 +369,19 @@ VCS_WORKSPACE_HOME=$PROJECT_HOME
 #    Variables can be used to construct the name. Surround variables with 2 $ or 2 % signs when concatenating strings.
 #       e.g. $VCS_TYPE$ww - $VCS_TYPE$ gets evaluated as a variable. "ww" is a string that gets concatentated. Result: svnww
 #    For perforce, make sure all instances of PDToolStudio/PDTool use their own workspace name in the event that you have them installed in more than one place.
-#       Suggestions:  Use w=windows: [$VCS_TYPE$ww].  Use u for UNIX: [$VCS_TYPE$uw].  Use s for studio: [$VCS_TYPE$sw].
+#       Suggestions:  Use w=windows: [$VCS_BASE_TYPE$ww].  Use u for UNIX: [$VCS_BASE_TYPE$uw].  Use s for studio: [$VCS_BASE_TYPE$sw].
 # VCS_WORKSPACE_DIR::  VCS Workspace Dir is a combination of the VCS_WORKSPACE_HOME and a workspace directory name "VCS_WORKSPACE_NAME".  
 # VCS_TEMP_DIR::       VCS Temp Dir is a combination of the VCS_WORKSPACE_HOME and a temp dir name such as $VCS_TYPE$t.
-VCS_WORKSPACE_NAME=$VCS_TYPE$ww
+VCS_WORKSPACE_NAME=$VCS_BASE_TYPE$ww
 VCS_WORKSPACE_DIR=$VCS_WORKSPACE_HOME/$VCS_WORKSPACE_NAME
-VCS_TEMP_DIR=$VCS_WORKSPACE_HOME/$VCS_TYPE$t
+VCS_TEMP_DIR=$VCS_WORKSPACE_HOME/$VCS_BASE_TYPE$t
 #-------------------
 #
 #-------------------
 # VCS_USERNAME - (optional) This is the username for the user logging into the VCS Server.  
 #    If VCS_USERNAME is not set, then the specific VCS Server type may prompt the user for a username and password each time.  
 #    Some VCS Servers, will ask to store the user and password locally for subsequent use.
-VCS_USERNAME=
+VCS_USERNAME=$SVN_VCS_USERNAME
 #-------------------
 #
 #-------------------
@@ -319,16 +390,16 @@ VCS_USERNAME=
 #    If set in this file, execute the following command to encrypt the password:
 #         Unix: ./ExecutePDTool.sh -encrypt ../resources/config/deploy.properties
 #      Windows: ExecutePDTool.bat -encrypt ../resources/config/deploy.properties
-VCS_PASSWORD=
+VCS_PASSWORD=$SVN_VCS_PASSWORD
 #-------------------
 #
 #-------------------
 # VCS_IGNORE_MESSAGES - A comma separated list of messages for the VCS Module to ignore upon execution.
 #    CVS:
 #    Perforce:    	No files to submit
-#    Subversion: 
-#    TFS: 			No files checked in,could not be retrieved because a writable file by the same name exists,already has pending changes,because it already has a pending change that is not compatible
-VCS_IGNORE_MESSAGES=
+#    Subversion:    No files to submit,Could not add all targets because some targets are already versioned,Skipping argument: '.svn' ends in a reserved name
+#    TFS: 			No files checked in,could not be retrieved because a writable file by the same name exists,already has pending changes,because it already has a pending change that is not compatible,No arguments matched any files to add
+VCS_IGNORE_MESSAGES=No files to submit,Could not add all targets because some targets are already versioned,Skipping argument: '.svn' ends in a reserved name
 #-------------------
 #
 #-------------------

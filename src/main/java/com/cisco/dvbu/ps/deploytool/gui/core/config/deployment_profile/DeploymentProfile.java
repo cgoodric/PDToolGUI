@@ -9,7 +9,9 @@ import com.cisco.dvbu.ps.deploytool.gui.core.runtime.file.FilesDAO;
 
 import com.cisco.dvbu.ps.deploytool.gui.util.StringUtils;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -27,6 +29,7 @@ import org.slf4j.LoggerFactory;
  */
 public class DeploymentProfile {
     private static final Logger log = LoggerFactory.getLogger (DeploymentProfile.class);
+    private static final Map<String, String> VCS_TYPE_BASE_MAP = new HashMap<String, String>();
     
     private String path;
     private boolean suppressComments;
@@ -34,6 +37,7 @@ public class DeploymentProfile {
     private boolean debug2;
     private boolean debug3;
     private boolean diffmergerVerbose;
+    private String propertyOrderPrecedence;
     private String allResourcesIndicator;
     private String excludeResourcesIndicator;
     private int userOptionThreshold;
@@ -46,6 +50,7 @@ public class DeploymentProfile {
     private int cisConnectRetrySleepMillis;
     private boolean vcsMultiUserTopology;
     private String vcsType;
+    private String vcsBaseType;
     private String vcsHome;
     private String vcsCommand;
     private boolean vcsExecFullPath;
@@ -53,10 +58,13 @@ public class DeploymentProfile {
     private String vcsWorkspaceInitNewOptions;
     private String vcsWorkspaceInitLinkOptions;
     private String vcsWorkspaceInitGetOptions;
+    private String vcsBaseFolderInitAdd;
     private String vcsCheckinOptions;
     private String vcsCheckinOptionsRequired;
     private String vcsCheckoutOptions;
     private String vcsCheckoutOptionsRequired;
+    private String vcsCisImportOptions;
+    private String vcsCisExportOptions;
     private String vcsRepositoryUrl;
     private String vcsProjectRoot;
     private String vcsWorkspaceHome;
@@ -90,6 +98,14 @@ public class DeploymentProfile {
         try {
             variableRE = Pattern.compile ("\\$\\w+\\$|\\$\\w+|%\\w+%|%\\w+");
         } catch (Exception ignored) { ; }
+        
+        VCS_TYPE_BASE_MAP.put ("SVN", "SVN");
+        VCS_TYPE_BASE_MAP.put ("P4", "P4");
+        VCS_TYPE_BASE_MAP.put ("CVS", "CVS");
+        VCS_TYPE_BASE_MAP.put ("TFS2005", "TFS");
+        VCS_TYPE_BASE_MAP.put ("TFS2010", "TFS");
+        VCS_TYPE_BASE_MAP.put ("TFS2012", "TFS");
+        VCS_TYPE_BASE_MAP.put ("TFS2013", "TFS");
     }
 
     /**
@@ -144,6 +160,8 @@ public class DeploymentProfile {
             value = "" + this.debug3;
         else if (prop.equals ("DIFFMERGER_VERBOSE"))
             value = "" + this.diffmergerVerbose;
+        else if (prop.equals ("propertyOrderPrecedence"))
+            value = this.propertyOrderPrecedence;
         else if (prop.equals ("allResourcesIndicator"))
             value = this.allResourcesIndicator;
         else if (prop.equals ("exculdeResourcesIndiator") || prop.equals ("excludeResourcesIndicator"))
@@ -168,6 +186,8 @@ public class DeploymentProfile {
             value = "" + this.vcsMultiUserTopology;
         else if (prop.equals ("VCS_TYPE"))
             value = this.vcsType;
+        else if (prop.equals ("VCS_BASE_TYPE"))
+            value = this.vcsBaseType;
         else if (prop.equals ("VCS_HOME"))
             value = this.vcsHome;
         else if (prop.equals ("VCS_COMMAND"))
@@ -176,6 +196,26 @@ public class DeploymentProfile {
             value = "" + this.vcsExecFullPath;
         else if (prop.equals ("VCS_OPTIONS"))
             value = this.vcsOptions;
+        else if (prop.equals ("VCS_WORKSPACE_INIT_NEW_OPTIONS"))
+            value = this.vcsWorkspaceInitNewOptions;
+        else if (prop.equals ("VCS_WORKSPACE_INIT_LINK_OPTIONS"))
+            value = this.vcsWorkspaceInitLinkOptions;
+        else if (prop.equals ("VCS_WORKSPACE_INIT_GET_OPTIONS"))
+            value = this.vcsWorkspaceInitGetOptions;
+        else if (prop.equals ("VCS_BASE_FOLDER_INIT_ADD"))
+            value = this.vcsBaseFolderInitAdd;
+        else if (prop.equals ("VCS_CHECKIN_OPTIONS"))
+            value = this.vcsCheckinOptions;
+        else if (prop.equals ("VCS_CHECKIN_OPTIONS_REQUIRED"))
+            value = this.vcsCheckinOptionsRequired;
+        else if (prop.equals ("VCS_CHECKOUT_OPTIONS"))
+            value = this.vcsCheckoutOptions;
+        else if (prop.equals ("VCS_CHECKOUT_OPTIONS_REQUIRED"))
+            value = this.vcsCheckoutOptionsRequired;
+        else if (prop.equals ("VCS_CIS_IMPORT_OPTIONS"))
+            value = this.vcsCisImportOptions;
+        else if (prop.equals ("VCS_CIS_EXPORT_OPTIONS"))
+            value = this.vcsCisExportOptions;
         else if (prop.equals ("VCS_REPOSITORY_URL"))
             value = this.vcsRepositoryUrl;
         else if (prop.equals ("VCS_PROJECT_ROOT"))
@@ -421,6 +461,28 @@ public class DeploymentProfile {
      */
     public boolean isDiffmergerVerbose () {
         return diffmergerVerbose;
+    }
+
+    /**
+     * <p>
+     * Sets the <code>propertyOrderPrecedence</code> field.
+     * </p>
+     * 
+     * @param  propertyOrderPrecedence  Determines the order of precedence when evaluating a variable.
+     */
+    public void setPropertyOrderPrecedence (String propertyOrderPrecedence) {
+        this.propertyOrderPrecedence = propertyOrderPrecedence;
+    }
+
+    /**
+     * <p>
+     * Returns the value of the <code>propertyOrderPrecedence</code> field.
+     * </p>
+     * 
+     * @return     The value.
+     */
+    public String getPropertyOrderPrecedence () {
+        return propertyOrderPrecedence;
     }
 
     /**
@@ -675,6 +737,9 @@ public class DeploymentProfile {
      */
     public void setVcsType (String vcsType) {
         this.vcsType = vcsType;
+
+        // earlier versions of PDTool do not have the VCS_BASE_TYPE attribute
+        this.vcsBaseType = VCS_TYPE_BASE_MAP.get (vcsType.toUpperCase());
     }
 
     /**
@@ -686,6 +751,28 @@ public class DeploymentProfile {
      */
     public String getVcsType () {
         return vcsType;
+    }
+
+    /**
+     * <p>
+     * Sets the <code>vcsBaseType</code> field.
+     * </p>
+     * 
+     * @param  vcsBaseType  The base type of VCS being used [SVN, P4, CVS, or TFS].
+     */
+    public void setVcsBaseType (String vcsBaseType) {
+        this.vcsBaseType = vcsBaseType;
+    }
+
+    /**
+     * <p>
+     * Returns the value of the <code>vcsBaseType</code> field.
+     * </p>
+     * 
+     * @return     The value.
+     */
+    public String getVcsBaseType () {
+        return vcsBaseType;
     }
 
     /**
@@ -844,6 +931,28 @@ public class DeploymentProfile {
 
     /**
      * <p>
+     * Sets the <code>vcsBaseFolderInitAdd</code> field.
+     * </p>
+     * 
+     * @param  vcsBaseFolderInitAdd  Options to use adding a base folder after initialization.
+     */
+    public void setVcsBaseFolderInitAdd (String vcsBaseFolderInitAdd) {
+        this.vcsBaseFolderInitAdd = vcsBaseFolderInitAdd;
+    }
+
+    /**
+     * <p>
+     * Returns the value of the <code>vcsBaseFolderInitAdd</code> field.
+     * </p>
+     * 
+     * @return     The value.
+     */
+    public String getVcsBaseFolderInitAdd () {
+        return vcsBaseFolderInitAdd;
+    }
+
+    /**
+     * <p>
      * Sets the <code>vcsCheckinOptions</code> field.
      * </p>
      * 
@@ -928,6 +1037,50 @@ public class DeploymentProfile {
      */
     public String getVcsCheckoutOptionsRequired () {
         return vcsCheckoutOptionsRequired;
+    }
+
+    /**
+     * <p>
+     * Sets the <code>vcsCisImportOptions</code> field.
+     * </p>
+     * 
+     * @param  vcsCisImportOptions  Options to use when importing resources into CIS.
+     */
+    public void setVcsCisImportOptions (String vcsCisImportOptions) {
+        this.vcsCisImportOptions = vcsCisImportOptions;
+    }
+
+    /**
+     * <p>
+     * Returns the value of the <code>vcsCisImportOptions</code> field.
+     * </p>
+     * 
+     * @return     The value.
+     */
+    public String getVcsCisImportOptions () {
+        return vcsCisImportOptions;
+    }
+
+    /**
+     * <p>
+     * Sets the <code>vcsCisExportOptions</code> field.
+     * </p>
+     * 
+     * @param  vcsCisExportOptions  Options to use when exporting resources from CIS.
+     */
+    public void setVcsCisExportOptions (String vcsCisExportOptions) {
+        this.vcsCisExportOptions = vcsCisExportOptions;
+    }
+
+    /**
+     * <p>
+     * Returns the value of the <code>vcsCisExportOptions</code> field.
+     * </p>
+     * 
+     * @return     The value.
+     */
+    public String getVcsCisExportOptions () {
+        return vcsCisExportOptions;
     }
 
     /**

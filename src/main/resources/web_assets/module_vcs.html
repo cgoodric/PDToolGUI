@@ -315,43 +315,46 @@
                                     "origId": "",
                                     "type": 0,
                                     "vcsType": 1,
-                                    "vcsHome": "",
-                                    "vcsCommand": "",
-                                    "vcsExecFullPath": false,
-                                    "vcsOptions": "",
-                                    "vcsWorkspaceInitNewOptions": "",
+                                    "vcsHome": "C:/dev/vcs/csvn/bin",
+                                    "vcsCommand": "svn",
+                                    "vcsExecFullPath": true,
+                                    "vcsOptions": "--non-interactive --no-auth-cache --trust-server-cert",
+                                    "vcsWorkspaceInitNewOptions": "/location:server",
                                     "vcsWorkspaceInitLinkOptions": "",
                                     "vcsWorkspaceInitGetOptions": "",
+                                    "vcsBaseFolderInitAdd": "",
                                     "vcsCheckinOptions": "",
                                     "vcsCheckinOptionsRequired": "",
                                     "vcsCheckoutOptions": "",
                                     "vcsCheckoutOptionsRequired": "",
-                                    "vcsRepositoryUrl": "",
+                                    "vcsCisImportOptions": "-includeaccess",
+                                    "vcsCisExportOptions": "",
+                                    "vcsRepositoryUrl": "http:////$SVN_VCS_HOST/svn/sandbox/PDTOOL/$CIS_VERSION",
                                     "vcsProjectRoot": "cis_objects",
                                     "vcsWorkspaceHome": "$PROJECT_HOME",
-                                    "vcsWorkspaceName": "$VCS_TYPE$_wworkspace",
+                                    "vcsWorkspaceName": "$VCS_BASE_TYPE$ww",
                                     "vcsWorkspaceDir": "$VCS_WORKSPACE_HOME/$VCS_WORKSPACE_NAME",
-                                    "vcsTempDir": "$VCS_WORKSPACE_HOME/$VCS_TYPE$_temp",
-                                    "vcsUsername": "",
-                                    "vcsPassword": "",
-                                    "vcsIgnoreMessages": "",
+                                    "vcsTempDir": "$VCS_WORKSPACE_HOME/$VCS_BASE_TYPE$t",
+                                    "vcsUsername": "$SVN_VCS_USERNAME",
+                                    "vcsPassword": "$SVN_VCS_PASSWORD",
+                                    "vcsIgnoreMessages": "No files to submit,Could not add all targets because some targets are already versioned,Skipping argument: '.svn' ends in a reserved name",
                                     "vcsMessagePrepend": "",
-                                    "svnEditor": "",
-                                    "svnEnv": "",
-                                    "p4Editor": "",
-                                    "p4Client": "",
-                                    "p4Port": "",
+                                    "svnEditor": "notepad",
+                                    "svnEnv": "SVN_EDITOR",
+                                    "p4Editor": "notepad",
+                                    "p4Client": "$VCS_WORKSPACE_NAME",
+                                    "p4Port": "$VCS_REPOSITORY_URL",
                                     "p4User": "",
                                     "p4Passwd": "",
-                                    "p4Env": "",
-                                    "p4DelLinkOptions": "",
-                                    "cvsRoot": "",
-                                    "cvsRsh": "",
-                                    "cvsEnv": "",
-                                    "tfsEditor": "",
-                                    "tfsEnv": "",
+                                    "p4Env": "P4CLIENT,P4PORT,P4USER,P4PASSWD,P4EDITOR",
+                                    "p4DelLinkOptions": "-f",
+                                    "cvsRoot": "$VCS_REPOSITORY_URL",
+                                    "cvsRsh": "ssh",
+                                    "cvsEnv": "CVSROOT,CVS_RSH",
+                                    "tfsEditor": "notepad",
+                                    "tfsEnv": "TFS_EDITOR",
                                     "tfsCheckinOptions": "",
-                                    "tfsServerUrl": "",
+                                    "tfsServerUrl": "$$",
                                     "envVars": null,
                                     "resourcePath": "",
                                     "resourceType": "",
@@ -411,10 +414,13 @@
                     vcsWorkspaceInitNewOptions = $('#vcsWorkspaceInitNewOptions'),
                     vcsWorkspaceInitLinkOptions = $('#vcsWorkspaceInitLinkOptions'),
                     vcsWorkspaceInitGetOptions = $('#vcsWorkspaceInitGetOptions'),
+                    vcsBaseFolderInitAdd = $('#vcsBaseFolderInitAdd'),
                     vcsCheckinOptions = $('#vcsCheckinOptions'),
                     vcsCheckinOptionsRequired = $('#vcsCheckinOptionsRequired'),
                     vcsCheckoutOptions = $('#vcsCheckoutOptions'),
                     vcsCheckoutOptionsRequired = $('#vcsCheckoutOptionsRequired'),
+                    vcsCisImportOptions = $('#vcsCisImportOptions'),
+                    vcsCisExportOptions = $('#vcsCisExportOptions'),
                     vcsRepositoryUrl = $('#vcsRepositoryUrl'),
                     vcsProjectRoot = $('#vcsProjectRoot'),
                     vcsWorkspaceHome = $('#vcsWorkspaceHome'),
@@ -454,9 +460,9 @@
                     startPath = $("#startPath"),
                     allFields = $([]).add (operation).add (origId).add (id)
                                      .add (vcsHome).add (vcsCommand).add (vcsOptions).add (vcsWorkspaceInitNewOptions)
-                                     .add (vcsWorkspaceInitLinkOptions).add (vcsWorkspaceInitGetOptions).add (vcsCheckinOptions)
-                                     .add (vcsCheckinOptionsRequired).add (vcsCheckoutOptions).add (vcsCheckoutOptionsRequired)
-                                     .add (vcsRepositoryUrl).add (vcsProjectRoot).add (vcsWorkspaceHome).add (vcsWorkspaceName)
+                                     .add (vcsWorkspaceInitLinkOptions).add (vcsWorkspaceInitGetOptions).add (vcsBaseFolderInitAdd).add (vcsCheckinOptions)
+                                     .add (vcsCheckinOptionsRequired).add (vcsCheckoutOptions).add (vcsCheckoutOptionsRequired).add (vcsCisImportOptions)
+                                     .add (vcsCisExportOptions).add (vcsRepositoryUrl).add (vcsProjectRoot).add (vcsWorkspaceHome).add (vcsWorkspaceName)
                                      .add (vcsWorkspaceDir).add (vcsTempDir).add (vcsUsername).add (vcsPassword).add (vcsIgnoreMessages)
                                      .add (vcsMessagePrepend).add (svnEditor).add (svnEnv).add (p4Editor).add (p4Client)
                                      .add (p4Port).add (p4User).add (p4Passwd).add (p4Env).add (p4DelLinkOptions).add (cvsRoot)
@@ -741,8 +747,6 @@
                     setTypeFields();
 
                     $("#vcsType").val (data.vcsType);
-                    //$('#vcsType_' + data.vcsType).prop ("checked", "checked");
-                    //$("#vcsType").buttonset("refresh");
                     if (data.type == 0)
                         setVCSFields();
 
@@ -754,6 +758,7 @@
                     $('#vcsWorkspaceInitNewOptions').val (data.vcsWorkspaceInitNewOptions);
                     $('#vcsWorkspaceInitLinkOptions').val (data.vcsWorkspaceInitLinkOptions);
                     $('#vcsWorkspaceInitGetOptions').val (data.vcsWorkspaceInitGetOptions);
+                    $('#vcsBaseFolderInitAdd').val (data.vcsBaseFolderInitAdd);
 
                     // TFS_CHECKIN_OPTIONS is deprecated. Use its value for VCS_CHECKIN_OPTIONS
                     // if VCS_TYPE is a version of TFS and VCS_CHECKIN_OPTIONS is otherwise unset.)
@@ -775,6 +780,8 @@
                     $('#vcsCheckinOptionsRequired').val (data.vcsCheckinOptionsRequired);
                     $('#vcsCheckoutOptions').val (data.vcsCheckoutOptions);
                     $('#vcsCheckoutOptionsRequired').val (data.vcsCheckoutOptionsRequired);
+                    $('#vcsCisImportOptions').val (data.vcsCisImportOptions);
+                    $('#vcsCisExportOptions').val (data.vcsCisExportOptions);
                     $('#vcsRepositoryUrl').val (data.vcsRepositoryUrl);
                     $('#vcsProjectRoot').val (data.vcsProjectRoot);
                     $('#vcsWorkspaceHome').val (data.vcsWorkspaceHome);
@@ -858,10 +865,13 @@
                         data["vcsWorkspaceInitNewOptions"] = $('#vcsWorkspaceInitNewOptions').val();
                         data["vcsWorkspaceInitLinkOptions"] = $('#vcsWorkspaceInitLinkOptions').val();
                         data["vcsWorkspaceInitGetOptions"] = $('#vcsWorkspaceInitGetOptions').val();
+                        data["vcsBaseFolderInitAdd"] = $('#vcsBaseFolderInitAdd').val();
                         data["vcsCheckinOptions"] = $('#vcsCheckinOptions').val();
                         data["vcsCheckinOptionsRequired"] = $('#vcsCheckinOptionsRequired').val();
                         data["vcsCheckoutOptions"] = $('#vcsCheckoutOptions').val();
                         data["vcsCheckoutOptionsRequired"] = $('#vcsCheckoutOptionsRequired').val();
+                        data["vcsCisImportOptions"] = $('#vcsCisImportOptions').val();
+                        data["vcsCisExportOptions"] = $('#vcsCisExportOptions').val();
                         data["vcsRepositoryUrl"] = $('#vcsRepositoryUrl').val();
                         data["vcsProjectRoot"] = $('#vcsProjectRoot').val();
                         data["vcsWorkspaceHome"] = $('#vcsWorkspaceHome').val();
@@ -898,6 +908,7 @@
                             case VCS_TYPE_TFS2005:
                             case VCS_TYPE_TFS2010:
                             case VCS_TYPE_TFS2012:
+                            case VCS_TYPE_TFS2013:
                                 data["tfsEditor"] = $('#tfsEditor').val();
                                 data["tfsEnv"] = $('#tfsEnv').val();
                                 data["tfsCheckinOptions"] = $('#tfsCheckinOptions').val();
@@ -1022,14 +1033,6 @@
                                 <tr class="conn_row">
                                     <td><label for="vcsType" class="tabs_form_label">VCS Type</label></td>
                                     <td>
-                                        <!--div id="vcsType">
-                                            <input type="radio" name="vcsType" id="vcsType_1" value="1" /><label for="vcsType_1">SVN</label>
-                                            <input type="radio" name="vcsType" id="vcsType_2" value="2" /><label for="vcsType_2">Perforce</label>
-                                            <input type="radio" name="vcsType" id="vcsType_3" value="3" /><label for="vcsType_3">CVS</label>
-                                            <input type="radio" name="vcsType" id="vcsType_4" value="4" /><label for="vcsType_4">TFS 2005</label>
-                                            <input type="radio" name="vcsType" id="vcsType_5" value="5" /><label for="vcsType_5">TFS 2010</label>
-                                            <input type="radio" name="vcsType" id="vcsType_6" value="6" /><label for="vcsType_6">TFS 2012</label>
-                                        </div-->
                                         <select id="vcsType" name="vcsType">
                                             <option value="1">SVN</option>
                                             <option value="2">Perforce</option>
@@ -1075,6 +1078,10 @@
                                     <td><input type="text" name="vcsWorkspaceInitGetOptions" id="vcsWorkspaceInitGetOptions" size="60" class="text ui-widget-content ui-corner-all" /></td>
                                 </tr>
                                 <tr class="conn_row">
+                                    <td><label for="vcsBaseFolderInitAdd" class="tabs_form_label">VCS Base Folder Initialization Add Options</label></td>
+                                    <td><input type="text" name="vcsBaseFolderInitAdd" id="vcsBaseFolderInitAdd" size="60" class="text ui-widget-content ui-corner-all" /></td>
+                                </tr>
+                                <tr class="conn_row">
                                     <td><label for="vcsCheckinOptions" class="tabs_form_label">VCS Checkin Options</label></td>
                                     <td><input type="text" name="vcsCheckinOptions" id="vcsCheckinOptions" size="60" class="text ui-widget-content ui-corner-all" /></td>
                                 </tr>
@@ -1089,6 +1096,14 @@
                                 <tr class="conn_row">
                                     <td><label for="vcsCheckoutOptionsRequired" class="tabs_form_label">VCS Required Checkout Options</label></td>
                                     <td><input type="text" name="vcsCheckoutOptionsRequired" id="vcsCheckoutOptionsRequired" size="60" class="text ui-widget-content ui-corner-all" /></td>
+                                </tr>
+                                <tr class="conn_row">
+                                    <td><label for="vcsCisImportOptions" class="tabs_form_label">VCS CIS Import Options</label></td>
+                                    <td><input type="text" name="vcsCisImportOptions" id="vcsCisImportOptions" size="60" class="text ui-widget-content ui-corner-all" /></td>
+                                </tr>
+                                <tr class="conn_row">
+                                    <td><label for="vcsCisExportOptions" class="tabs_form_label">VCS CIS Export Options</label></td>
+                                    <td><input type="text" name="vcsCisExportOptions" id="vcsCisExportOptions" size="60" class="text ui-widget-content ui-corner-all" /></td>
                                 </tr>
                                 <tr class="conn_row">
                                     <td><label for="vcsRepositoryUrl" class="tabs_form_label">Repository URL</label></td>

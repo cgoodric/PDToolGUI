@@ -317,11 +317,10 @@
                                     resourcePath: "",
                                     resourceType: "",
                                     recurse: "false",
+                                    updateDependenciesRecursively: "false",
                                     mode: "",
                                     privileges: []
                                 });
-                                $('#recurse_false').prop ("checked", "checked");
-                                $("#recurse").buttonset("refresh");
 
                                 $('#addEditForm .dynamic_row').remove();
                                 privilegesRowCount = 0;
@@ -635,6 +634,9 @@
 
                     $('#recurse_' + data.recurse).prop ("checked", "checked");
                     $("#recurse").buttonset("refresh");
+
+                    if (data.updateDependenciesRecursively == null || data.updateDependenciesRecursively == '')
+                        data.updateDependenciesRecursively = "false";
 
                     $('#updateDependenciesRecursively_' + data.updateDependenciesRecursively).prop ("checked", "checked");
                     $("#updateDependenciesRecursively").buttonset("refresh");

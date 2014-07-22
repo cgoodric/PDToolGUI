@@ -119,7 +119,7 @@ public class DeploymentPlansDAO {
             tmpCell.add ((s.isExitOnError()) ? "true" : "false");
             tmpCell.add (s.getBatchName());
             tmpCell.add (s.getMethod());
-            tmpCell.add (s.getServer());
+            tmpCell.add (s.getParam0());
             tmpCell.add (s.getParam1());
             tmpCell.add (s.getParam2());
             tmpCell.add (s.getParam3());
@@ -297,43 +297,45 @@ public class DeploymentPlansDAO {
                 bw.write ("\t");
                 bw.write (s.getMethod());
                 bw.write ("\t");
-                bw.write ("\"" + s.getServer() + "\"");
-                bw.write ("\t");
-                bw.write ("\"" + s.getParam1() + "\"");
+                bw.write ("\"" + s.getParam0() + "\"");
                 
                 int numParams = countParams (s);
                 
                 if (numParams >= 2) {
                     bw.write ("\t");
-                    bw.write ("\"" + s.getParam2() + "\"");
-                    if (numParams >= 3) {
-                        bw.write ("\t");
-                        bw.write ("\"" + s.getParam3() + "\"");
-                        if (numParams >= 4) {
-                            bw.write ("\t");
-                            bw.write ("\"" + s.getParam4() + "\"");
-                            if (numParams >= 5) {
-                                bw.write ("\t");
-                                bw.write ("\"" + s.getParam5() + "\"");
-                                if (numParams >= 6) {
-                                    bw.write ("\t");
-                                    bw.write ("\"" + s.getParam6() + "\"");
-                                    if (numParams >= 7) {
-                                        bw.write ("\t");
-                                        bw.write ("\"" + s.getParam7() + "\"");
-                                        if (numParams >= 8) {
-                                            bw.write ("\t");
-                                            bw.write ("\"" + s.getParam8() + "\"");
-                                            if (numParams >= 9) {
-                                                bw.write ("\t");
-                                                bw.write ("\"" + s.getParam9() + "\"");
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
+                    bw.write ("\"" + s.getParam1() + "\"");
+	                if (numParams >= 3) {
+	                    bw.write ("\t");
+	                    bw.write ("\"" + s.getParam2() + "\"");
+	                    if (numParams >= 4) {
+	                        bw.write ("\t");
+	                        bw.write ("\"" + s.getParam3() + "\"");
+	                        if (numParams >= 5) {
+	                            bw.write ("\t");
+	                            bw.write ("\"" + s.getParam4() + "\"");
+	                            if (numParams >= 6) {
+	                                bw.write ("\t");
+	                                bw.write ("\"" + s.getParam5() + "\"");
+	                                if (numParams >= 7) {
+	                                    bw.write ("\t");
+	                                    bw.write ("\"" + s.getParam6() + "\"");
+	                                    if (numParams >= 8) {
+	                                        bw.write ("\t");
+	                                        bw.write ("\"" + s.getParam7() + "\"");
+	                                        if (numParams >= 9) {
+	                                            bw.write ("\t");
+	                                            bw.write ("\"" + s.getParam8() + "\"");
+	                                            if (numParams >= 10) {
+	                                                bw.write ("\t");
+	                                                bw.write ("\"" + s.getParam9() + "\"");
+	                                            }
+	                                        }
+	                                    }
+	                                }
+	                            }
+	                        }
+	                    }
+	                }
                 }
                 
                 bw.newLine();
@@ -438,7 +440,7 @@ public class DeploymentPlansDAO {
                                 break;
                             
                             case 5: 
-                                s.setServer (token.replace ("\"", ""));
+                                s.setParam0 (token.replace ("\"", ""));
                                 break;
                             
                             case 6: 
@@ -508,10 +510,6 @@ public class DeploymentPlansDAO {
         }
         
         // probably should have a method name validator here. Need full list of method names.
-
-        if (s.getServer() == null || s.getServer().length() == 0) {
-            result.add (new ResultMessage.MessageItem ("server", "Server may not be empty."));
-        }
 
         return result;
     }
