@@ -761,7 +761,7 @@ public class DeploymentProfile {
      * @param  vcsBaseType  The base type of VCS being used [SVN, P4, CVS, or TFS].
      */
     public void setVcsBaseType (String vcsBaseType) {
-        this.vcsBaseType = vcsBaseType;
+    	this.vcsBaseType = vcsBaseType;
     }
 
     /**

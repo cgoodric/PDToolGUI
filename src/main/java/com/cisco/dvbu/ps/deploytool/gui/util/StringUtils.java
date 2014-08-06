@@ -158,7 +158,7 @@ public class StringUtils {
      * @return The encrypted string.
      */
     public static String encryptPassword (String p) {
-        if (p != null && !p.startsWith ("Encrypted:") && !p.startsWith ("$")) {
+        if (p != null && p.length() > 0 && !p.startsWith ("Encrypted:") && !p.startsWith ("$")) {
             try {
                 p = "Encrypted:" + EncryptionManager.encrypt (p);
             } catch (Exception e) {

@@ -300,6 +300,7 @@ public class DeploymentPlansDAO {
                 bw.write ("\"" + s.getParam0() + "\"");
                 
                 int numParams = countParams (s);
+                log.debug ("number of params for " + s.getMethod() + ": " + numParams);
                 
                 if (numParams >= 2) {
                     bw.write ("\t");
@@ -514,22 +515,23 @@ public class DeploymentPlansDAO {
         return result;
     }
     
-    // counts the number of populated parameters so the serializer knows when to stop outputing parameters
+    // counts the number of populated parameters so the serializer knows when to stop outputting parameters
     //
     private int countParams (DeploymentPlan.Step s) {
         int result = 0;
 
-        for (int i = 1; i <= 9; i++) {
+        for (int i = 0; i <= 9; i++) {
             switch (i) {
-                case 1: if (s.getParam1() != null && s.getParam1().length() > 0) result = 1; break;
-                case 2: if (s.getParam2() != null && s.getParam2().length() > 0) result = 2; break;
-                case 3: if (s.getParam3() != null && s.getParam3().length() > 0) result = 3; break;
-                case 4: if (s.getParam4() != null && s.getParam4().length() > 0) result = 4; break;
-                case 5: if (s.getParam5() != null && s.getParam5().length() > 0) result = 5; break;
-                case 6: if (s.getParam6() != null && s.getParam6().length() > 0) result = 6; break;
-                case 7: if (s.getParam7() != null && s.getParam7().length() > 0) result = 7; break;
-                case 8: if (s.getParam8() != null && s.getParam8().length() > 0) result = 8; break;
-                case 9: if (s.getParam9() != null && s.getParam9().length() > 0) result = 9; break;
+            	case 0: if (s.getParam0() != null && s.getParam0().length() > 0) result = 1; break;
+                case 1: if (s.getParam1() != null && s.getParam1().length() > 0) result = 2; break;
+                case 2: if (s.getParam2() != null && s.getParam2().length() > 0) result = 3; break;
+                case 3: if (s.getParam3() != null && s.getParam3().length() > 0) result = 4; break;
+                case 4: if (s.getParam4() != null && s.getParam4().length() > 0) result = 5; break;
+                case 5: if (s.getParam5() != null && s.getParam5().length() > 0) result = 6; break;
+                case 6: if (s.getParam6() != null && s.getParam6().length() > 0) result = 7; break;
+                case 7: if (s.getParam7() != null && s.getParam7().length() > 0) result = 8; break;
+                case 8: if (s.getParam8() != null && s.getParam8().length() > 0) result = 9; break;
+                case 9: if (s.getParam9() != null && s.getParam9().length() > 0) result = 10; break;
             }
         }
         

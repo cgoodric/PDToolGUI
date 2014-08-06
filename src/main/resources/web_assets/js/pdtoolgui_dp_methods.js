@@ -469,12 +469,13 @@ function setMethodParameters (
                     '</tr>'
                 );                
 
-                $("#param" + p + "_rdo").buttonset();
-                if (paramValue != null && paramValue.length > 0) {
-                    $('#param' + p + '_rdo_' + paramValue.toLowerCase()).prop ("checked", "checked");
-                    $("#param" + p + "_rdo").buttonset("refresh");
+                if (paramValue == null || paramValue.length == 0) {
+                    paramValue = param.defaultValue;
                 }
 
+                $("#param" + p + "_rdo").buttonset();
+                $('#param' + p + '_rdo_' + paramValue.toLowerCase()).prop ("checked", "checked");
+                $("#param" + p + "_rdo").buttonset("refresh");
             
                 // set the parameter number and a change event on the select list 
                 // to update the hidden input value
@@ -2159,7 +2160,8 @@ var DEPLOYMENT_METHODS = {
                     {
                         name: "recursive",
                         type: "boolean",
-                        title: "Indicates whether to create missing intervening folders or not"
+                        title: "Indicates whether to create missing intervening folders or not",
+                        defaultValue: "false"
                     }
                 ]
             },

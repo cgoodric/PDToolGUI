@@ -14,8 +14,8 @@
     <property name="docs" location="docs"/>
     <property name="templates" location="templates"/>
     <property name="project-name" value="PDToolGUI"/>
-    <property name="maven_version" value="0.2.0-SNAPSHOT"/>
-    <property name="dist_version" value="beta_bld0002"/>
+    <property name="maven_version" value="0.3.0-SNAPSHOT"/>
+    <property name="dist_version" value="beta_bld0003"/>
     <property name="pom_tmpl" location="pom_template.xml"/>
     <property name="pom_xml" location="pom.xml"/>
 

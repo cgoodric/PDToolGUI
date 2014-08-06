@@ -145,7 +145,7 @@ public class DeploymentProfilesDAO {
         dp.setCisConnectRetrySleepMillis (Integer.parseInt (p.getProperty ("CIS_CONNECT_RETRY_SLEEP_MILLIS")));
         dp.setVcsMultiUserTopology (Boolean.parseBoolean (p.getProperty ("VCS_MULTI_USER_TOPOLOGY")));
         dp.setVcsType (p.getProperty ("VCS_TYPE"));
-        dp.setVcsType (p.getProperty ("VCS_BASE_TYPE"));
+        dp.setVcsBaseType (p.getProperty ("VCS_BASE_TYPE"));
         dp.setVcsHome (p.getProperty ("VCS_HOME"));
         dp.setVcsCommand (p.getProperty ("VCS_COMMAND"));
         dp.setVcsExecFullPath (Boolean.parseBoolean (p.getProperty ("VCS_EXEC_FULL_PATH")));

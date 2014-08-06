@@ -355,12 +355,12 @@ var VCS_TYPE_BASES = [
 
 // supported version control systems base types
 //
-VCS_TYPE_NULL = 0;
-VCS_TYPE_SVN = 1;
-VCS_TYPE_P4 = 2;
-VCS_TYPE_CVS = 3;
-VCS_TYPE_TFS = 4;
-var VCS_TYPES = [
+VCS_BASE_TYPE_NULL = 0;
+VCS_BASE_TYPE_SVN = 1;
+VCS_BASE_TYPE_P4 = 2;
+VCS_BASE_TYPE_CVS = 3;
+VCS_BASE_TYPE_TFS = 4;
+var VCS_BASE_TYPES = [
     "(Choose VCS Base Type ...)",
     "svn", 
     "p4", 
