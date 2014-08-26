@@ -1,10 +1,58 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<ns2:DatasourceModule xmlns:ns2="http://www.compositesw.com/ps/deploytool/modules">
+<ns2:DatasourceModule xmlns:ns2="http://www.dvbu.cisco.com/ps/deploytool/modules">
     <datasource>
         <attributeDefsDataSource>
             <id>ds1</id>
-            <dataSourceType>PostgreSQL 9.0</dataSourceType>
+            <dataSourceType>PostgreSQL 9.1</dataSourceType>
             <attributeDefs>
+                <attributeDef>
+                    <name>Add Database Link</name>
+                    <type>STRING</type>
+                    <updateRule>READ_WRITE</updateRule>
+                    <required>false</required>
+                    <displayName>Add Database Link</displayName>
+                    <visible>true</visible>
+                </attributeDef>
+                <attributeDef>
+                    <name>DBLinkList</name>
+                    <type>MAP</type>
+                    <updateRule>READ_WRITE</updateRule>
+                    <required>false</required>
+                    <displayName>Database Links</displayName>
+                    <visible>true</visible>
+                </attributeDef>
+                <attributeDef>
+                    <name>DBLinkName</name>
+                    <type>STRING</type>
+                    <updateRule>READ_WRITE</updateRule>
+                    <required>false</required>
+                    <displayName>Database Link Name</displayName>
+                    <visible>true</visible>
+                </attributeDef>
+                <attributeDef>
+                    <name>DBLinkSourcePath</name>
+                    <type>STRING</type>
+                    <updateRule>READ_WRITE</updateRule>
+                    <required>false</required>
+                    <displayName>Path of data source</displayName>
+                    <visible>true</visible>
+                </attributeDef>
+                <attributeDef>
+                    <name>LowerBoundForDataShip</name>
+                    <type>LONG</type>
+                    <updateRule>READ_WRITE</updateRule>
+                    <required>false</required>
+                    <displayName>Lower bound for dataship</displayName>
+                    <visible>true</visible>
+                </attributeDef>
+                <attributeDef>
+                    <name>UpperBoundForDataShip</name>
+                    <type>LONG</type>
+                    <updateRule>READ_WRITE</updateRule>
+                    <required>false</required>
+                    <displayName>Upper bound for dataship</displayName>
+                    <visible>true</visible>
+                </attributeDef>
                 <attributeDef>
                     <name>autoAddChildren</name>
                     <type>STRING</type>
@@ -82,6 +130,22 @@
                     <required>false</required>
                     <displayName>Connector Name</displayName>
                     <visible>false</visible>
+                </attributeDef>
+                <attributeDef>
+                    <name>dataShipTempTablePrefix</name>
+                    <type>STRING</type>
+                    <updateRule>READ_WRITE</updateRule>
+                    <required>false</required>
+                    <displayName>Temp Table Prefix</displayName>
+                    <visible>true</visible>
+                </attributeDef>
+                <attributeDef>
+                    <name>destinationSchema</name>
+                    <type>STRING</type>
+                    <updateRule>READ_WRITE</updateRule>
+                    <required>false</required>
+                    <displayName>Schema path for Temp Tables</displayName>
+                    <visible>true</visible>
                 </attributeDef>
                 <attributeDef>
                     <name>driverName</name>
@@ -177,6 +241,38 @@
                     <updateRule>READ_WRITE</updateRule>
                     <required>true</required>
                     <displayName>Save Password</displayName>
+                    <visible>true</visible>
+                </attributeDef>
+                <attributeDef>
+                    <name>postgresqlEnableBulkLoad</name>
+                    <type>BOOLEAN</type>
+                    <updateRule>READ_WRITE</updateRule>
+                    <required>false</required>
+                    <displayName>Enable Bulk Load</displayName>
+                    <visible>true</visible>
+                </attributeDef>
+                <attributeDef>
+                    <name>supportsDBLink</name>
+                    <type>BOOLEAN</type>
+                    <updateRule>READ_WRITE</updateRule>
+                    <required>false</required>
+                    <displayName>Enable PostgreSql dblink</displayName>
+                    <visible>true</visible>
+                </attributeDef>
+                <attributeDef>
+                    <name>supportsDataship</name>
+                    <type>BOOLEAN</type>
+                    <updateRule>READ_WRITE</updateRule>
+                    <required>false</required>
+                    <displayName>Is dataship source</displayName>
+                    <visible>true</visible>
+                </attributeDef>
+                <attributeDef>
+                    <name>supportsDatashipAsTarget</name>
+                    <type>BOOLEAN</type>
+                    <updateRule>READ_WRITE</updateRule>
+                    <required>false</required>
+                    <displayName>Is dataship target</displayName>
                     <visible>true</visible>
                 </attributeDef>
                 <attributeDef>

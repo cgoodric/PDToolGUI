@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<ns2:DatasourceModule xmlns:ns2="http://www.compositesw.com/ps/deploytool/modules">
+<ns2:DatasourceModule xmlns:ns2="http://www.dvbu.cisco.com/ps/deploytool/modules">
     <datasource>
         <attributeDefsDataSource>
             <id>ds1</id>
-            <dataSourceType>Hive 0.8.1</dataSourceType>
+            <dataSourceType>Hive 0.9.0</dataSourceType>
             <attributeDefs>
                 <attributeDef>
                     <name>autoAddChildren</name>

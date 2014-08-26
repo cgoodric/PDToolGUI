@@ -215,6 +215,8 @@ public class DeploymentProfilesDAO {
      */
     public ResultMessage edit (DeploymentProfile dp) {
         File f;
+        File ft = new File (FilesDAO.getPdtHome() + "/" + FilesDAO.fileTypeProperties.get (FilesDAO.FILE_TYPE_DEPLOY_CONFIG).getTemplate());
+        File fTemp = new File (FilesDAO.getPdtHome() + "/gui/temp.txt");
         BufferedReader br = null;
         BufferedWriter bw = null;
         Matcher m = null;
@@ -239,32 +241,49 @@ public class DeploymentProfilesDAO {
             return new ResultMessage ("error", "Error retrieving file \"" + dp.getPath() + "\": file is not writeable.", null);
         }
         
+        if (! ft.exists()) {
+            return new ResultMessage ("error", "Error retrieving file \"" + ft.getPath() + "\": file does not exist.", null);
+        }
+        
+        if (! ft.canRead()) {
+            return new ResultMessage ("error", "Error retrieving file \"" + ft.getPath() + "\": file is not readable.", null);
+        }
+        
         try {
-            File fb = new File (dp.getPath() + ".bak");
             String line;
             int lineNum = 0;
             boolean inCustomVarsSection = false;
             int numSeparators = 0; // keep track of the number of "#====" lines after encountering the custom variable section. the second one indicates the end of the section.
             Map<String, String> writtenCustomVars = new HashMap<String, String>();
             
-            log.debug ("Moving \"" + f.getAbsolutePath() + "\" to \"" + fb.getAbsolutePath() + "\".");
-            
-            // windows doesn't let you copy a file to an existing file's name
+            // if user preferences indicate to save backups of edited files, rename the original file.
             //
-            if (fb.exists() && fb.canWrite())
-                FileUtils.deleteQuietly (fb);
-
-            FileUtils.copyFile (f, fb);
+            if (PreferencesManager.getInstance().getBackupFiles().equals ("true")) {
+                File fb = new File (dp.getPath() + ".bak");
+                
+                log.debug ("Copying \"" + f.getAbsolutePath() + "\" to \"" + fb.getAbsolutePath() + "\".");
+                
+                // windows doesn't let you copy a file to an existing file's name
+                //
+                if (fb.exists() && fb.canWrite())
+                    FileUtils.deleteQuietly (fb);
     
-            // open the template file for reading
-            //
-            File ft = new File (FilesDAO.getPdtHome() + "/" + FilesDAO.fileTypeProperties.get (FilesDAO.FILE_TYPE_DEPLOY_CONFIG).getTemplate());
-
+                FileUtils.copyFile (f, fb);
+            }
+    
             log.debug ("Opening \"" + ft.getAbsolutePath() + "\" for reading.");
             br = new BufferedReader (new FileReader (ft));
 
-            log.debug ("Opening \"" + f.getAbsolutePath() + "\" for writing.");
-            bw = new BufferedWriter (new FileWriter (f, false));
+            //log.debug ("Opening \"" + f.getAbsolutePath() + "\" for writing.");
+            //bw = new BufferedWriter (new FileWriter (f, false));
+            
+            // no idea why, but the BufferedWriter.close() method isn't releasing the file resource in this method
+            // on Windows (works fine in the DocumentPlansDAO, though.) The JDK can write to it but can't rename or 
+            // delete it. using a dummy file for now (shouldn't run into race condition issues as there should only
+            // be a single user using the application at a time.)
+            //
+            log.debug ("Opening temp file for writing.");
+            bw = new BufferedWriter (new FileWriter (fTemp, false));
             
             while ((line = br.readLine()) != null) {
                 lineNum++;
@@ -598,20 +617,13 @@ public class DeploymentProfilesDAO {
             
             bw.flush();
             
-            // if user preferences indicate not to save backups of edited files, ditch the backup.
-            //
-            if (PreferencesManager.getInstance().getBackupFiles().equals ("false")) {
-                if (fb.exists() && fb.canWrite())
-                    FileUtils.deleteQuietly (fb);
-            }
-
         } catch (Exception e) {
             return new ResultMessage ("error", "Error: " + e.getMessage(), null);
         } finally {
             try {
                 if (bw != null) bw.close();
             } catch (Exception e2) {
-                return new ResultMessage ("error", "Error closing temp file \"" + dp.getPath() + "_tmp\": " + e2.getMessage(), null);
+                return new ResultMessage ("error", "Error closing file \"" + dp.getPath() + "\": " + e2.getMessage(), null);
             }
 
             try {
@@ -621,6 +633,16 @@ public class DeploymentProfilesDAO {
             }
 
         }
+        
+        // copy resulting temp file to file specified by user
+        //
+        try {
+            FileUtils.deleteQuietly (f);
+            FileUtils.copyFile (fTemp, f);
+        } catch (Exception e) {
+        	return new ResultMessage ("error", "Error copying temporary file to \"" + dp.getPath() + "\": " + e.getMessage(), null);
+        }
+
         
         return new ResultMessage ("success", "Deployment profile updated.", null);
     }

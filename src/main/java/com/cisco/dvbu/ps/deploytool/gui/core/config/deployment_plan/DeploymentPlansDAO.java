@@ -197,7 +197,7 @@ public class DeploymentPlansDAO {
         BufferedReader br = null;
         BufferedWriter bw = null;
         
-        log.debug ("checking inputs");
+        log.debug ("edit: Sanity checking input file path.");
         
         if (dp == null) {
             return new ResultMessage ("error", "Error: deployment plan may not be NULL.", null);
@@ -350,7 +350,7 @@ public class DeploymentPlansDAO {
             try {
                 if (bw != null) bw.close();
             } catch (Exception e2) {
-                return new ResultMessage ("error", "Error closing temporary file \"" + dp.getPath() + "_tmp\": " + e2.getMessage(), null);
+                return new ResultMessage ("error", "Error closing file \"" + dp.getPath() + "\": " + e2.getMessage(), null);
             }
 
             try {

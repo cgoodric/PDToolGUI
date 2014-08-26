@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<ns2:DatasourceModule xmlns:ns2="http://www.compositesw.com/ps/deploytool/modules">
+<ns2:DatasourceModule xmlns:ns2="http://www.dvbu.cisco.com/ps/deploytool/modules">
     <datasource>
         <attributeDefsDataSource>
             <id>ds1</id>
@@ -94,7 +94,7 @@
                 <attributeDef>
                     <name>local</name>
                     <type>BOOLEAN</type>
-                    <updateRule>WRITE_ON_CREATE</updateRule>
+                    <updateRule>READ_WRITE</updateRule>
                     <required>true</required>
                     <displayName>Local File System</displayName>
                     <visible>true</visible>
@@ -126,7 +126,7 @@
                 <attributeDef>
                     <name>url</name>
                     <type>STRING</type>
-                    <updateRule>WRITE_ON_CREATE</updateRule>
+                    <updateRule>READ_WRITE</updateRule>
                     <required>false</required>
                     <displayName>URL</displayName>
                     <visible>true</visible>

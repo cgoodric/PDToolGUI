@@ -469,7 +469,7 @@ function setMethodParameters (
                     '</tr>'
                 );                
 
-                if (paramValue == null || paramValue.length == 0) {
+                if (paramValue === undefined || paramValue == null || paramValue.length == 0) {
                     paramValue = param.defaultValue;
                 }
 

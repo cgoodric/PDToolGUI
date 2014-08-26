@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<ns2:DatasourceModule xmlns:ns2="http://www.compositesw.com/ps/deploytool/modules">
+<ns2:DatasourceModule xmlns:ns2="http://www.dvbu.cisco.com/ps/deploytool/modules">
     <datasource>
         <attributeDefsDataSource>
             <id>ds1</id>
-            <dataSourceType>NeoView 2.3</dataSourceType>
+            <dataSourceType>NeoView 2.4</dataSourceType>
             <attributeDefs>
                 <attributeDef>
                     <name>allDatabases</name>

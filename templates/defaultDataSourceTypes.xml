@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<ns2:DatasourceModule xmlns:ns2="http://www.compositesw.com/ps/deploytool/modules">
+<ns2:DatasourceModule xmlns:ns2="http://www.dvbu.cisco.com/ps/deploytool/modules">
     <datasource>
         <dataSourceTypesDataSource>
             <dataSourceType>
@@ -130,6 +130,20 @@
             </dataSourceType>
             <dataSourceType>
                 <name>Hive 0.10 (HiveServer2)</name>
+                <type>Hive2</type>
+                <attribute>
+                    <name>driverClass</name>
+                    <type>STRING</type>
+                    <value>org.apache.hive.jdbc.HiveDriver</value>
+                </attribute>
+                <attribute>
+                    <name>urlPattern</name>
+                    <type>STRING</type>
+                    <value>jdbc:hive2://&lt;HOST&gt;:&lt;PORT&gt;/&lt;DATABASE_NAME&gt;</value>
+                </attribute>
+            </dataSourceType>
+            <dataSourceType>
+                <name>Hive 0.12 (HiveServer2)</name>
                 <type>Hive2</type>
                 <attribute>
                     <name>driverClass</name>

@@ -1,16 +1,40 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<ns2:DatasourceModule xmlns:ns2="http://www.compositesw.com/ps/deploytool/modules">
+<ns2:DatasourceModule xmlns:ns2="http://www.dvbu.cisco.com/ps/deploytool/modules">
     <datasource>
         <attributeDefsDataSource>
             <id>ds1</id>
-            <dataSourceType>Microsoft SQL Server 2000</dataSourceType>
+            <dataSourceType>Microsoft SQL Server 2012</dataSourceType>
             <attributeDefs>
+                <attributeDef>
+                    <name>LowerBoundForDataShip</name>
+                    <type>LONG</type>
+                    <updateRule>READ_WRITE</updateRule>
+                    <required>false</required>
+                    <displayName>Lower bound for dataship</displayName>
+                    <visible>true</visible>
+                </attributeDef>
+                <attributeDef>
+                    <name>UpperBoundForDataShip</name>
+                    <type>LONG</type>
+                    <updateRule>READ_WRITE</updateRule>
+                    <required>false</required>
+                    <displayName>Upper bound for dataship</displayName>
+                    <visible>true</visible>
+                </attributeDef>
                 <attributeDef>
                     <name>allDatabases</name>
                     <type>BOOLEAN</type>
                     <updateRule>READ_WRITE</updateRule>
                     <required>true</required>
                     <displayName>Show All Databases</displayName>
+                    <visible>true</visible>
+                </attributeDef>
+                <attributeDef>
+                    <name>authentication</name>
+                    <type>STRING</type>
+                    <updateRule>READ_WRITE</updateRule>
+                    <required>false</required>
+                    <displayName>Authentication</displayName>
                     <visible>true</visible>
                 </attributeDef>
                 <attributeDef>
@@ -90,6 +114,22 @@
                     <required>false</required>
                     <displayName>Connector Name</displayName>
                     <visible>false</visible>
+                </attributeDef>
+                <attributeDef>
+                    <name>dataShipTempTablePrefix</name>
+                    <type>STRING</type>
+                    <updateRule>READ_WRITE</updateRule>
+                    <required>false</required>
+                    <displayName>Temp Table Prefix</displayName>
+                    <visible>true</visible>
+                </attributeDef>
+                <attributeDef>
+                    <name>destinationSchema</name>
+                    <type>STRING</type>
+                    <updateRule>READ_WRITE</updateRule>
+                    <required>false</required>
+                    <displayName>Schema path for Temp Tables</displayName>
+                    <visible>true</visible>
                 </attributeDef>
                 <attributeDef>
                     <name>driverName</name>
@@ -201,6 +241,30 @@
                     <updateRule>READ_WRITE</updateRule>
                     <required>true</required>
                     <displayName>Select Mode</displayName>
+                    <visible>true</visible>
+                </attributeDef>
+                <attributeDef>
+                    <name>sqlserverEnableBcp</name>
+                    <type>BOOLEAN</type>
+                    <updateRule>READ_WRITE</updateRule>
+                    <required>false</required>
+                    <displayName>Enable Bulk Import/Export</displayName>
+                    <visible>true</visible>
+                </attributeDef>
+                <attributeDef>
+                    <name>supportsDataship</name>
+                    <type>BOOLEAN</type>
+                    <updateRule>READ_WRITE</updateRule>
+                    <required>false</required>
+                    <displayName>Is dataship source</displayName>
+                    <visible>true</visible>
+                </attributeDef>
+                <attributeDef>
+                    <name>supportsDatashipAsTarget</name>
+                    <type>BOOLEAN</type>
+                    <updateRule>READ_WRITE</updateRule>
+                    <required>false</required>
+                    <displayName>Is dataship target</displayName>
                     <visible>true</visible>
                 </attributeDef>
                 <attributeDef>

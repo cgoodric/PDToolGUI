@@ -41,6 +41,24 @@ Release Notes (newest first):
 ==================================
 
 ======================
+Release Beta 3:
+======================
+1) Fixed an issue where the deployment properties editor was writing the VCS base type into the VCS type.
+
+2) Fixed an issue on Windows where a deployment profile could not be renamed or deleted after editing it. Wasn't
+   able to track down what is keeping the file open, but came up with a workaround.
+
+3) Fixed an issue where the deployment plan file was being written out without the server.xml argument.
+
+4) Fixed an issue where password fields were being populated with "Encrypted:" when the password field was blank
+   (and not just NULL.)
+
+5) Added default value setting for boolean parameter fields in the deployment plan editor.
+
+6) Updated the data source attributes files for hotfix 6.2.6.00.37
+
+
+======================
 Release Beta 2:
 ======================
 1) Execution log file names now contain the file name of the plan being executed.
