@@ -202,7 +202,7 @@ public class ExecutePDTool {
                 
                 // create an output writer for the log file on the filesystem.
                 //
-                String planName = StringUtils.basename (planPath).replaceAll("\\.dp$", "");
+                String planName = (planPath != null) ? StringUtils.basename (planPath).replaceAll("\\.dp$", "") : "vcsinit";
                 logFilePath = pdtHome + "/logs/log_" + planName + "_" + sdf.format (dt) + ".log";
                 File logFile = new File (logFilePath);
                 BufferedWriter bw = null;
